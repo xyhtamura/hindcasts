@@ -1,0 +1,1646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>prolepsis — hindcast feedback field</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Averia+Sans+Libre:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* y2k transit-dream palette, amber-forward: sodium concourse, beauty-ad pink, aqua afterglow */
+      --bg: #092229;
+      --bg-deep: #041a23;
+      --panel: rgba(220, 252, 255, 0.092);
+      --panel-hi: rgba(255, 224, 244, 0.135);
+      --dim: rgba(20, 76, 89, 0.48);
+      --dim-hi: rgba(134, 255, 245, 0.13);
+
+      --aqua: #31f7ff;
+      --pool: #0fc4d8;
+      --mint: #9affcf;
+      --petal: #ffb4dd;
+      --petal-hi: #ffe2f1;
+      --sodium: #ffb229;
+      --lime: #dfff6a;
+      --violet: #8a79ff;
+
+      --aqua-lo: rgba(49, 247, 255, 0.12);
+      --aqua-mid: rgba(49, 247, 255, 0.34);
+      --petal-glow: rgba(255, 180, 221, 0.36);
+      --sodium-glow: rgba(255, 178, 41, 0.20);
+      --line: rgba(154, 255, 237, 0.18);
+      --line-hi: rgba(255, 226, 241, 0.35);
+      --ink: #e9ffff;
+      --muted: rgba(190, 232, 235, 0.50);
+      --muted-hi: rgba(226, 255, 252, 0.76);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      font-family: 'DM Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse 92% 56% at 18% 3%, rgba(255, 211, 150, 0.34) 0%, transparent 54%),
+        radial-gradient(ellipse 64% 44% at 87% 10%, rgba(255, 180, 221, 0.20) 0%, transparent 56%),
+        radial-gradient(ellipse 60% 45% at 92% 88%, rgba(49, 247, 255, 0.14) 0%, transparent 62%),
+        linear-gradient(125deg, #170a03 0%, #41200f 33%, #6f3913 58%, #2f1627 100%);
+      overflow-x: hidden;
+    }
+
+    /* smeared light-leak field */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: -10% -8%;
+      background:
+        linear-gradient(102deg, transparent 0 17%, rgba(255,247,235,0.18) 18%, transparent 21% 100%),
+        linear-gradient(96deg, transparent 0 35%, rgba(255,178,41,0.16) 36%, transparent 40% 100%),
+        linear-gradient(84deg, transparent 0 66%, rgba(255,180,221,0.11) 67%, transparent 70% 100%),
+        repeating-linear-gradient(0deg, rgba(255,245,232,0.024) 0px, rgba(255,245,232,0.024) 1px, transparent 1px, transparent 7px);
+      filter: blur(12px) saturate(125%);
+      opacity: 0.95;
+      pointer-events: none;
+      z-index: 0;
+      transform: skewY(-3deg);
+    }
+
+    /* fine print + LCD grain */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at 50% 50%, transparent 0 45%, rgba(29, 10, 3, 0.40) 100%),
+        repeating-linear-gradient(90deg, rgba(255,248,241,0.025) 0px, rgba(255,248,241,0.025) 1px, transparent 1px, transparent 4px);
+      mix-blend-mode: soft-light;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .shell {
+      position: relative;
+      z-index: 1;
+      width: min(1600px, calc(100vw - 24px));
+      margin: 0 auto;
+      padding: 20px 0 56px;
+    }
+
+    /* ── Header: CD booklet / airport wayfinding strip ─────────────────── */
+    header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      gap: 18px;
+      margin-bottom: 12px;
+      padding: 9px 14px 12px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background:
+        linear-gradient(90deg, rgba(255,178,41,0.24), rgba(255,180,221,0.10) 48%, rgba(49,247,255,0.08)),
+        rgba(54, 24, 9, 0.42);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.035) inset,
+        0 18px 60px rgba(255, 178, 41, 0.14),
+        0 10px 42px rgba(255, 180, 221, 0.08);
+      backdrop-filter: blur(18px) saturate(150%);
+    }
+
+    h1 { font-family: 'Averia Sans Libre', sans-serif; }
+
+    .header-left h1 {
+      position: relative;
+      display: inline-block;
+      font-weight: 500;
+      font-style: italic;
+      font-size: clamp(2.1rem, 5.2vw, 6.0rem);
+      letter-spacing: -0.075em;
+      text-transform: lowercase;
+      line-height: 0.82;
+      color: #fff4ea;
+      transform: skewX(-8deg);
+      text-shadow:
+        -6px 0 22px rgba(255, 180, 221, 0.34),
+        8px 0 34px rgba(255, 178, 41, 0.42),
+        0 0 7px rgba(255, 255, 255, 0.42);
+    }
+
+    /* the title's own anticipation: a precursor ghost that LEADS the glyphs */
+    .header-left h1::before {
+      content: 'prolepsis';
+      position: absolute;
+      left: -0.10em;
+      top: -0.04em;
+      color: rgba(49, 247, 255, 0.40);
+      mix-blend-mode: screen;
+      z-index: -1;
+      filter: blur(0.4px);
+    }
+
+    .header-left h1::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -0.12em;
+      height: 0.16em;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--pool), var(--petal), var(--sodium));
+      filter: blur(0.5px);
+      opacity: 0.86;
+    }
+
+    .header-left .tagline {
+      margin-top: 12px;
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
+      color: var(--mint);
+      text-transform: lowercase;
+      text-shadow: 0 0 16px rgba(255, 178, 41, 0.18);
+    }
+    .header-left .tagline em { color: var(--petal-hi); font-style: normal; }
+
+    .header-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+    }
+
+    .version-tag {
+      font-size: 0.62rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--petal-hi);
+      border: 1px solid rgba(255, 223, 192, 0.52);
+      padding: 5px 12px;
+      border-radius: 999px;
+      background: rgba(255, 178, 41, 0.14);
+      box-shadow: 0 0 20px rgba(255, 178, 41, 0.15) inset, 0 0 18px rgba(255, 180, 221, 0.12);
+      white-space: nowrap;
+    }
+    .lineage {
+      font-size: 0.58rem;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+      text-transform: lowercase;
+    }
+
+    /* ── Main 2-col ───────────────────────────────────────────────────── */
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 372px;
+      gap: 12px;
+      align-items: start;
+    }
+
+    /* ── Stage ────────────────────────────────────────────────────────── */
+    .stage {
+      position: sticky;
+      top: 12px;
+      padding: 10px;
+      border: 1px solid var(--line-hi);
+      border-radius: 20px;
+      background:
+        linear-gradient(135deg, rgba(255,241,226,0.16), rgba(255,178,41,0.09) 28%, rgba(255,180,221,0.08), rgba(49,247,255,0.03)),
+        rgba(32, 14, 5, 0.46);
+      box-shadow:
+        0 24px 90px rgba(255, 178, 41, 0.14),
+        0 0 0 1px rgba(255,255,255,0.04) inset;
+      backdrop-filter: blur(22px) saturate(155%);
+    }
+
+    /* dual-view: before | after */
+    .views {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      position: relative;
+    }
+    .views.wipe { grid-template-columns: 1fr; }
+
+    .view {
+      position: relative;
+      background: radial-gradient(circle at 50% 40%, #3a230f 0%, #140a04 80%);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 244, 231, 0.22);
+      box-shadow:
+        0 0 0 1px rgba(255,178,41,0.12) inset,
+        0 0 40px rgba(255, 178, 41, 0.14);
+      aspect-ratio: 16 / 9;
+      display: grid;
+      place-items: center;
+    }
+    .view canvas {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      image-rendering: auto;
+    }
+
+    /* corner tag for each pane */
+    .view .corner {
+      position: absolute;
+      top: 8px; left: 8px;
+      z-index: 5;
+      font-size: 0.58rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      padding: 3px 9px 4px;
+      border-radius: 999px;
+      color: var(--muted-hi);
+      background: rgba(20, 10, 4, 0.62);
+      border: 1px solid rgba(154, 255, 237, 0.22);
+      pointer-events: none;
+    }
+    .view.after .corner { color: var(--sodium); border-color: rgba(255,178,41,0.42); text-shadow: 0 0 12px var(--sodium-glow); }
+
+    /* scanline overlay, kept from the original surface treatment */
+    .view::after {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        repeating-linear-gradient(to bottom, transparent 0px, transparent 3px, rgba(30, 10, 2, 0.07) 3px, rgba(30, 10, 2, 0.07) 4px);
+      pointer-events: none; z-index: 3; border-radius: inherit; mix-blend-mode: multiply;
+    }
+
+    /* wipe mode: stack after over before, clipped by divider */
+    .views.wipe .view.before { grid-area: 1 / 1; }
+    .views.wipe .view.after  { grid-area: 1 / 1; }
+    .views.wipe .view.after  { clip-path: inset(0 0 0 var(--wipe, 50%)); }
+    .wipe-handle {
+      display: none;
+      position: absolute; top: 0; bottom: 0;
+      left: var(--wipe, 50%);
+      width: 2px;
+      background: linear-gradient(var(--sodium), var(--petal), var(--pool));
+      box-shadow: 0 0 16px rgba(255,178,41,0.6);
+      transform: translateX(-1px);
+      cursor: ew-resize;
+      z-index: 8;
+    }
+    .views.wipe .wipe-handle { display: block; }
+    .wipe-handle::after {
+      content: '⇄';
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      width: 26px; height: 26px;
+      display: grid; place-items: center;
+      border-radius: 50%;
+      background: rgba(20,10,4,0.8);
+      border: 1px solid var(--line-hi);
+      color: var(--petal-hi); font-size: 0.7rem;
+    }
+
+    /* big process CTA overlay on the after pane when un-processed */
+    .process-veil {
+      position: absolute; inset: 0; z-index: 6;
+      display: grid; place-items: center; text-align: center;
+      background: rgba(14, 7, 3, 0.58);
+      backdrop-filter: blur(3px);
+      border-radius: inherit;
+      padding: 16px;
+    }
+    .process-veil .pv-inner { max-width: 320px; }
+    .process-veil strong {
+      display: block; font-family: 'Averia Sans Libre', sans-serif; font-style: italic;
+      font-size: 1.1rem; letter-spacing: -0.02em; color: var(--petal-hi);
+      text-transform: lowercase; margin-bottom: 6px; text-shadow: 0 0 18px var(--petal-glow);
+    }
+    .process-veil p { font-size: 0.68rem; color: rgba(255,239,224,0.62); line-height: 1.7; letter-spacing: 0.04em; }
+
+    /* progress meter */
+    .progress {
+      margin-top: 8px;
+      height: 0;
+      overflow: hidden;
+      transition: height 0.2s ease;
+    }
+    .progress.on { height: 26px; }
+    .progress-track {
+      position: relative;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(20, 10, 4, 0.5);
+      overflow: hidden;
+    }
+    .progress-fill {
+      position: absolute; inset: 0 100% 0 0;
+      background: linear-gradient(90deg, var(--sodium), var(--petal) 60%, var(--pool));
+      box-shadow: 0 0 18px rgba(255,178,41,0.4);
+      transition: right 0.08s linear;
+    }
+    .progress-label {
+      position: absolute; inset: 0;
+      display: grid; place-items: center;
+      font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase;
+      color: #fff4ea; text-shadow: 0 0 6px rgba(0,0,0,0.6);
+      mix-blend-mode: difference;
+    }
+
+    /* ── Transport bar ────────────────────────────────────────────────── */
+    .transport {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 9px 10px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(20, 10, 4, 0.42);
+    }
+    .timeline {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .scrub-wrap { position: relative; flex: 1; height: 18px; display: flex; align-items: center; }
+    .trim-shade {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      height: 6px; border-radius: 999px;
+      background: rgba(10, 5, 2, 0.66);
+      pointer-events: none; z-index: 1;
+    }
+    #scrub { position: relative; z-index: 2; width: 100%; margin: 0; }
+    .tcode {
+      font-size: 0.68rem; color: var(--lime); font-variant-numeric: tabular-nums;
+      letter-spacing: 0.04em; white-space: nowrap; min-width: 118px; text-align: right;
+      text-shadow: 0 0 10px rgba(223,255,106,0.24);
+    }
+    .transport-row {
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    }
+    .tbtn {
+      font-family: inherit; font-size: 0.78rem;
+      color: var(--muted-hi);
+      width: 34px; height: 30px;
+      display: grid; place-items: center;
+      background: linear-gradient(180deg, rgba(255,244,230,0.12), rgba(255,178,41,0.06)), rgba(32,14,5,0.5);
+      border: 1px solid rgba(255, 224, 188, 0.20);
+      border-radius: 9px; cursor: pointer;
+      transition: background .14s, border-color .14s, color .14s, transform .14s;
+    }
+    .tbtn:hover:not(:disabled) {
+      border-color: rgba(255, 223, 192, 0.52); color: var(--ink);
+      box-shadow: 0 0 18px rgba(255, 178, 41, 0.14);
+      transform: translateY(-1px);
+    }
+    .tbtn:disabled { opacity: 0.32; cursor: not-allowed; }
+    .tbtn.primary {
+      width: 44px;
+      border-color: rgba(255, 178, 41, 0.6); color: #fff4dc;
+      background: rgba(255, 178, 41, 0.16); text-shadow: 0 0 14px rgba(255,178,41,0.38);
+    }
+    .tspacer { flex: 1; }
+    .tmini {
+      font-size: 0.6rem; letter-spacing: 0.1em; text-transform: lowercase;
+      color: var(--muted); display: flex; align-items: center; gap: 6px;
+    }
+    .tmini select, .tmini input[type="number"] {
+      font-family: inherit; font-size: 0.68rem;
+      background: rgba(33,14,5,0.52); color: var(--ink);
+      border: 1px solid rgba(154,255,237,0.22); border-radius: 8px; padding: 4px 6px;
+    }
+    .tchip {
+      font-family: inherit; font-size: 0.58rem; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--muted-hi); padding: 6px 8px;
+      background: rgba(32,14,5,0.5); border: 1px solid rgba(255,224,188,0.20);
+      border-radius: 999px; cursor: pointer; transition: all .14s;
+    }
+    .tchip:hover:not(:disabled) { border-color: rgba(255,223,192,0.52); color: var(--ink); }
+    .tchip:disabled { opacity: 0.32; cursor: not-allowed; }
+    .tchip.active { border-color: var(--aqua); color: var(--aqua); background: rgba(49,247,255,0.08); }
+
+    .loop-row { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    .loop-row input[type="checkbox"] { accent-color: var(--petal); cursor: pointer; }
+
+    /* ── HUD ──────────────────────────────────────────────────────────── */
+    .hud { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+    .pill {
+      font-size: 0.64rem; letter-spacing: 0.10em; text-transform: lowercase;
+      padding: 4px 9px; border-radius: 999px;
+      border: 1px solid rgba(154, 255, 237, 0.22);
+      color: var(--muted-hi); background: rgba(33, 14, 5, 0.50);
+      box-shadow: 0 0 14px rgba(255,178,41,0.10) inset;
+    }
+    .pill.fx { border-color: rgba(255, 178, 41, 0.40); color: var(--sodium); background: rgba(255, 178, 41, 0.10); text-shadow: 0 0 14px var(--sodium-glow); }
+    .pill.state { border-color: rgba(138, 121, 255, 0.5); color: var(--violet); background: rgba(138,121,255,0.10); }
+    .pill.state.ready { border-color: rgba(154,255,207,0.5); color: var(--mint); background: rgba(154,255,207,0.08); }
+    .pill.state.dirty { border-color: rgba(255,180,221,0.5); color: var(--petal-hi); background: rgba(255,180,221,0.08); }
+
+    /* ── Sidebar ──────────────────────────────────────────────────────── */
+    .controls {
+      background:
+        linear-gradient(180deg, rgba(255, 214, 169, 0.14), rgba(255, 180, 221, 0.08) 34%, rgba(49, 247, 255, 0.04)),
+        rgba(32, 14, 5, 0.48);
+      border: 1px solid var(--line);
+      border-radius: 20px; overflow: hidden;
+      display: flex; flex-direction: column;
+      box-shadow: 0 18px 70px rgba(0, 224, 240, 0.10), 0 0 0 1px rgba(255,255,255,0.035) inset;
+      backdrop-filter: blur(20px) saturate(160%);
+    }
+    .section { padding: 13px 14px; border-bottom: 1px solid rgba(255, 224, 188, 0.14); position: relative; }
+    .section:last-child { border-bottom: none; }
+
+    .section > h2, .notes-head, .group-label {
+      width: max-content; max-width: 100%;
+      font-size: 0.58rem; letter-spacing: 0.23em; text-transform: uppercase;
+      color: var(--petal-hi); font-weight: 500; margin-bottom: 11px;
+      padding: 3px 9px 4px; border-radius: 999px;
+      background: linear-gradient(90deg, rgba(255,178,41,0.28), rgba(255,180,221,0.16), rgba(49,247,255,0.08));
+      box-shadow: 0 0 20px rgba(255,178,41,0.10), 0 0 14px rgba(255,180,221,0.08) inset;
+    }
+
+    .file-row { display: flex; flex-direction: column; gap: 8px; }
+    input[type="file"] { font-family: inherit; font-size: 0.72rem; color: var(--muted-hi); width: 100%; }
+    input[type="file"]::file-selector-button {
+      font-family: inherit; font-size: 0.66rem; letter-spacing: 0.12em; text-transform: uppercase;
+      background: rgba(255, 178, 41, 0.14); color: var(--ink);
+      border: 1px solid rgba(255, 178, 41, 0.32); border-radius: 999px;
+      padding: 6px 11px; cursor: pointer; margin-right: 8px;
+      transition: background 0.14s, border-color 0.14s, box-shadow 0.14s;
+      box-shadow: 0 0 12px rgba(255, 178, 41, 0.09) inset;
+    }
+    input[type="file"]::file-selector-button:hover { background: rgba(255, 180, 221, 0.18); border-color: rgba(255, 226, 241, 0.54); box-shadow: 0 0 22px rgba(255, 180, 221, 0.16); }
+
+    select.full {
+      width: 100%; font-family: inherit; font-size: 0.75rem;
+      background-color: rgba(33, 14, 5, 0.52); color: var(--ink);
+      border: 1px solid rgba(154, 255, 237, 0.22); border-radius: 12px;
+      padding: 8px 32px 8px 10px; cursor: pointer; appearance: none;
+      background-image:
+        linear-gradient(90deg, rgba(255,178,41,0.10), rgba(255,180,221,0.07)),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23ffb4dd'/%3E%3C/svg%3E");
+      background-repeat: no-repeat, no-repeat; background-position: 0 0, right 11px center;
+      transition: border-color 0.14s, box-shadow 0.14s;
+    }
+    select.full:focus { outline: none; border-color: rgba(255, 223, 192, 0.64); box-shadow: 0 0 0 2px rgba(255, 178, 41, 0.14), 0 0 22px rgba(255, 180, 221, 0.10); }
+
+    /* segmented temporal stance control — the headline */
+    .segmented {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-bottom: 4px;
+    }
+    .seg {
+      font-family: inherit; font-size: 0.6rem; letter-spacing: 0.06em; text-transform: lowercase;
+      color: var(--muted-hi); padding: 9px 4px 8px; cursor: pointer; text-align: center;
+      background: rgba(32, 14, 5, 0.5); border: 1px solid rgba(255, 224, 188, 0.18);
+      border-radius: 11px; transition: all .14s; line-height: 1.25;
+    }
+    .seg small { display: block; font-size: 0.5rem; letter-spacing: 0.08em; color: var(--muted); margin-top: 2px; }
+    .seg:hover { border-color: rgba(255,223,192,0.5); color: var(--ink); }
+    .seg.active {
+      border-color: var(--aqua); color: var(--aqua);
+      background: linear-gradient(180deg, rgba(49,247,255,0.14), rgba(138,121,255,0.08));
+      box-shadow: 0 0 20px rgba(49,247,255,0.14), 0 0 14px rgba(138,121,255,0.08) inset;
+    }
+    .seg.active small { color: var(--mint); }
+
+    .toggle-row {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      margin-top: 9px; font-size: 0.68rem; color: var(--muted-hi); letter-spacing: 0.02em;
+      text-transform: lowercase; cursor: pointer;
+    }
+    .toggle-row input[type="checkbox"] { accent-color: var(--aqua); cursor: pointer; width: 15px; height: 15px; }
+
+    .button-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    button.act {
+      font-family: inherit; font-size: 0.66rem; letter-spacing: 0.13em; text-transform: uppercase;
+      color: var(--muted-hi);
+      background: linear-gradient(180deg, rgba(255,244,230,0.14), rgba(255,178,41,0.08)), rgba(32, 14, 5, 0.48);
+      border: 1px solid rgba(255, 224, 188, 0.20); border-radius: 999px;
+      padding: 8px 7px; cursor: pointer;
+      transition: background 0.14s, border-color 0.14s, color 0.14s, box-shadow 0.14s, transform 0.14s;
+    }
+    button.act:hover:not(:disabled) {
+      background: linear-gradient(90deg, rgba(255,178,41,0.24), rgba(255,180,221,0.14), rgba(49,247,255,0.08)), rgba(32, 14, 5, 0.56);
+      border-color: rgba(255, 223, 192, 0.52); color: var(--ink);
+      box-shadow: 0 0 24px rgba(255, 178, 41, 0.16), 0 0 18px rgba(255, 180, 221, 0.10) inset;
+      transform: translateY(-1px);
+    }
+    button.act:disabled { opacity: 0.34; cursor: not-allowed; }
+    button.act.full-width { width: 100%; }
+
+    /* the commit button — read the whole score, then process */
+    button#process {
+      width: 100%; margin-bottom: 6px;
+      font-family: 'Averia Sans Libre', sans-serif; font-style: italic; text-transform: lowercase;
+      font-size: 0.98rem; letter-spacing: 0.0em; padding: 11px 8px;
+      border-color: rgba(49, 247, 255, 0.6); color: #f2ffff;
+      background: linear-gradient(95deg, rgba(255,178,41,0.30), rgba(255,180,221,0.20), rgba(49,247,255,0.22));
+      box-shadow: 0 0 26px rgba(49,247,255,0.18), 0 0 18px rgba(255,180,221,0.10) inset;
+    }
+    button#process:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 0 34px rgba(49,247,255,0.28); }
+
+    .est { font-size: 0.64rem; color: rgba(226,255,252,0.5); margin-top: 4px; letter-spacing: 0.02em; }
+    .est b { color: var(--lime); font-weight: 400; }
+
+    /* Parameter sliders */
+    #sliders { display: flex; flex-direction: column; padding-bottom: 2px; }
+    .group-label { margin: 10px 14px 4px; padding: 3px 9px 4px; }
+    .group-label:first-child { margin-top: 12px; }
+    .control { padding: 5px 14px 8px; }
+    .slider-label {
+      display: flex; justify-content: space-between; align-items: baseline;
+      font-size: 0.70rem; color: var(--muted-hi); letter-spacing: 0.04em;
+      margin-bottom: 6px; cursor: pointer; text-transform: lowercase;
+    }
+    .slider-label span:last-child { font-size: 0.68rem; color: var(--lime); font-variant-numeric: tabular-nums; text-shadow: 0 0 10px rgba(223, 255, 106, 0.28); }
+
+    input[type="range"] {
+      -webkit-appearance: none; appearance: none; width: 100%; height: 4px;
+      background: linear-gradient(90deg, rgba(255,178,41,0.72), rgba(255,180,221,0.58), rgba(49,247,255,0.36));
+      border-radius: 999px; outline: none; cursor: pointer;
+      box-shadow: 0 0 14px rgba(255, 178, 41, 0.16);
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #fff6ee, var(--sodium) 52%, var(--petal) 78%, var(--pool));
+      border: 1px solid rgba(233,255,255,0.72);
+      box-shadow: 0 0 12px rgba(49,247,255,0.8), 0 0 22px rgba(255,180,221,0.35);
+      cursor: pointer; transition: box-shadow 0.14s, transform 0.14s;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.08); box-shadow: 0 0 22px rgba(49, 247, 255, 0.9), 0 0 0 4px rgba(255, 180, 221, 0.16); }
+    input[type="range"]::-moz-range-thumb {
+      width: 14px; height: 14px; border-radius: 50%; background: var(--aqua);
+      border: 1px solid rgba(233,255,255,0.72); box-shadow: 0 0 12px rgba(49,247,255,0.8), 0 0 22px rgba(255,180,221,0.35); cursor: pointer;
+    }
+
+    .hint { font-size: 0.70rem; color: rgba(226, 255, 252, 0.48); line-height: 1.62; margin-top: 8px; letter-spacing: 0.02em; }
+
+    #downloads { margin-top: 8px; }
+    #downloads a {
+      display: block; font-size: 0.72rem; color: var(--lime); text-decoration: none;
+      padding: 6px 0; letter-spacing: 0.05em; border-top: 1px solid rgba(154, 255, 237, 0.17);
+      text-shadow: 0 0 12px rgba(223, 255, 106, 0.24);
+    }
+    #downloads a:hover { color: var(--petal-hi); }
+
+    /* ── Notes: liner notes ───────────────────────────────────────────── */
+    .notes {
+      margin-top: 0; grid-column: 1 / -1;
+      background:
+        linear-gradient(120deg, rgba(255, 178, 41, 0.14), rgba(255, 180, 221, 0.08), rgba(49, 247, 255, 0.04)),
+        rgba(32, 14, 5, 0.45);
+      border: 1px solid var(--line); border-radius: 20px; padding: 16px 18px 18px;
+      box-shadow: 0 16px 60px rgba(255, 178, 41, 0.10), 0 0 0 1px rgba(255,255,255,0.035) inset;
+      backdrop-filter: blur(18px) saturate(150%);
+    }
+    .notes-head { margin-bottom: 13px; }
+    .thesis {
+      font-size: 0.8rem; color: rgba(255,240,225,0.78); line-height: 1.74; max-width: 70ch;
+      margin-bottom: 14px; letter-spacing: 0.01em;
+    }
+    .thesis em { color: var(--mint); font-style: normal; }
+    .thesis b { color: var(--petal-hi); font-weight: 400; }
+    .notes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 10px; }
+    .note-item { padding: 9px 10px; border: 1px solid rgba(255, 224, 188, 0.12); border-radius: 14px; background: rgba(255, 245, 234, 0.05); }
+    .note-item dt { font-size: 0.67rem; color: var(--sodium); letter-spacing: 0.12em; text-transform: lowercase; margin-bottom: 3px; text-shadow: 0 0 12px var(--sodium-glow); }
+    .note-item dd { font-size: 0.72rem; color: rgba(255, 240, 225, 0.68); line-height: 1.62; margin: 0; }
+
+    .hidden-canvas { position: absolute; left: -9999px; top: -9999px; visibility: hidden; }
+
+    @media (max-width: 1040px) {
+      header { grid-template-columns: 1fr; }
+      .header-right { align-items: flex-start; flex-direction: row; gap: 10px; }
+      main { grid-template-columns: 1fr; }
+      .stage { position: relative; top: auto; }
+      .controls { order: 2; }
+      .notes { order: 3; }
+    }
+    @media (max-width: 640px) {
+      .views { grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="shell">
+
+  <header>
+    <div class="header-left">
+      <h1>prolepsis</h1>
+      <p class="tagline">acausal feedback field — the smear that has <em>read ahead</em></p>
+    </div>
+    <div class="header-right">
+      <span class="version-tag">hindcast · v3.0</span>
+      <span class="lineage">framesmear, unshackled</span>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ── Stage ─────────────────────────────────────────────────────── -->
+    <section class="stage">
+      <div class="views" id="views">
+        <div class="view before">
+          <span class="corner">source</span>
+          <canvas id="beforeCanvas"></canvas>
+        </div>
+        <div class="view after">
+          <span class="corner">processed</span>
+          <canvas id="afterCanvas"></canvas>
+          <div class="process-veil" id="processVeil">
+            <div class="pv-inner">
+              <strong>not yet processed</strong>
+              <p id="veilMsg">Load a clip, choose a temporal stance, then press <b>process the whole clip</b>. Playback unlocks once the field has read end-to-end.</p>
+            </div>
+          </div>
+        </div>
+        <div class="wipe-handle" id="wipeHandle"></div>
+      </div>
+
+      <!-- progress -->
+      <div class="progress" id="progress">
+        <div class="progress-track">
+          <div class="progress-fill" id="progressFill"></div>
+          <div class="progress-label" id="progressLabel">processing…</div>
+        </div>
+      </div>
+
+      <!-- transport -->
+      <div class="transport">
+        <div class="timeline">
+          <div class="scrub-wrap">
+            <div class="trim-shade" id="trimShadeL"></div>
+            <div class="trim-shade" id="trimShadeR"></div>
+            <input id="scrub" type="range" min="0" max="0" step="1" value="0" disabled />
+          </div>
+          <span class="tcode" id="tcode">--:-- / --:--</span>
+        </div>
+        <div class="transport-row">
+          <button class="tbtn" id="stop" title="Stop (to start)" disabled>■</button>
+          <button class="tbtn" id="stepBack" title="Previous frame (←)" disabled>◀|</button>
+          <button class="tbtn primary" id="play" title="Play / pause (space)" disabled>▶</button>
+          <button class="tbtn" id="stepFwd" title="Next frame (→)" disabled>|▶</button>
+
+          <span class="tspacer"></span>
+
+          <label class="tmini">speed
+            <select id="speed">
+              <option value="0.25">0.25×</option>
+              <option value="0.5">0.5×</option>
+              <option value="1" selected>1×</option>
+              <option value="2">2×</option>
+            </select>
+          </label>
+          <label class="tmini loop-row"><input type="checkbox" id="loop" checked> loop</label>
+          <button class="tchip" id="cmpMode" title="Compare mode" disabled>split</button>
+        </div>
+      </div>
+
+      <div class="hud">
+        <span class="pill state" id="state">no source</span>
+        <span class="pill" id="size">--</span>
+        <span class="pill" id="frames">-- frames</span>
+        <span class="pill fx" id="fxBadge">symmetric</span>
+      </div>
+    </section>
+
+    <!-- ── Sidebar ────────────────────────────────────────────────────── -->
+    <aside class="controls">
+
+      <div class="section">
+        <h2>Source</h2>
+        <div class="file-row">
+          <input id="file" type="file" accept="video/*" />
+          <select id="preset" class="full">
+            <optgroup label="Anticipatory (new)">
+              <option value="preverb">Pre-verb Bloom</option>
+              <option value="precursor">Precursor Swarm</option>
+              <option value="foreshadow">Foreshadow</option>
+            </optgroup>
+            <optgroup label="Classic (ported)">
+              <option value="oilFlow">Oil Flow</option>
+              <option value="ghostPush">Ghost Push</option>
+              <option value="inkBleed">Ink Bleed</option>
+              <option value="vortex">Center Vortex</option>
+            </optgroup>
+            <optgroup label="Spectral">
+              <option value="aurora">Aurora Drift</option>
+              <option value="prismatic">Prismatic</option>
+            </optgroup>
+            <optgroup label="Kinetic">
+              <option value="spiral">Spiral Shell</option>
+              <option value="tapeWow">Tape Wow</option>
+            </optgroup>
+            <optgroup label="Temporal">
+              <option value="strobeEcho">Strobe Echo</option>
+            </optgroup>
+            <optgroup label="Atmospheric">
+              <option value="fogField">Fog Field</option>
+            </optgroup>
+          </select>
+        </div>
+        <p class="hint">High-contrast edges, bold motion, and strong light yield the densest trails.</p>
+      </div>
+
+      <div class="section">
+        <h2>Temporal stance</h2>
+        <div class="segmented" id="segmented">
+          <div class="seg" data-mode="anticipation">anticipation<small>trail ahead</small></div>
+          <div class="seg active" data-mode="symmetric">symmetric<small>bloom both</small></div>
+          <div class="seg" data-mode="wake">wake<small>trail behind</small></div>
+        </div>
+        <div class="control" style="padding:10px 0 2px">
+          <label class="slider-label" for="balance">
+            <span>anticipation ↔ wake</span><span id="balanceVal">0.50</span>
+          </label>
+          <input id="balance" type="range" min="0" max="1" step="0.01" value="0.5" />
+        </div>
+        <label class="toggle-row" for="transientAware">
+          transient-aware anticipation
+          <input type="checkbox" id="transientAware" />
+        </label>
+        <p class="hint">Wake is the old live behaviour. Anticipation runs the field backward so each event arrives with a precursor swarm. Symmetric blends both — zero-phase in time.</p>
+      </div>
+
+      <div class="section">
+        <h2>Process</h2>
+        <button id="process" disabled>process the whole clip</button>
+        <button class="act full-width" id="cancel" style="display:none">cancel</button>
+        <div class="button-grid" style="margin-top:6px">
+          <label class="tmini" style="flex-direction:column;align-items:flex-start;gap:4px">decode fps
+            <select id="fps" class="full" style="font-size:0.7rem;padding:6px 28px 6px 8px">
+              <option value="12">12</option>
+              <option value="24" selected>24</option>
+              <option value="30">30</option>
+            </select>
+          </label>
+          <label class="tmini" style="flex-direction:column;align-items:flex-start;gap:4px">width
+            <select id="procWidth" class="full" style="font-size:0.7rem;padding:6px 28px 6px 8px">
+              <option value="480">480</option>
+              <option value="640" selected>640</option>
+              <option value="800">800</option>
+              <option value="1024">1024</option>
+            </select>
+          </label>
+        </div>
+        <div class="control" style="padding:9px 0 2px">
+          <label class="slider-label"><span>trim start (s)</span><span id="trimInVal">0.00</span></label>
+          <input id="trimIn" type="range" min="0" max="1" step="0.01" value="0" disabled />
+        </div>
+        <div class="control" style="padding:2px 0 2px">
+          <label class="slider-label"><span>trim end (s)</span><span id="trimOutVal">0.00</span></label>
+          <input id="trimOut" type="range" min="0" max="1" step="0.01" value="1" disabled />
+        </div>
+        <label class="toggle-row" for="exposureNorm">
+          even out exposure across clip
+          <input type="checkbox" id="exposureNorm" />
+        </label>
+        <p class="est" id="estimate">load a clip to estimate cost.</p>
+      </div>
+
+      <div class="section">
+        <h2>Export</h2>
+        <div class="button-grid">
+          <button class="act" id="exportVideo" disabled>Export video</button>
+          <button class="act" id="snapshot" disabled>Save PNG</button>
+        </div>
+        <div id="downloads"></div>
+        <p class="hint">MP4 preferred; falls back to WebM. Frames are pre-rendered, so export is deterministic.</p>
+      </div>
+
+      <div id="sliders"></div>
+
+    </aside>
+
+    <!-- ── Notes ──────────────────────────────────────────────────────── -->
+    <section class="notes">
+      <p class="notes-head">liner notes — un-live</p>
+      <p class="thesis">
+        Every realtime effect is <em>causal</em>: its output at time <em>t</em> can depend only on frames at or before <em>t</em>.
+        A live feedback smear can therefore only trail <b>behind</b> motion, and seeking has to wipe its buffer — the state can't be
+        rebuilt from the middle. Prolepsis drops causality on purpose. It reads the clip end-to-end, then runs the same field with the
+        time-arrow free: smears that bloom <b>ahead</b> of an event, symmetric zero-phase trails, and a scrubber where every frame is
+        already correct — so seeking is <b>instant and acausal</b> instead of a reset. The live <em>framesmear</em> isn't deleted; it's
+        kept as the degraded, causal variant of the clean offline thing.
+      </p>
+      <dl class="notes-grid">
+        <div class="note-item"><dt>anticipation</dt><dd>The field run backward in time. Each transient gets a precursor swarm ramping up <em>to</em> it — pre-echo as deliberate texture. The video cousin of pre-verb.</dd></div>
+        <div class="note-item"><dt>symmetric</dt><dd>Forward + backward passes combined: smear blooms into and out of each event. Bidirectional, zero-phase. The balance slider weights precursor against wake.</dd></div>
+        <div class="note-item"><dt>transient-aware</dt><dd>A pre-analysis pass scores how big each upcoming change is; precursor density scales with what's coming. Multi-pass measurement no live system can do.</dd></div>
+        <div class="note-item"><dt>even exposure</dt><dd>Global statistics: luminance normalized against the whole clip's mean rather than a running estimate. Brightness held steady across the piece.</dd></div>
+        <div class="note-item"><dt>memory decay</dt><dd>Reverb time. How long the feedback tail persists — now in either temporal direction — before dissolving.</dd></div>
+        <div class="note-item"><dt>new frame opacity</dt><dd>How aggressively each fresh frame inscribes over the buffer. Lower = longer smear.</dd></div>
+        <div class="note-item"><dt>flow X / Y</dt><dd>Drift direction of the feedback buffer per frame. In anticipation/symmetric the backward pass mirrors it, so precursors converge into the event.</dd></div>
+        <div class="note-item"><dt>feedback zoom / rotation</dt><dd>Room size and spin. Above 1 the buffer expands; rotation accumulates spiral vortex trails.</dd></div>
+        <div class="note-item"><dt>oscillation</dt><dd>Tape wow. Flow direction breathes sinusoidally — unstable, warping accumulation.</dd></div>
+        <div class="note-item"><dt>strobe</dt><dd>Gated reverb. Decay pulses between near-frozen and fast-fade, stamping discrete echoes.</dd></div>
+        <div class="note-item"><dt>hue drift / chroma split</dt><dd>Shimmer and chromatic aberration, baked per frame so playback stays a pure blit.</dd></div>
+        <div class="note-item"><dt>edge / light / softening</dt><dd>The inscription mask: which parts of each frame get written hardest into the buffer, and how much the buffer diffuses between writes.</dd></div>
+      </dl>
+    </section>
+
+  </main>
+</div>
+
+<video id="video" class="hidden-canvas" playsinline muted></video>
+<canvas id="work"    class="hidden-canvas"></canvas>
+<canvas id="current" class="hidden-canvas"></canvas>
+<canvas id="memory"  class="hidden-canvas"></canvas>
+<canvas id="temp"    class="hidden-canvas"></canvas>
+<canvas id="mask"    class="hidden-canvas"></canvas>
+<canvas id="compose" class="hidden-canvas"></canvas>
+<canvas id="bake"    class="hidden-canvas"></canvas>
+
+<script>
+  const $ = id => document.getElementById(id);
+
+  const video   = $('video');
+  const work    = $('work');     // source frame at processing res
+  const current = $('current');  // masked inscription source
+  const memory  = $('memory');   // recursive feedback buffer
+  const temp    = $('temp');     // decayed/transformed scratch
+  const mask    = $('mask');     // inscription mask
+  const compose = $('compose');  // blend fwd+bwd
+  const bake    = $('bake');     // final color/chroma
+
+  const workCtx = work.getContext('2d',    { willReadFrequently: true });
+  const curCtx  = current.getContext('2d', { willReadFrequently: true });
+  const memCtx  = memory.getContext('2d',  { alpha: false });
+  const tmpCtx  = temp.getContext('2d',    { alpha: false });
+  const maskCtx = mask.getContext('2d',    { willReadFrequently: true });
+  const cmpCtx  = compose.getContext('2d', { alpha: false });
+  const bakeCtx = bake.getContext('2d',    { alpha: false });
+
+  const beforeCanvas = $('beforeCanvas');
+  const afterCanvas  = $('afterCanvas');
+  const beforeCtx = beforeCanvas.getContext('2d', { alpha: false });
+  const afterCtx  = afterCanvas.getContext('2d',  { alpha: false });
+
+  // ─── Smear parameters (feedback field) ───────────────────────────────────
+  const controls = {
+    memoryDecay:      { label: 'memory decay',        min: 0.85,  max: 0.999, step: 0.001, value: 0.985, group: 'Feedback' },
+    deposit:          { label: 'new frame opacity',   min: 0.005, max: 0.6,   step: 0.005, value: 0.06,  group: 'Feedback' },
+    flowX:            { label: 'flow X',              min: -8,    max: 8,     step: 0.1,   value: 0,     group: 'Motion'   },
+    flowY:            { label: 'flow Y',              min: -8,    max: 8,     step: 0.1,   value: -1.2,  group: 'Motion'   },
+    zoom:             { label: 'feedback zoom',       min: 0.96,  max: 1.04,  step: 0.001, value: 1.002, group: 'Motion'   },
+    rotation:         { label: 'rotation °/frame',    min: -2,    max: 2,     step: 0.01,  value: 0,     group: 'Motion'   },
+    oscillate:        { label: 'oscillation depth',   min: 0,     max: 12,    step: 0.1,   value: 0,     group: 'Motion'   },
+    oscRate:          { label: 'oscillation rate',    min: 0.1,   max: 5,     step: 0.05,  value: 1,     group: 'Motion'   },
+    strobe:           { label: 'strobe depth',        min: 0,     max: 1,     step: 0.01,  value: 0,     group: 'Temporal' },
+    strobeSpeed:      { label: 'strobe rate',         min: 0.5,   max: 10,    step: 0.1,   value: 2,     group: 'Temporal' },
+    hueShift:         { label: 'hue drift °/frame',   min: -5,    max: 5,     step: 0.05,  value: 0,     group: 'Color'    },
+    chromaSplit:      { label: 'chroma split',        min: 0,     max: 28,    step: 0.1,   value: 6.5,   group: 'Color'    },
+    edgeInscription:  { label: 'edge inscription',    min: 0,     max: 2,     step: 0.01,  value: 0.95,  group: 'Surface'  },
+    lightPersistence: { label: 'light persistence',   min: 0,     max: 2,     step: 0.01,  value: 0.65,  group: 'Surface'  },
+    blur:             { label: 'softening',           min: 0,     max: 8,     step: 0.1,   value: 1.4,   group: 'Surface'  },
+  };
+
+  // ─── Presets (now carry a temporal stance) ───────────────────────────────
+  const presets = {
+    // new anticipatory presets
+    preverb:    { mode:'symmetric',    balance:0.42, memoryDecay:0.99,  deposit:0.04,  flowX:0,   flowY:0,    zoom:1.004, rotation:0,    oscillate:0,   oscRate:1,    strobe:0,    strobeSpeed:2,   hueShift:0,    chromaSplit:8,   edgeInscription:0.6,  lightPersistence:1.1,  blur:2.2 },
+    precursor:  { mode:'anticipation', balance:0,    memoryDecay:0.986, deposit:0.05,  flowX:0,   flowY:-2.4, zoom:1.001, rotation:0,    oscillate:0,   oscRate:1,    strobe:0,    strobeSpeed:2,   hueShift:0,    chromaSplit:10,  edgeInscription:1.1,  lightPersistence:0.8,  blur:1.2 },
+    foreshadow: { mode:'anticipation', balance:0,    memoryDecay:0.993, deposit:0.028, flowX:0,   flowY:0,    zoom:0.994, rotation:0.18, oscillate:1.6, oscRate:0.5,  strobe:0,    strobeSpeed:2,   hueShift:1.2,  chromaSplit:14,  edgeInscription:0.5,  lightPersistence:1.4,  blur:2.6 },
+    // ported classics (wake = the original live behaviour)
+    oilFlow:    { mode:'wake', balance:1, memoryDecay:0.985, deposit:0.06,  flowX:0,   flowY:-1.2, zoom:1.002, rotation:0,    oscillate:0,   oscRate:1,    strobe:0,    strobeSpeed:2,   hueShift:0,   chromaSplit:6.5, edgeInscription:0.95, lightPersistence:0.65, blur:1.4 },
+    ghostPush:  { mode:'wake', balance:1, memoryDecay:0.995, deposit:0.03,  flowX:3.5, flowY:0,    zoom:1.000, rotation:0,    oscillate:0,   oscRate:1,    strobe:0,    strobeSpeed:2,   hueShift:0,   chromaSplit:12,  edgeInscription:0.5,  lightPersistence:1.2,  blur:3.5 },
+    inkBleed:   { mode:'wake', balance:1, memoryDecay:0.96,  deposit:0.15,  flowX:0,   flowY:2.5,  zoom:0.995, rotation:0,    oscillate:0,   oscRate:1,    strobe:0,    strobeSpeed:2,   hueShift:0,   chromaSplit:0,   edgeInscription:1.8,  lightPersistence:0.3,  blur:0.5 },
+    vortex:     { mode:'wake', balance:1, memoryDecay:0.99,  deposit:0.04,  flowX:0,   flowY:0,    zoom:1.015, rotation:0,    oscillate:0,   oscRate:1,    strobe:0,    strobeSpeed:2,   hueShift:0,   chromaSplit:4,   edgeInscription:1.2,  lightPersistence:0.8,  blur:1.0 },
+    aurora:     { mode:'symmetric', balance:0.55, memoryDecay:0.994, deposit:0.022, flowX:0.3, flowY:-0.4, zoom:1.001, rotation:0,    oscillate:2.5, oscRate:0.35, strobe:0,    strobeSpeed:2,   hueShift:1.4, chromaSplit:9,   edgeInscription:0.35, lightPersistence:1.8,  blur:2.8 },
+    prismatic:  { mode:'symmetric', balance:0.5,  memoryDecay:0.993, deposit:0.032, flowX:0,   flowY:-0.8, zoom:1.001, rotation:0.14, oscillate:1.8, oscRate:0.85, strobe:0,    strobeSpeed:2,   hueShift:2.8, chromaSplit:24,  edgeInscription:0.65, lightPersistence:1.2,  blur:1.6 },
+    spiral:     { mode:'wake', balance:1, memoryDecay:0.991, deposit:0.042, flowX:0,   flowY:0,    zoom:1.003, rotation:0.38, oscillate:0,   oscRate:1,    strobe:0,    strobeSpeed:2,   hueShift:0.25,chromaSplit:5,   edgeInscription:1.0,  lightPersistence:0.75, blur:1.2 },
+    tapeWow:    { mode:'wake', balance:1, memoryDecay:0.988, deposit:0.052, flowX:1.8, flowY:-0.6, zoom:1.001, rotation:0,    oscillate:5.8, oscRate:1.7,  strobe:0,    strobeSpeed:2,   hueShift:0,   chromaSplit:7,   edgeInscription:0.85, lightPersistence:0.7,  blur:1.5 },
+    strobeEcho: { mode:'symmetric', balance:0.5,  memoryDecay:0.978, deposit:0.09,  flowX:1.8, flowY:-0.8, zoom:1.000, rotation:0,    oscillate:0,   oscRate:1,    strobe:0.74, strobeSpeed:3.8, hueShift:0,   chromaSplit:16,  edgeInscription:1.15, lightPersistence:0.85, blur:0.7 },
+    fogField:   { mode:'symmetric', balance:0.5,  memoryDecay:0.997, deposit:0.01,  flowX:0,   flowY:0,    zoom:1.000, rotation:0,    oscillate:3.5, oscRate:0.28, strobe:0,    strobeSpeed:2,   hueShift:0,   chromaSplit:2,   edgeInscription:0.25, lightPersistence:2.0,  blur:6.0 },
+  };
+
+  // ─── State ───────────────────────────────────────────────────────────────
+  const state = {
+    loaded: false,
+    width: 640, height: 360,
+    duration: 0,
+    fps: 24,
+    inSec: 0, outSec: 0,
+    mode: 'symmetric',
+    balance: 0.5,
+    transientAware: false,
+    exposureNorm: false,
+
+    srcFrames: [],   // ImageBitmap[] decoded source
+    outFrames: [],   // ImageBitmap[] processed
+    N: 0,
+
+    decodeDirty: true,   // need re-decode (width / fps / trim changed)
+    processed: false,    // playback allowed
+
+    // playback
+    playing: false,
+    framePos: 0,
+    lastTs: 0,
+
+    // compare
+    cmp: 'split',
+    wipe: 50,
+
+    // jobs
+    job: 0,             // increments to cancel running process
+    busy: false,
+    recorder: null,
+    recordedChunks: [],
+  };
+
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const raf = () => new Promise(r => requestAnimationFrame(() => r()));
+  const fmt = s => {
+    if (!isFinite(s)) return '--:--';
+    const m = Math.floor(s / 60), x = s - m * 60;
+    return String(m).padStart(2,'0') + ':' + x.toFixed(2).padStart(5,'0');
+  };
+
+  // ─── Build slider UI ─────────────────────────────────────────────────────
+  function makeSliders() {
+    const root = $('sliders');
+    root.innerHTML = '';
+    const order = [], map = {};
+    for (const [key, cfg] of Object.entries(controls)) {
+      if (!map[cfg.group]) { map[cfg.group] = []; order.push(cfg.group); }
+      map[cfg.group].push([key, cfg]);
+    }
+    for (const g of order) {
+      const h = document.createElement('div');
+      h.className = 'group-label'; h.textContent = g; root.append(h);
+      for (const [key, cfg] of map[g]) {
+        const wrap = document.createElement('div'); wrap.className = 'control';
+        const lbl = document.createElement('label'); lbl.className = 'slider-label'; lbl.htmlFor = key;
+        const n = document.createElement('span'); n.textContent = cfg.label;
+        const v = document.createElement('span'); v.id = key + 'Val'; v.textContent = cfg.value;
+        lbl.append(n, v);
+        const inp = document.createElement('input');
+        inp.type = 'range'; inp.id = key; inp.min = cfg.min; inp.max = cfg.max; inp.step = cfg.step; inp.value = cfg.value;
+        inp.addEventListener('input', () => {
+          controls[key].value = parseFloat(inp.value);
+          v.textContent = inp.value;
+          updateFxBadge();
+          invalidate('process');
+        });
+        wrap.append(lbl, inp); root.append(wrap);
+      }
+    }
+  }
+
+  function setPreset(name) {
+    const p = presets[name]; if (!p) return;
+    for (const [key, val] of Object.entries(p)) {
+      if (key === 'mode') { state.mode = val; reflectMode(); continue; }
+      if (key === 'balance') { state.balance = val; $('balance').value = val; $('balanceVal').textContent = val.toFixed(2); continue; }
+      if (!controls[key]) continue;
+      controls[key].value = val;
+      const inp = $(key), vsp = $(key + 'Val');
+      if (inp) inp.value = val;
+      if (vsp) vsp.textContent = val;
+    }
+    updateFxBadge();
+    invalidate('process');
+  }
+
+  function reflectMode() {
+    document.querySelectorAll('.seg').forEach(s => s.classList.toggle('active', s.dataset.mode === state.mode));
+    updateFxBadge();
+  }
+
+  function updateFxBadge() {
+    const fx = [state.mode];
+    if (Math.abs(controls.rotation.value) > 0.005) fx.push('spiral');
+    if (Math.abs(controls.hueShift.value) > 0.05)  fx.push('hue');
+    if (controls.oscillate.value > 0.1)            fx.push('wow');
+    if (controls.strobe.value > 0.05)              fx.push('strobe');
+    if (state.transientAware && state.mode !== 'wake') fx.push('transient-aware');
+    $('fxBadge').textContent = fx.join(' · ');
+  }
+
+  // ─── State / status helpers ──────────────────────────────────────────────
+  function setState(text, cls) {
+    const el = $('state');
+    el.textContent = text;
+    el.className = 'pill state' + (cls ? ' ' + cls : '');
+  }
+
+  function invalidate(level) {
+    // level: 'decode' (need re-decode) or 'process' (decode cached, re-run passes)
+    if (level === 'decode') state.decodeDirty = true;
+    if (state.processed || state.loaded) {
+      state.processed = false;
+      state.playing = false;
+      $('play').textContent = '▶';
+      enablePlayback(false);
+      $('processVeil').style.display = 'grid';
+      $('veilMsg').innerHTML = state.loaded
+        ? 'Parameters changed. Press <b>process the whole clip</b> to re-render with the new settings.'
+        : 'Load a clip, choose a temporal stance, then press <b>process the whole clip</b>.';
+      if (state.loaded) setState('needs processing', 'dirty');
+    }
+    updateEstimate();
+  }
+
+  function enablePlayback(on) {
+    ['stop','stepBack','play','stepFwd'].forEach(id => $(id).disabled = !on);
+    $('scrub').disabled = !on;
+    $('cmpMode').disabled = !on;
+    $('exportVideo').disabled = !on;
+    $('snapshot').disabled = !on;
+  }
+
+  function updateEstimate() {
+    if (!state.loaded) { $('estimate').textContent = 'load a clip to estimate cost.'; return; }
+    const fps = parseInt($('fps').value, 10);
+    const span = Math.max(0, state.outSec - state.inSec);
+    const w = Math.min(parseInt($('procWidth').value, 10), video.videoWidth || 99999);
+    const aspect = (video.videoHeight && video.videoWidth) ? video.videoHeight / video.videoWidth : 0.5625;
+    const h = Math.round(w * aspect);
+    const n = Math.max(1, Math.round(span * fps));
+    const passes = state.mode === 'symmetric' ? 2 : 1;
+    const mb = (n * w * h * 4 * 2) / 1e6; // src + out bitmaps
+    $('estimate').innerHTML = `≈ <b>${n}</b> frames · ${w}×${h} · ${passes} pass${passes>1?'es':''} · ~<b>${mb.toFixed(0)} MB</b> in memory`;
+  }
+
+  // ─── Canvas sizing ───────────────────────────────────────────────────────
+  function sizeCanvases() {
+    const w = Math.min(parseInt($('procWidth').value, 10), video.videoWidth);
+    const aspect = video.videoHeight / video.videoWidth;
+    state.width = w;
+    state.height = Math.max(2, Math.round(w * aspect));
+    [work, current, memory, temp, mask, compose, bake, beforeCanvas, afterCanvas].forEach(c => {
+      c.width = state.width; c.height = state.height;
+    });
+    $('size').textContent = `${state.width}×${state.height}`;
+  }
+
+  // ─── Inscription mask (Sobel edge + luminance), from the original engine ──
+  function buildMask(frameData) {
+    const w = state.width, h = state.height;
+    const data = frameData.data;
+    const gray = new Float32Array(w * h);
+    const img = maskCtx.createImageData(w, h);
+    const out = img.data;
+    const deposit = controls.deposit.value;
+    const edgeInscription = controls.edgeInscription.value;
+    const lightPersistence = controls.lightPersistence.value;
+
+    for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+      gray[p] = data[i] * 0.2126 + data[i+1] * 0.7152 + data[i+2] * 0.0722;
+    }
+    for (let y = 1; y < h - 1; y++) {
+      for (let x = 1; x < w - 1; x++) {
+        const i = y * w + x, p = i * 4;
+        const gx = -gray[i-w-1] - 2*gray[i-1] - gray[i+w-1] + gray[i-w+1] + 2*gray[i+1] + gray[i+w+1];
+        const gy = -gray[i-w-1] - 2*gray[i-w] - gray[i-w+1] + gray[i+w-1] + 2*gray[i+w] + gray[i+w+1];
+        const edge = clamp(Math.hypot(gx, gy) / 760, 0, 1);
+        const lum = gray[i] / 255;
+        const light = Math.pow(lum, 3.1);
+        const alpha = clamp(deposit + edge * edgeInscription * 0.4 + light * lightPersistence * 0.35, 0, 1);
+        out[p] = out[p+1] = out[p+2] = 255;
+        out[p+3] = Math.round(alpha * 255);
+      }
+    }
+    maskCtx.putImageData(img, 0, 0);
+  }
+
+  // ─── One feedback step into `memory` ─────────────────────────────────────
+  // geomSign: +1 forward, -1 backward (mirrors flow/rotation, inverts zoom)
+  function feedbackStep(srcBitmap, t, geomSign, hueRef, depositScale) {
+    const w = state.width, h = state.height;
+    const decay = controls.memoryDecay.value;
+    const blur = controls.blur.value;
+    let zoom = controls.zoom.value;
+    let rotation = controls.rotation.value;
+    const hueShift = controls.hueShift.value;
+    const oscillate = controls.oscillate.value;
+    const oscRate = controls.oscRate.value;
+    const strobe = controls.strobe.value;
+    const strobeSpeed = controls.strobeSpeed.value;
+
+    let flowX = controls.flowX.value;
+    let flowY = controls.flowY.value;
+    if (oscillate > 0) {
+      const osc = t * oscRate;
+      flowX += Math.sin(osc) * oscillate;
+      flowY += Math.cos(osc * 0.73) * oscillate * 0.6;
+    }
+    if (geomSign < 0) { flowX = -flowX; flowY = -flowY; rotation = -rotation; zoom = 1 / zoom; }
+
+    let effectiveDecay = decay;
+    if (strobe > 0) {
+      const gPhase = (t * strobeSpeed * 2) % (2 * Math.PI);
+      const gate = Math.pow(Math.max(0, Math.sin(gPhase)), 10);
+      const hiDecay = Math.min(0.999, decay + (0.999 - decay) * strobe);
+      const loDecay = Math.max(0.05, decay * (1 - strobe * 0.8));
+      effectiveDecay = loDecay + (hiDecay - loDecay) * gate;
+    }
+
+    if (Math.abs(hueShift) > 0.01) hueRef.angle = (hueRef.angle + hueShift) % 360;
+
+    const filters = [];
+    if (blur > 0) filters.push(`blur(${blur}px)`);
+    if (Math.abs(hueShift) > 0.01) filters.push(`hue-rotate(${hueRef.angle}deg)`);
+    const filterStr = filters.join(' ');
+
+    // 1) decayed + transformed copy of memory -> temp
+    tmpCtx.clearRect(0, 0, w, h);
+    tmpCtx.save();
+    tmpCtx.globalAlpha = effectiveDecay;
+    if (filterStr) tmpCtx.filter = filterStr;
+    tmpCtx.translate(w/2 + flowX, h/2 + flowY);
+    if (rotation !== 0) tmpCtx.rotate(rotation * Math.PI / 180);
+    tmpCtx.scale(zoom, zoom);
+    tmpCtx.translate(-w/2, -h/2);
+    tmpCtx.drawImage(memory, 0, 0);
+    tmpCtx.restore();
+
+    // 2) inscribe the masked current frame into memory
+    workCtx.clearRect(0, 0, w, h);
+    workCtx.drawImage(srcBitmap, 0, 0, w, h);
+    const fdata = workCtx.getImageData(0, 0, w, h);
+    buildMask(fdata);
+
+    curCtx.clearRect(0, 0, w, h);
+    curCtx.drawImage(work, 0, 0);
+
+    memCtx.save();
+    memCtx.clearRect(0, 0, w, h);
+    if (depositScale !== 1) memCtx.globalAlpha = clamp(depositScale, 0, 1);
+    memCtx.drawImage(current, 0, 0);
+    memCtx.globalAlpha = 1;
+    memCtx.globalCompositeOperation = 'destination-in';
+    memCtx.drawImage(mask, 0, 0);
+    memCtx.restore();
+
+    // 3) lay the decayed history on top
+    tmpCtx.save();
+    tmpCtx.globalCompositeOperation = 'source-over';
+    tmpCtx.drawImage(memory, 0, 0);
+    tmpCtx.restore();
+
+    // 4) result -> memory
+    memCtx.save();
+    memCtx.globalCompositeOperation = 'copy';
+    memCtx.drawImage(temp, 0, 0);
+    memCtx.restore();
+  }
+
+  function snapshotMemory() { return createImageBitmap(memory); }
+
+  // final color + chroma split, baked per frame so playback is a pure blit
+  async function bakeFinal(sourceCanvasOrBitmap, frameT) {
+    const w = state.width, h = state.height;
+    const c = controls.chromaSplit.value;
+    bakeCtx.save();
+    bakeCtx.clearRect(0, 0, w, h);
+    bakeCtx.filter = 'contrast(115%) saturate(110%) brightness(105%)';
+    bakeCtx.drawImage(sourceCanvasOrBitmap, 0, 0);
+    bakeCtx.restore();
+    if (c > 0.01) {
+      bakeCtx.save();
+      bakeCtx.globalAlpha = clamp(0.08 + c * 0.01, 0.05, 0.3);
+      bakeCtx.globalCompositeOperation = 'screen';
+      bakeCtx.filter = `blur(${0.5 + c * 0.1}px)`;
+      bakeCtx.drawImage(sourceCanvasOrBitmap, c, Math.sin(frameT) * c * 0.2);
+      bakeCtx.globalCompositeOperation = 'multiply';
+      bakeCtx.drawImage(sourceCanvasOrBitmap, -c, Math.cos(frameT * 0.8) * c * 0.15);
+      bakeCtx.restore();
+    }
+    return createImageBitmap(bake);
+  }
+
+  // ─── Decode the whole clip via stepped seeking ───────────────────────────
+  function seekTo(t) {
+    return new Promise(resolve => {
+      if (Math.abs(video.currentTime - t) < 1e-3) { resolve(); return; }
+      let done = false;
+      const on = () => { if (done) return; done = true; video.removeEventListener('seeked', on); resolve(); };
+      video.addEventListener('seeked', on);
+      video.currentTime = t;
+      setTimeout(on, 800); // safety: don't hang if 'seeked' never fires
+    });
+  }
+
+  async function decodeAll(job) {
+    // free old source frames
+    for (const b of state.srcFrames) b.close && b.close();
+    state.srcFrames = [];
+    const fps = state.fps;
+    const dt = 1 / fps;
+    const start = state.inSec, end = Math.max(start + dt, state.outSec);
+    const total = Math.max(1, Math.round((end - start) * fps));
+    for (let k = 0; k < total; k++) {
+      if (state.job !== job) return false;
+      const t = Math.min(end - 1e-4, start + k * dt);
+      await seekTo(t);
+      workCtx.clearRect(0, 0, state.width, state.height);
+      workCtx.drawImage(video, 0, 0, state.width, state.height);
+      state.srcFrames.push(await createImageBitmap(work));
+      if (k % 2 === 0) {
+        setProgress(k / total * 0.45, `reading frame ${k+1}/${total}`);
+        await raf();
+      }
+    }
+    state.N = state.srcFrames.length;
+    state.decodeDirty = false;
+    return true;
+  }
+
+  // ─── Transient curve (frame-to-frame change), for transient-aware mode ───
+  function computeTransients() {
+    const w = state.width, h = state.height, N = state.N;
+    const curve = new Float32Array(N);
+    let prev = null;
+    const tc = work.getContext('2d', { willReadFrequently: true });
+    for (let i = 0; i < N; i++) {
+      tc.clearRect(0, 0, w, h);
+      tc.drawImage(state.srcFrames[i], 0, 0);
+      const d = tc.getImageData(0, 0, w, h).data;
+      if (!prev) { curve[i] = 0; prev = d.slice(0); continue; }
+      let acc = 0;
+      const stepN = 4 * 13; // sparse sample for speed
+      for (let p = 0; p < d.length; p += stepN) {
+        acc += Math.abs(d[p] - prev[p]) + Math.abs(d[p+1] - prev[p+1]) + Math.abs(d[p+2] - prev[p+2]);
+      }
+      curve[i] = acc;
+      prev = d.slice(0);
+    }
+    // normalize 0..1
+    let mx = 0; for (let i = 0; i < N; i++) mx = Math.max(mx, curve[i]);
+    if (mx > 0) for (let i = 0; i < N; i++) curve[i] /= mx;
+    return curve;
+  }
+
+  // ─── Mean luminance per frame for exposure normalization ─────────────────
+  function meanLuma(bitmap) {
+    const w = state.width, h = state.height;
+    const tc = work.getContext('2d', { willReadFrequently: true });
+    tc.clearRect(0, 0, w, h); tc.drawImage(bitmap, 0, 0);
+    const d = tc.getImageData(0, 0, w, h).data;
+    let s = 0, n = 0;
+    for (let p = 0; p < d.length; p += 4 * 20) { s += d[p]*0.2126 + d[p+1]*0.7152 + d[p+2]*0.0722; n++; }
+    return s / Math.max(1, n);
+  }
+
+  // ─── Run one feedback pass over a frame-index sequence ───────────────────
+  // order: array of source indices in processing order
+  // writeTarget(i, memoryBitmap): callback to store the per-output-frame result
+  async function runPass(job, order, geomSign, transients, exposure, progBase, progSpan, writeTarget) {
+    const w = state.width, h = state.height;
+    // seed memory with first frame in the pass order
+    memCtx.clearRect(0, 0, w, h);
+    workCtx.clearRect(0, 0, w, h);
+    workCtx.drawImage(state.srcFrames[order[0]], 0, 0);
+    memCtx.drawImage(work, 0, 0);
+    const hueRef = { angle: 0 };
+    const M = order.length;
+    for (let s = 0; s < M; s++) {
+      if (state.job !== job) return false;
+      const idx = order[s];
+      let depositScale = 1;
+      if (transients) {
+        // upcoming change (in real-time order) scales precursor strength
+        const look = geomSign < 0 ? transients[Math.min(state.N - 1, idx + 1)] : transients[idx];
+        depositScale = 0.35 + 0.65 * look;
+      }
+      feedbackStep(state.srcFrames[idx], s * 0.035, geomSign, hueRef, depositScale);
+      if (exposure) {
+        // nudge brightness toward clip mean (global statistics)
+        const target = exposure.mean;
+        const cur = meanLuma(memory);
+        const k = clamp(target / Math.max(1, cur), 0.7, 1.4);
+        if (Math.abs(k - 1) > 0.02) {
+          memCtx.save(); memCtx.filter = `brightness(${k})`; memCtx.drawImage(memory, 0, 0); memCtx.restore();
+        }
+      }
+      const snap = await snapshotMemory();
+      await writeTarget(idx, snap);
+      if (s % 2 === 0) { setProgress(progBase + (s / M) * progSpan, `${geomSign < 0 ? 'anticipating' : 'tracing'} ${s+1}/${M}`); await raf(); }
+    }
+    return true;
+  }
+
+  // ─── Orchestrate full process ────────────────────────────────────────────
+  async function process() {
+    if (state.busy || !state.loaded) return;
+    state.busy = true;
+    const job = ++state.job;
+    $('process').disabled = true;
+    $('cancel').style.display = 'block';
+    showProgress(true);
+    setState('processing…', '');
+    $('processVeil').style.display = 'none';
+
+    try {
+      sizeCanvases();
+      if (state.decodeDirty || state.srcFrames.length === 0) {
+        const ok = await decodeAll(job);
+        if (!ok) throw 'cancelled';
+      } else {
+        setProgress(0.45, 'reusing decoded frames');
+      }
+      const N = state.N;
+      if (N < 1) throw 'no frames';
+
+      // optional analysis passes
+      let transients = null;
+      if (state.transientAware && state.mode !== 'wake') {
+        setProgress(0.46, 'scanning for transients'); await raf();
+        transients = computeTransients();
+      }
+      let exposure = null;
+      if (state.exposureNorm) {
+        setProgress(0.48, 'measuring exposure'); await raf();
+        let s = 0; for (let i = 0; i < N; i++) s += meanLuma(state.srcFrames[i]);
+        exposure = { mean: s / N };
+      }
+
+      // free old outputs
+      for (const b of state.outFrames) b && b.close && b.close();
+      state.outFrames = new Array(N).fill(null);
+
+      const fwdOrder = Array.from({length: N}, (_, i) => i);
+      const bwdOrder = Array.from({length: N}, (_, i) => N - 1 - i);
+      const mode = state.mode;
+      const b = state.balance;          // 0 = anticipation, 1 = wake
+      const wakeW = clamp(b, 0, 1);
+      const antW  = clamp(1 - b, 0, 1);
+
+      if (mode === 'wake') {
+        await runPass(job, fwdOrder, +1, null, exposure, 0.5, 0.45, async (idx, snap) => {
+          const baked = await bakeFinal(snap, idx * 0.035); snap.close();
+          state.outFrames[idx] = baked;
+        });
+      } else if (mode === 'anticipation') {
+        await runPass(job, bwdOrder, -1, transients, exposure, 0.5, 0.45, async (idx, snap) => {
+          const baked = await bakeFinal(snap, idx * 0.035); snap.close();
+          state.outFrames[idx] = baked;
+        });
+      } else { // symmetric: forward into outFrames (raw), then backward blends
+        const fwdRaw = new Array(N).fill(null);
+        await runPass(job, fwdOrder, +1, null, exposure, 0.5, 0.22, async (idx, snap) => {
+          fwdRaw[idx] = snap; // keep raw, blend in backward pass
+        });
+        if (state.job !== job) throw 'cancelled';
+        await runPass(job, bwdOrder, -1, transients, exposure, 0.72, 0.23, async (idx, snap) => {
+          const w = state.width, h = state.height;
+          cmpCtx.clearRect(0, 0, w, h);
+          cmpCtx.globalCompositeOperation = 'source-over';
+          cmpCtx.globalAlpha = wakeW;
+          cmpCtx.drawImage(fwdRaw[idx], 0, 0);
+          cmpCtx.globalCompositeOperation = 'lighten';
+          cmpCtx.globalAlpha = antW;
+          cmpCtx.drawImage(snap, 0, 0);
+          cmpCtx.globalAlpha = 1; cmpCtx.globalCompositeOperation = 'source-over';
+          const baked = await bakeFinal(compose, idx * 0.035);
+          state.outFrames[idx] = baked;
+          fwdRaw[idx].close(); fwdRaw[idx] = null; snap.close();
+        });
+      }
+
+      if (state.job !== job) throw 'cancelled';
+
+      setProgress(1, 'done'); await raf();
+      state.processed = true;
+      $('scrub').max = String(N - 1);
+      $('scrub').value = '0';
+      state.framePos = 0;
+      $('frames').textContent = `${N} frames`;
+      enablePlayback(true);
+      drawFrame(0);
+      setState('processed', 'ready');
+    } catch (e) {
+      if (e === 'cancelled') setState('cancelled', 'dirty');
+      else { console.error(e); setState('error — see console', 'dirty'); }
+      $('processVeil').style.display = 'grid';
+    } finally {
+      showProgress(false);
+      $('process').disabled = !state.loaded;
+      $('cancel').style.display = 'none';
+      state.busy = false;
+    }
+  }
+
+  // ─── Progress UI ─────────────────────────────────────────────────────────
+  function showProgress(on) { $('progress').classList.toggle('on', on); }
+  function setProgress(frac, label) {
+    $('progressFill').style.right = `${(1 - clamp(frac,0,1)) * 100}%`;
+    if (label) $('progressLabel').textContent = label;
+  }
+
+  // ─── Playback ────────────────────────────────────────────────────────────
+  function drawFrame(i) {
+    const N = state.N; if (N < 1) return;
+    const idx = clamp(Math.round(i), 0, N - 1);
+    if (state.srcFrames[idx]) { beforeCtx.drawImage(state.srcFrames[idx], 0, 0, state.width, state.height); }
+    if (state.outFrames[idx]) { afterCtx.drawImage(state.outFrames[idx], 0, 0, state.width, state.height); }
+    $('scrub').value = String(idx);
+    const t = idx / state.fps;
+    $('tcode').textContent = `${fmt(t)} / ${fmt(state.N / state.fps)}`;
+  }
+
+  function tick(ts) {
+    requestAnimationFrame(tick);
+    if (!state.playing || !state.processed) { state.lastTs = ts; return; }
+    const dt = (ts - state.lastTs) / 1000; state.lastTs = ts;
+    const speed = parseFloat($('speed').value);
+    state.framePos += dt * state.fps * speed;
+    if (state.framePos >= state.N - 0.5) {
+      if ($('loop').checked) { state.framePos = 0; }
+      else { state.framePos = state.N - 1; state.playing = false; $('play').textContent = '▶'; }
+    }
+    drawFrame(state.framePos);
+  }
+
+  function play() { if (!state.processed) return; state.playing = true; state.lastTs = performance.now(); $('play').textContent = '⏸'; }
+  function pause() { state.playing = false; $('play').textContent = '▶'; }
+  function togglePlay() { state.playing ? pause() : play(); }
+  function stop() { pause(); state.framePos = 0; drawFrame(0); }
+  function stepBy(n) { pause(); state.framePos = clamp(Math.round(state.framePos) + n, 0, state.N - 1); drawFrame(state.framePos); }
+
+  // ─── Events ──────────────────────────────────────────────────────────────
+  $('file').addEventListener('change', e => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    video.src = URL.createObjectURL(file);
+    video.load();
+    setState('loading…', '');
+    $('downloads').innerHTML = '';
+  });
+
+  video.addEventListener('loadedmetadata', () => {
+    state.loaded = true;
+    state.duration = video.duration || 0;
+    state.inSec = 0;
+    state.outSec = state.duration;
+    sizeCanvases();
+    // trim sliders
+    const ti = $('trimIn'), to = $('trimOut');
+    ti.disabled = to.disabled = false;
+    ti.min = 0; ti.max = state.duration.toFixed(2); ti.step = 0.01; ti.value = 0;
+    to.min = 0; to.max = state.duration.toFixed(2); to.step = 0.01; to.value = state.duration.toFixed(2);
+    $('trimInVal').textContent = '0.00';
+    $('trimOutVal').textContent = state.duration.toFixed(2);
+    updateTrimShade();
+    // show first frame in the before pane
+    seekTo(0).then(() => { workCtx.drawImage(video, 0, 0, state.width, state.height); beforeCtx.drawImage(work, 0, 0); });
+    $('process').disabled = false;
+    state.decodeDirty = true;
+    state.processed = false;
+    enablePlayback(false);
+    $('processVeil').style.display = 'grid';
+    $('veilMsg').innerHTML = 'Choose a temporal stance, then press <b>process the whole clip</b>. Playback unlocks once the field has read end-to-end.';
+    setState(`${video.videoWidth}×${video.videoHeight} loaded`, 'dirty');
+    $('frames').textContent = '-- frames';
+    updateEstimate();
+  });
+
+  // temporal stance
+  document.querySelectorAll('.seg').forEach(seg => {
+    seg.addEventListener('click', () => {
+      state.mode = seg.dataset.mode;
+      reflectMode();
+      invalidate('process');
+    });
+  });
+  $('balance').addEventListener('input', e => {
+    state.balance = parseFloat(e.target.value);
+    $('balanceVal').textContent = state.balance.toFixed(2);
+    if (state.mode === 'symmetric') invalidate('process');
+  });
+  $('transientAware').addEventListener('change', e => { state.transientAware = e.target.checked; updateFxBadge(); invalidate('process'); });
+  $('exposureNorm').addEventListener('change', e => { state.exposureNorm = e.target.checked; invalidate('process'); });
+
+  // process controls
+  $('fps').addEventListener('change', e => { state.fps = parseInt(e.target.value, 10); invalidate('decode'); });
+  $('procWidth').addEventListener('change', () => { if (state.loaded) sizeCanvases(); invalidate('decode'); });
+  $('trimIn').addEventListener('input', e => {
+    let v = parseFloat(e.target.value);
+    if (v > state.outSec - 0.2) v = Math.max(0, state.outSec - 0.2);
+    state.inSec = v; e.target.value = v;
+    $('trimInVal').textContent = v.toFixed(2);
+    updateTrimShade(); invalidate('decode');
+  });
+  $('trimOut').addEventListener('input', e => {
+    let v = parseFloat(e.target.value);
+    if (v < state.inSec + 0.2) v = Math.min(state.duration, state.inSec + 0.2);
+    state.outSec = v; e.target.value = v;
+    $('trimOutVal').textContent = v.toFixed(2);
+    updateTrimShade(); invalidate('decode');
+  });
+  function updateTrimShade() {
+    const d = state.duration || 1;
+    const l = (state.inSec / d) * 100, r = (state.outSec / d) * 100;
+    const L = $('trimShadeL'), R = $('trimShadeR');
+    L.style.left = '0'; L.style.width = l + '%';
+    R.style.left = r + '%'; R.style.width = (100 - r) + '%';
+  }
+
+  $('process').addEventListener('click', process);
+  $('cancel').addEventListener('click', () => { state.job++; });
+
+  // transport
+  $('play').addEventListener('click', togglePlay);
+  $('stop').addEventListener('click', stop);
+  $('stepBack').addEventListener('click', () => stepBy(-1));
+  $('stepFwd').addEventListener('click', () => stepBy(1));
+  $('scrub').addEventListener('input', e => { pause(); state.framePos = parseInt(e.target.value, 10); drawFrame(state.framePos); });
+
+  // compare mode (split / wipe)
+  $('cmpMode').addEventListener('click', () => {
+    state.cmp = state.cmp === 'split' ? 'wipe' : 'split';
+    $('cmpMode').textContent = state.cmp;
+    $('cmpMode').classList.toggle('active', state.cmp === 'wipe');
+    $('views').classList.toggle('wipe', state.cmp === 'wipe');
+  });
+  // wipe drag
+  (function () {
+    const handle = $('wipeHandle'), views = $('views');
+    let drag = false;
+    const setW = clientX => {
+      const r = views.getBoundingClientRect();
+      const pct = clamp(((clientX - r.left) / r.width) * 100, 2, 98);
+      state.wipe = pct;
+      views.style.setProperty('--wipe', pct + '%');
+    };
+    handle.addEventListener('pointerdown', e => { drag = true; handle.setPointerCapture(e.pointerId); });
+    handle.addEventListener('pointermove', e => { if (drag) setW(e.clientX); });
+    handle.addEventListener('pointerup', e => { drag = false; });
+  })();
+
+  // keyboard
+  window.addEventListener('keydown', e => {
+    if (['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName)) return;
+    if (!state.processed) return;
+    if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+    else if (e.code === 'ArrowLeft')  { e.preventDefault(); stepBy(-1); }
+    else if (e.code === 'ArrowRight') { e.preventDefault(); stepBy(1); }
+  });
+
+  // snapshot PNG of current processed frame
+  $('snapshot').addEventListener('click', () => {
+    if (!state.processed) return;
+    const a = document.createElement('a');
+    a.download = `prolepsis-${Date.now()}.png`;
+    a.href = afterCanvas.toDataURL('image/png');
+    a.click();
+  });
+
+  // export processed video by stepping cached frames into a captured canvas
+  $('exportVideo').addEventListener('click', async () => {
+    if (!state.processed || state.recorder) return;
+    const N = state.N, fps = state.fps;
+    const cap = document.createElement('canvas');
+    cap.width = state.width; cap.height = state.height;
+    const cctx = cap.getContext('2d', { alpha: false });
+    cctx.drawImage(state.outFrames[0], 0, 0);
+    const stream = cap.captureStream(fps);
+    const track = stream.getVideoTracks()[0];
+
+    let opts = { mimeType: 'video/mp4' };
+    if (!MediaRecorder.isTypeSupported(opts.mimeType)) opts = { mimeType: 'video/webm;codecs=vp9' };
+    if (!MediaRecorder.isTypeSupported(opts.mimeType)) opts = { mimeType: 'video/webm' };
+
+    state.recordedChunks = [];
+    const rec = new MediaRecorder(stream, opts);
+    state.recorder = rec;
+    rec.ondataavailable = e => { if (e.data && e.data.size) state.recordedChunks.push(e.data); };
+    rec.onstop = () => {
+      const mime = rec.mimeType || opts.mimeType;
+      const ext = mime.includes('mp4') ? 'mp4' : 'webm';
+      const blob = new Blob(state.recordedChunks, { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `prolepsis-${Date.now()}.${ext}`;
+      a.textContent = `↓ download (${(blob.size/1024/1024).toFixed(2)} MB, .${ext})`;
+      $('downloads').innerHTML = ''; $('downloads').appendChild(a);
+      state.recorder = null;
+      $('exportVideo').disabled = false;
+      setState('exported .' + ext, 'ready');
+    };
+
+    $('exportVideo').disabled = true;
+    setState('exporting…', '');
+    rec.start();
+    const frameMs = 1000 / fps;
+    for (let i = 0; i < N; i++) {
+      cctx.drawImage(state.outFrames[i], 0, 0);
+      await new Promise(r => setTimeout(r, frameMs));
+    }
+    setTimeout(() => { if (rec.state !== 'inactive') rec.stop(); }, 200);
+  });
+
+  // ─── Init ────────────────────────────────────────────────────────────────
+  makeSliders();
+  setPreset('preverb');
+  reflectMode();
+  enablePlayback(false);
+  requestAnimationFrame(tick);
+</script>
+</body>
+</html>

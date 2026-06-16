@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FrameSmear // HINDCAST SUITE</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Averia+Sans+Libre:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #092229;
+      --bg-deep: #041a23;
+      --panel: rgba(220, 252, 255, 0.092);
+      --panel-hi: rgba(255, 224, 244, 0.135);
+      --dim: rgba(20, 76, 89, 0.48);
+      --dim-hi: rgba(134, 255, 245, 0.13);
+
+      --aqua: #31f7ff;
+      --pool: #0fc4d8;
+      --mint: #9affcf;
+      --petal: #ffb4dd;
+      --petal-hi: #ffe2f1;
+      --sodium: #ffb229;
+      --lime: #dfff6a;
+      --violet: #8a79ff;
+
+      --aqua-lo: rgba(49, 247, 255, 0.12);
+      --aqua-mid: rgba(49, 247, 255, 0.34);
+      --petal-glow: rgba(255, 180, 221, 0.36);
+      --sodium-glow: rgba(255, 178, 41, 0.20);
+      --line: rgba(154, 255, 237, 0.18);
+      --line-hi: rgba(255, 226, 241, 0.35);
+      --ink: #e9ffff;
+      --muted: rgba(190, 232, 235, 0.50);
+      --muted-hi: rgba(226, 255, 252, 0.76);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      font-family: 'DM Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse 92% 56% at 18% 3%, rgba(255, 211, 150, 0.34) 0%, transparent 54%),
+        radial-gradient(ellipse 64% 44% at 87% 10%, rgba(255, 180, 221, 0.20) 0%, transparent 56%),
+        radial-gradient(ellipse 60% 45% at 92% 88%, rgba(49, 247, 255, 0.14) 0%, transparent 62%),
+        linear-gradient(125deg, #170a03 0%, #41200f 33%, #6f3913 58%, #2f1627 100%);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: -10% -8%;
+      background:
+        linear-gradient(102deg, transparent 0 17%, rgba(255,247,235,0.18) 18%, transparent 21% 100%),
+        linear-gradient(96deg, transparent 0 35%, rgba(255,178,41,0.16) 36%, transparent 40% 100%),
+        linear-gradient(84deg, transparent 0 66%, rgba(255,180,221,0.11) 67%, transparent 70% 100%),
+        repeating-linear-gradient(0deg, rgba(255,245,232,0.024) 0px, rgba(255,245,232,0.024) 1px, transparent 1px, transparent 7px);
+      filter: blur(12px) saturate(125%);
+      opacity: 0.95;
+      pointer-events: none;
+      z-index: 0;
+      transform: skewY(-3deg);
+    }
+
+    .shell {
+      position: relative;
+      z-index: 1;
+      width: min(1680px, calc(100vw - 24px));
+      margin: 0 auto;
+      padding: 20px 0 56px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      gap: 18px;
+      margin-bottom: 12px;
+      padding: 9px 10px 10px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: linear-gradient(90deg, rgba(255,178,41,0.24), rgba(255,180,221,0.10) 48%, rgba(49,247,255,0.08)), rgba(54, 24, 9, 0.42);
+      backdrop-filter: blur(18px) saturate(150%);
+    }
+	
+    h1 { font-family: 'Averia Sans Libre', sans-serif; }
+
+    .header-left h1 {
+      position: relative;
+      display: inline-block;
+      font-weight: 500;
+      font-style: italic;
+      font-size: clamp(2.1rem, 4.5vw, 5.2rem);
+      letter-spacing: -0.075em;
+      text-transform: lowercase;
+      line-height: 0.82;
+      color: #fff4ea;
+      transform: skewX(-8deg);
+      text-shadow: -6px 0 22px rgba(255, 180, 221, 0.34), 8px 0 34px rgba(255, 178, 41, 0.42);
+    }
+
+    .header-left h1::after {
+      content: ''; position: absolute; left: 0; right: 0; bottom: -0.12em; height: 0.16em;
+      border-radius: 999px; background: linear-gradient(90deg, var(--sodium), var(--petal), var(--pool));
+    }
+
+    .header-left .tagline { margin-top: 12px; font-size: 0.72rem; letter-spacing: 0.15em; color: var(--mint); text-transform: lowercase; }
+    .version-tag { font-size: 0.64rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--petal-hi); border: 1px solid rgba(255, 223, 192, 0.52); padding: 5px 12px; border-radius: 999px; background: rgba(255, 178, 41, 0.14); }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 380px;
+      gap: 16px;
+      align-items: start;
+    }
+
+    /* ── Dual Window Stage ────────────────────────────────────────────── */
+    .stage {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 14px;
+      border: 1px solid var(--line-hi);
+      border-radius: 20px;
+      background: rgba(32, 14, 5, 0.46);
+      backdrop-filter: blur(22px) saturate(155%);
+    }
+
+    .display-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .window-container {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .window-title {
+      font-size: 0.62rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding-left: 4px;
+    }
+
+    .canvas-wrap {
+      position: relative;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 244, 231, 0.22);
+      aspect-ratio: 16/9;
+    }
+
+    canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .empty-state {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: rgba(255, 239, 224, 0.56);
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
+      text-transform: lowercase;
+      z-index: 4;
+      background: rgba(10, 5, 2, 0.85);
+    }
+    .empty-state strong { display: block; font-size: 0.66rem; letter-spacing: 0.22em; color: var(--petal-hi); text-transform: uppercase; margin-bottom: 4px;}
+
+    /* ── Precision Custom Player Transport ────────────────────────────── */
+    .transport-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: rgba(15, 6, 2, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 12px;
+      border-radius: 14px;
+    }
+
+    .timeline-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .time-scratch {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 999px;
+      outline: none;
+    }
+    .time-scratch::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--aqua);
+      cursor: pointer;
+    }
+
+    .time-display {
+      font-variant-numeric: tabular-nums;
+      font-size: 0.72rem;
+      color: var(--lime);
+      min-width: 65px;
+      text-align: right;
+    }
+
+    .playback-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .hud { display: flex; gap: 6px; flex-wrap: wrap; }
+    .pill { font-size: 0.66rem; letter-spacing: 0.10em; text-transform: lowercase; padding: 4px 9px; border-radius: 999px; border: 1px solid rgba(154, 255, 237, 0.22); color: var(--muted-hi); background: rgba(33, 14, 5, 0.50); }
+    .pill.fx { border-color: rgba(255, 178, 41, 0.40); color: var(--sodium); }
+
+    /* ── Controls Sidebar ─────────────────────────────────────────────── */
+    .controls {
+      background: linear-gradient(180deg, rgba(255, 214, 169, 0.14), rgba(255, 180, 221, 0.08) 34%, rgba(49, 247, 255, 0.04)), rgba(32, 14, 5, 0.48);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      backdrop-filter: blur(20px);
+    }
+
+    .section { padding: 13px 14px; border-bottom: 1px solid rgba(255, 224, 188, 0.14); }
+    .section > h2, .group-label { font-size: 0.58rem; letter-spacing: 0.23em; text-transform: uppercase; color: var(--petal-hi); margin-bottom: 11px; padding: 3px 9px 4px; border-radius: 999px; background: rgba(255,178,41,0.2); width: max-content; }
+    
+    .file-row { display: flex; flex-direction: column; gap: 8px; }
+    input[type="file"] { font-family: inherit; font-size: 0.72rem; color: var(--muted-hi); }
+    
+    button {
+      font-family: inherit; font-size: 0.66rem; letter-spacing: 0.13em; text-transform: uppercase; color: var(--muted-hi);
+      background: rgba(32, 14, 5, 0.48); border: 1px solid rgba(255, 224, 188, 0.20); padding: 8px 12px; border-radius: 999px; cursor: pointer;
+    }
+    button:hover:not(:disabled) { background: var(--panel-hi); border-color: var(--petal); color: #fff; }
+    button:disabled { opacity: 0.25; cursor: not-allowed; }
+
+    button.prime-btn {
+      background: rgba(255, 178, 41, 0.16);
+      border-color: var(--sodium);
+      color: #fff4dc;
+      font-weight: bold;
+    }
+    button.prime-btn:hover:not(:disabled) {
+      background: var(--sodium);
+      color: #000;
+    }
+
+    #sliders { display: flex; flex-direction: column; }
+    .control { padding: 5px 14px 8px; }
+    .slider-label { display: flex; justify-content: space-between; font-size: 0.70rem; color: var(--muted-hi); margin-bottom: 4px; text-transform: lowercase;}
+    .slider-label span:last-child { color: var(--lime); font-variant-numeric: tabular-nums; }
+    input[type="range"] { -webkit-appearance: none; width: 100%; height: 4px; background: rgba(255,255,255,0.2); border-radius: 999px; outline: none; }
+    input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: var(--sodium); cursor: pointer; }
+
+    .progress-overlay {
+      position: absolute; inset: 0; background: rgba(4, 26, 35, 0.9); display: none; place-items: center; z-index: 10; color: var(--aqua); font-size: 0.8rem; letter-spacing: 0.1em;
+    }
+  </style>
+</head>
+<body>
+
+<div class="shell">
+  <header>
+    <div class="header-left">
+      <h1>Hindcast // FrameSmear</h1>
+      <p class="tagline">un-live bidirectional field reconstruction engine</p>
+    </div>
+    <div class="header-right">
+      <span class="version-tag">Acausal Suite v3.0</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="stage">
+      <div class="display-split">
+        <div class="window-container">
+          <div class="window-title">Causal Source Linear input</div>
+          <div class="canvas-wrap">
+            <canvas id="srcCanvas"></canvas>
+            <div class="empty-state" id="srcEmpty">
+              <div><strong>No Asset Loaded</strong>Waiting for score ingestion...</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="window-container">
+          <div class="window-title">Acausal Field Hindcast distribution</div>
+          <div class="canvas-wrap">
+            <canvas id="outCanvas"></canvas>
+            <div class="progress-overlay" id="harvestProgress">INGESTING AND COMPILING WAVE FIELD: 0%</div>
+            <div class="empty-state" id="outEmpty">
+              <div><strong>System Offline</strong>Requires pre-processing pass</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="transport-bar">
+        <div class="timeline-container">
+          <input type="range" id="timeScratch" class="time-scratch" min="0" value="0" step="1" disabled />
+          <span class="time-display" id="timeDisplay">00:00 / 00:00</span>
+        </div>
+        <div class="playback-buttons">
+          <button id="playBtn" disabled>Play</button>
+          <button id="pauseBtn" disabled>Pause</button>
+          <button id="stopBtn" disabled>Stop</button>
+        </div>
+      </div>
+
+      <div class="hud">
+        <span class="pill" id="statusBadge">status: idle</span>
+        <span class="pill" id="frameBadge">frame: --</span>
+        <span class="pill" id="resolutionBadge">--</span>
+      </div>
+    </section>
+
+    <aside class="controls">
+      <div class="section">
+        <h2>Ingestion</h2>
+        <div class="file-row">
+          <input id="file" type="file" accept="video/*" />
+          <button id="compileBtn" class="prime-btn" disabled>Harvest & Compute Signal</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Acausal Configuration</h2>
+        <div id="sliders"></div>
+      </div>
+      
+      <div class="section">
+        <h2>System Output</h2>
+        <button id="snapshot" disabled style="width:100%;">Commit Frame to Disk (.PNG)</button>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<video id="videoCache" style="display:none;" playsinline muted></video>
+
+<script>
+  const $ = id => document.getElementById(id);
+
+  // Architecture elements
+  const video = $('videoCache');
+  const srcCanvas = $('srcCanvas');
+  const outCanvas = $('outCanvas');
+  const srcCtx = srcCanvas.getContext('2d');
+  const outCtx = outCanvas.getContext('2d');
+
+  // State Management
+  const pipeline = {
+    sourceFrames: [], // Raw cached frame data strings or arrays
+    processedFrames: [], // Render output buffer array
+    width: 640,
+    height: 360,
+    totalFrames: 0,
+    fps: 30,
+    currentFrame: 0,
+    isPlaying: false,
+    animationId: null
+  };
+
+  const controls = {
+    temporalWindow:   { label: 'temporal horizon (span)',  min: 1,    max: 45,   step: 1,    value: 16,   group: 'Acausality' },
+    acausalBalance:   { label: 'precognition / valence',  min: -1.0, max: 1.0,  step: 0.05, value: 0.0,  group: 'Acausality' },
+    smearDensity:     { label: 'inscription weight',      min: 0.01, max: 0.5,  step: 0.01, value: 0.12, group: 'Field Dynamics' },
+    chromaAberration: { label: 'chroma split distribution',min: 0,    max: 20,   step: 0.5,  value: 4.0,  group: 'Field Dynamics' },
+    edgePersistence:  { label: 'structural high-pass',   min: 0.0,  max: 2.0,  step: 0.05, value: 1.0,  group: 'Field Dynamics' }
+  };
+
+  // Build UI
+  function initSliders() {
+    const container = $('sliders');
+    container.innerHTML = '';
+    for (const [key, cfg] of Object.entries(controls)) {
+      const wrap = document.createElement('div');
+      wrap.className = 'control';
+      wrap.innerHTML = `
+        <label class="slider-label">
+          <span>${cfg.label}</span>
+          <span id="${key}Val">${cfg.value}</span>
+        </label>
+        <input type="range" id="${key}" min="${cfg.min}" max="${cfg.max}" step="${cfg.step}" value="${cfg.value}" />
+      `;
+      wrap.querySelector('input').addEventListener('input', (e) => {
+        cfg.value = parseFloat(e.target.value);
+        $(`${key}Val`).textContent = e.target.value;
+        // If parameters alter after calculation, a dirty bit can be marked here to prompt a re-compile.
+      });
+      container.append(wrap);
+    }
+  }
+
+  // Phase 1: The Offline Harvest
+  $('file').addEventListener('change', e => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    video.src = URL.createObjectURL(file);
+    video.load();
+    $('statusBadge').textContent = 'status: asset loaded. ready to compile.';
+  });
+
+  video.addEventListener('loadedmetadata', () => {
+    pipeline.width = Math.min(720, video.videoWidth); // Optimize space for high-speed RAM processing
+    pipeline.height = Math.round(pipeline.width * (video.videoHeight / video.videoWidth));
+    
+    srcCanvas.width = outCanvas.width = pipeline.width;
+    srcCanvas.height = outCanvas.height = pipeline.height;
+    $('resolutionBadge').textContent = `${pipeline.width}×${pipeline.height}`;
+    $('compileBtn').disabled = false;
+  });
+
+  $('compileBtn').addEventListener('click', async () => {
+    $('compileBtn').disabled = true;
+    $('harvestProgress').style.display = 'grid';
+    $('statusBadge').textContent = 'status: harvesting wave field...';
+    
+    pipeline.sourceFrames = [];
+    pipeline.processedFrames = [];
+    
+    const duration = video.duration;
+    // Emulate frame-by-frame indexing pass
+    video.currentTime = 0;
+    let timeCursor = 0;
+    const interval = 1 / 30; // 30 FPS targeting
+    
+    const hiddenCanvas = document.createElement('canvas');
+    hiddenCanvas.width = pipeline.width;
+    hiddenCanvas.height = pipeline.height;
+    const hiddenCtx = hiddenCanvas.getContext('2d');
+
+    while (timeCursor < duration) {
+      video.currentTime = timeCursor;
+      await new Promise(r => video.onseeked = r);
+      
+      hiddenCtx.drawImage(video, 0, 0, pipeline.width, pipeline.height);
+      const imgData = hiddenCtx.getImageData(0, 0, pipeline.width, pipeline.height);
+      pipeline.sourceFrames.push(imgData);
+      
+      timeCursor += interval;
+      const pct = Math.round((timeCursor / duration) * 100);
+      $('harvestProgress').textContent = `INDEXING TIMELINE MATRIX: ${Math.min(100, pct)}%`;
+    }
+
+    pipeline.totalFrames = pipeline.sourceFrames.length;
+    
+    // Now, run the un-live structural optimization step (Process Entire Score)
+    computeAcausalHindcast();
+  });
+
+  // Phase 2: Acausal Processing Engine (Whole-Signal Lookahead Loop)
+  function computeAcausalHindcast() {
+    const total = pipeline.totalFrames;
+    const win = controls.temporalWindow.value;
+    const bal = controls.acausalBalance.value; // -1 (future-only) to 0 (symmetrical) to +1 (past-only)
+    const dens = controls.smearDensity.value;
+    const edgeG = controls.edgePersistence.value;
+
+    const w = pipeline.width;
+    const h = pipeline.height;
+
+    // Temporary accumulation canvas context
+    const accCanvas = document.createElement('canvas');
+    accCanvas.width = w; accCanvas.height = h;
+    const accCtx = accCanvas.getContext('2d');
+
+    for (let t = 0; t < total; t++) {
+      $('harvestProgress').textContent = `CALCULATING TOTAL DISTRIBUTION: ${Math.round((t / total) * 100)}%`;
+      
+      accCtx.clearRect(0,0,w,h);
+      
+      // Determine lookahead and lookbehind boundaries inside the finite asset length
+      const start = Math.max(0, t - win);
+      const end = Math.min(total - 1, t + win);
+      
+      // Zero-phase or directional asymmetric blend
+      let weightSum = 0;
+      
+      for (let look = start; look <= end; look++) {
+        const offset = look - t;
+        
+        // Mathematical weighting configuration
+        // Modulates blending affinity based on selected precognitive balance parameter
+        let directionalAffinity = 1.0;
+        if (bal < 0) {
+          // Attenuate memory of the past to privilege vectors coming from the future
+          if (offset < 0) directionalAffinity = 1.0 - Math.abs(bal);
+        } else if (bal > 0) {
+          // Attenuate preview of the future to act like standard causal accumulation
+          if (offset > 0) directionalAffinity = 1.0 - bal;
+        }
+
+        const distance = Math.abs(offset);
+        if (distance === 0) continue;
+
+        // Normal distribution profile across the timeframe
+        const GaussianWeight = Math.exp(-(distance * distance) / (2 * (win / 2) * (win / 2)));
+        const finalWeight = GaussianWeight * dens * directionalAffinity;
+
+        if (finalWeight > 0.001) {
+          accCtx.globalAlpha = finalWeight;
+          // Simple trick to emulate frame inversion / highpass without deep pipelines
+          if(edgeG > 1.0 && offset > 0) {
+            accCtx.globalCompositeOperation = 'screen';
+          } else {
+            accCtx.globalCompositeOperation = 'source-over';
+          }
+          
+          // Generate pseudo image data payload
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = w; tempCanvas.height = h;
+          tempCanvas.getContext('2d').putImageData(pipeline.sourceFrames[look], 0, 0);
+          accCtx.drawImage(tempCanvas, 0, 0);
+          weightSum += finalWeight;
+        }
+      }
+
+      // Base target frame layer drawing
+      const outFrameCanvas = document.createElement('canvas');
+      outFrameCanvas.width = w; outFrameCanvas.height = h;
+      const fCtx = outFrameCanvas.getContext('2d');
+      
+      // Draw foundational frame at moment t
+      fCtx.putImageData(pipeline.sourceFrames[t], 0, 0);
+      
+      // Overlay the computed acausal temporal cloud
+      fCtx.globalAlpha = 1.0;
+      fCtx.globalCompositeOperation = 'screen';
+      fCtx.drawImage(accCanvas, 0, 0);
+
+      // Chroma split execution (Pixel shifting inside the distribution)
+      const chroma = controls.chromaAberration.value;
+      if (chroma > 0.1) {
+        fCtx.globalCompositeOperation = 'multiply';
+        fCtx.globalAlpha = 0.4;
+        fCtx.drawImage(outFrameCanvas, chroma, 0);
+        fCtx.drawImage(outFrameCanvas, -chroma, 0);
+      }
+
+      pipeline.processedFrames.push(fCtx.getImageData(0,0,w,h));
+    }
+
+    // Complete pipeline conversion
+    $('harvestProgress').style.display = 'none';
+    $('srcEmpty').style.display = 'none';
+    $('outEmpty').style.display = 'none';
+    
+    // Configure Scrubber boundaries
+    $('timeScratch').max = pipeline.totalFrames - 1;
+    $('timeScratch').disabled = false;
+    
+    enablePlaybackControls(true);
+    setFrame(0);
+    $('statusBadge').textContent = 'status: score mapped. ready for evaluation.';
+  }
+
+  function enablePlaybackControls(enable) {
+    ['playBtn', 'pauseBtn', 'stopBtn', 'snapshot'].forEach(id => $(id).disabled = !enable);
+  }
+
+  // Precision Interface Rendering Functions
+  function setFrame(idx) {
+    if (idx < 0 || idx >= pipeline.totalFrames) return;
+    pipeline.currentFrame = idx;
+    $('timeScratch').value = idx;
+    
+    // Render side-by-side matrices
+    srcCtx.putImageData(pipeline.sourceFrames[idx], 0, 0);
+    outCtx.putImageData(pipeline.processedFrames[idx], 0, 0);
+    
+    // Update labels
+    $('frameBadge').textContent = `frame: ${idx + 1} / ${pipeline.totalFrames}`;
+    
+    const currentSec = Math.floor(idx / 30);
+    const totalSec = Math.floor(pipeline.totalFrames / 30);
+    $('timeDisplay').textContent = `${formatTime(currentSec)} / ${formatTime(totalSec)}`;
+  }
+
+  function formatTime(secs) {
+    const m = Math.floor(secs / 60).toString().padStart(2, '0');
+    const s = (secs % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  }
+
+  // Custom Linear Transport Logic Loop
+  function playLoop() {
+    if (!pipeline.isPlaying) return;
+    
+    if (pipeline.currentFrame >= pipeline.totalFrames - 1) {
+      setFrame(0); // Standard lookback wrap loop
+    } else {
+      setFrame(pipeline.currentFrame + 1);
+    }
+    
+    pipeline.animationId = requestAnimationFrame(playLoop);
+  }
+
+  $('playBtn').addEventListener('click', () => {
+    if (pipeline.isPlaying) return;
+    pipeline.isPlaying = true;
+    $('statusBadge').textContent = 'status: assessing distribution timeline...';
+    playLoop();
+  });
+
+  $('pauseBtn').addEventListener('click', () => {
+    pipeline.isPlaying = false;
+    cancelAnimationFrame(pipeline.animationId);
+    $('statusBadge').textContent = 'status: execution suspended.';
+  });
+
+  $('stopBtn').addEventListener('click', () => {
+    pipeline.isPlaying = false;
+    cancelAnimationFrame(pipeline.animationId);
+    setFrame(0);
+    $('statusBadge').textContent = 'status: trace zeroed.';
+  });
+
+  $('timeScratch').addEventListener('input', (e) => {
+    if (pipeline.isPlaying) {
+      pipeline.isPlaying = false;
+      cancelAnimationFrame(pipeline.animationId);
+    }
+    setFrame(parseInt(e.target.value));
+  });
+
+  $('snapshot').addEventListener('click', () => {
+    const a = document.createElement('a');
+    a.download = `hindcast-smear-${Date.now()}.png`;
+    a.href = outCanvas.toDataURL('image/png');
+    a.click();
+  });
+
+  // Init
+  initSliders();
+</script>
+</body>
+</html>
