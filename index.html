@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HINDCASTS — a suite of un-live effects</title>
+<meta name="description" content="Hindcasts: a suite of acausal audio & video effects that have read to the end of the score before they begin." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+
+
+
+<style>
+  :root{
+    /* abyssal / sounding palette — inherited from the suite's oceanographic root */
+    --abyss:#06130f; --abyss2:#0a1d17; --deep:#0d2722; --deep2:#102e27;
+    --line:#193f37; --line-hi:#2a675a; --grid:rgba(84,240,198,.05);
+    --foam:#dff3ea; --mute:#84b5a6; --faint:#52796d;
+    --lumen:#54f0c6;            /* the known signal */
+    --lumen-dim:#2bbf9b;
+    --pre:#8e74ff;             /* precognition / the reach */
+    --pre-dim:#6552c9;
+    --sodium:#ffb347;          /* warm accent, used sparingly */
+    --blood:#ff3145;           /* the transient onset, used once */
+    --mono:'Space Mono',ui-monospace,Menlo,Consolas,monospace;
+    --sans:'Space Grotesk',system-ui,sans-serif;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--sans);
+    color:var(--foam);
+    background:var(--abyss);
+    background-image:
+      radial-gradient(130% 80% at 50% -18%, #0e2a23 0%, var(--abyss) 52%, var(--abyss2) 100%);
+    -webkit-font-smoothing:antialiased;
+    line-height:1.5;
+    overflow-x:hidden;
+  }
+
+  /* faint instrument grid wash */
+  body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  background:
+    radial-gradient(80% 48% at 18% -8%, rgba(255,178,41,.10), transparent 58%),
+    radial-gradient(70% 42% at 90% 0%, rgba(255,180,221,.08), transparent 60%),
+    radial-gradient(65% 52% at 75% 92%, rgba(49,247,255,.06), transparent 62%),
+
+  background-size:auto, auto, auto, 64px 64px, 64px 64px;
+  mask-image:radial-gradient(120% 90% at 50% 0%, #000 24%, transparent 92%);
+  -webkit-mask-image:radial-gradient(120% 90% at 50% 0%, #000 24%, transparent 92%);
+  }
+
+  .wrap{position:relative;z-index:1;width:min(1080px, calc(100vw - 40px));margin:0 auto;padding:30px 0 64px}
+
+  /* eyebrow / utility type ---------------------------------------------- */
+  .eyebrow{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.28em;text-transform:uppercase;
+    color:var(--lumen-dim);
+  }
+  .mono{font-family:var(--mono)}
+
+  /* ── masthead ──────────────────────────────────────────────────────── */
+  .mast{
+    display:flex;justify-content:space-between;align-items:flex-start;gap:18px;
+    padding-bottom:14px;border-bottom:1px solid var(--line);
+  }
+  .mast .id{display:flex;flex-direction:column;gap:7px}
+  .coord{display:flex;gap:14px;align-items:center;color:var(--faint)}
+  .coord .dot{width:5px;height:5px;border-radius:50%;background:var(--lumen);box-shadow:0 0 8px var(--lumen)}
+  h1.wordmark{
+    font-family:var(--mono);font-weight:700;
+    font-size:clamp(30px,8.5vw,68px);letter-spacing:.06em;line-height:.96;
+    color:var(--foam);
+    text-shadow:0 0 30px rgba(84,240,198,.16);
+  }
+  h1.wordmark b{color:var(--lumen);font-weight:700}
+  .mast .build{
+    text-align:right;display:flex;flex-direction:column;gap:6px;align-items:flex-end;
+    font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--faint);white-space:nowrap;
+  }
+  .chip{
+    border:1px solid var(--line-hi);border-radius:999px;padding:4px 10px;color:var(--mute);
+    text-transform:uppercase;letter-spacing:.16em;
+  }
+
+  /* ── hero spine line ───────────────────────────────────────────────── */
+  .spine{
+    margin:26px 0 18px;
+    font-size:clamp(20px,3.4vw,33px);font-weight:500;line-height:1.18;letter-spacing:-.01em;
+    max-width:24ch;
+  }
+  .spine .read{color:var(--lumen)}
+  .spine .before{color:var(--pre);font-style:italic}
+
+  /* ── readout (the signature) ───────────────────────────────────────── */
+  .readout{
+    border:1px solid var(--line-hi);border-radius:10px;overflow:hidden;
+    background:linear-gradient(180deg, rgba(13,39,34,.7), rgba(6,19,15,.7));
+    box-shadow:0 24px 60px rgba(0,0,0,.4), 0 0 0 1px rgba(84,240,198,.04) inset;
+  }
+  .readout-top{
+    display:flex;justify-content:space-between;align-items:center;gap:12px;
+    padding:9px 14px;border-bottom:1px solid var(--line);
+    background:rgba(6,19,15,.5);
+  }
+  .readout-top .label{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--mute)}
+  .modes{display:flex;gap:4px;font-family:var(--mono);font-size:10.5px}
+  .modes button{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
+    color:var(--faint);background:transparent;border:1px solid var(--line);
+    border-radius:6px;padding:5px 11px;cursor:pointer;transition:.18s;text-transform:lowercase;
+  }
+  .modes button:hover{color:var(--mute);border-color:var(--line-hi)}
+  .modes button[aria-pressed="true"]{color:var(--abyss);background:var(--lumen);border-color:var(--lumen);font-weight:700}
+  .modes button.pre[aria-pressed="true"]{background:var(--pre);border-color:var(--pre);color:#fff}
+
+  .canvas-stage{position:relative;width:100%;height:188px;background:transparent}
+  #wave{display:block;width:100%;height:100%}
+  .readout-foot{
+    display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    padding:9px 14px;border-top:1px solid var(--line);
+    font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--faint);
+  }
+  .readout-foot .key{display:flex;gap:16px;flex-wrap:wrap}
+  .readout-foot .key span{display:inline-flex;align-items:center;gap:6px}
+  .swatch{width:9px;height:9px;border-radius:2px;display:inline-block}
+  .sw-known{background:var(--lumen)}
+  .sw-pre{background:var(--pre)}
+  .sw-unk{background:#16352d;border:1px solid var(--line-hi)}
+  #modeNote{color:var(--mute)}
+
+  /* ── statement ─────────────────────────────────────────────────────── */
+  .statement{margin:46px 0 10px;display:grid;grid-template-columns:1fr;gap:18px}
+  .statement .lede{font-size:17px;line-height:1.6;color:var(--foam);max-width:66ch}
+  .statement p{font-size:14.5px;line-height:1.68;color:var(--mute);max-width:66ch}
+  .statement em{color:var(--foam);font-style:italic}
+  .statement b{color:var(--lumen);font-weight:600}
+
+  /* valence callout — the suite's sharpest claim */
+  .valence{
+    display:grid;grid-template-columns:1fr 1fr;gap:1px;margin-top:8px;
+    border:1px solid var(--line-hi);border-radius:10px;overflow:hidden;background:var(--line);
+  }
+  .valence > div{padding:16px 18px;background:var(--deep)}
+  .valence .tag{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;margin-bottom:8px}
+  .valence .audio .tag{color:var(--lumen-dim)}
+  .valence .video .tag{color:var(--pre)}
+  .valence .verb{font-size:18px;font-weight:600;margin-bottom:5px;color:var(--foam)}
+  .valence p{font-size:13px;color:var(--mute);line-height:1.55;margin:0}
+
+  /* ── section heads ─────────────────────────────────────────────────── */
+  .sec-head{
+    display:flex;align-items:baseline;justify-content:space-between;gap:14px;
+    margin:54px 0 18px;padding-bottom:10px;border-bottom:1px solid var(--line);
+  }
+  .sec-head h2{font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:var(--foam)}
+  .sec-head .meta{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--faint)}
+
+  /* ── suite / tool cards (channel strips) ───────────────────────────── */
+  .suite{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .tool{
+    --wash-a: rgba(84,240,198,.045);
+  --wash-b: rgba(142,116,255,.025);
+  --wash-c: rgba(13,39,34,.92);
+  --glow-a: rgba(84,240,198,.10);
+  --glow-b: rgba(142,116,255,.06);
+    display:flex;flex-direction:column;
+    border:1px solid var(--line-hi);border-radius:10px;overflow:hidden;
+      background:
+    linear-gradient(180deg, var(--wash-a), var(--wash-b) 36%, var(--wash-c)),
+    linear-gradient(180deg, var(--deep2), var(--abyss2));
+    text-decoration:none;color:inherit;
+    transition:transform .2s cubic-bezier(.2,.7,.2,1), border-color .2s, box-shadow .2s;
+    position:relative;
+  }
+  /* Pythia — violet/oracular/precognitive */
+#pythia{
+  --wash-a: rgba(142,116,255,.080);
+  --wash-b: rgba(84,240,198,.035);
+  --wash-c: rgba(13,39,34,.94);
+  --glow-a: rgba(142,116,255,.14);
+  --glow-b: rgba(84,240,198,.08);
+}
+
+/* Sounder — abyssal/practical/depth instrument */
+#sounder{
+  --wash-a: rgba(84,240,198,.070);
+  --wash-b: rgba(43,191,155,.040);
+  --wash-c: rgba(6,19,15,.94);
+  --glow-a: rgba(84,240,198,.14);
+  --glow-b: rgba(43,191,155,.08);
+}
+
+/* Prolepsis — amber/petal/aqua read-ahead video wing */
+#prolepsis{
+  --wash-a: rgba(255,178,41,.070);
+  --wash-b: rgba(255,180,221,.050);
+  --wash-c: rgba(13,39,34,.92);
+  --glow-a: rgba(255,180,221,.12);
+  --glow-b: rgba(49,247,255,.08);
+}
+  .tool::before{
+    content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--accent,var(--lumen));opacity:.0;transition:opacity .2s;
+  }
+  .tool:hover{transform:translateY(-3px);border-color:var(--accent,var(--lumen));box-shadow:0 18px 40px rgba(0,0,0,.4)}
+  .tool:hover::before{opacity:1}
+  .tool:focus-visible{outline:2px solid var(--lumen);outline-offset:2px}
+  .tool-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:14px 15px 8px}
+  .tool-name{font-family:var(--mono);font-size:19px;font-weight:700;letter-spacing:.02em;color:var(--foam)}
+  .tool-op{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent,var(--lumen));text-align:right;line-height:1.5}
+  .tool-op .medium{display:block;color:var(--faint)}
+  .tool-desc{padding:0 15px 14px;font-size:13px;line-height:1.55;color:var(--mute);flex:1}
+  .tool-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:11px 15px;border-top:1px solid var(--line)}
+  .powers{display:flex;gap:5px}
+  .powers .p{
+    font-family:var(--mono);font-size:10px;width:19px;height:19px;display:grid;place-items:center;
+    border:1px solid var(--line-hi);border-radius:5px;color:var(--mute);
+  }
+  .tool:hover .powers .p{border-color:var(--accent,var(--lumen));color:var(--accent,var(--lumen))}
+  .open{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--accent,var(--lumen));display:inline-flex;align-items:center;gap:6px}
+  .open .arr{transition:transform .2s}
+  .tool:hover .open .arr{transform:translateX(3px)}
+  .status-flag{font-family:var(--mono);font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);border:1px solid var(--line);border-radius:999px;padding:2px 7px}
+
+  /* ── five superpowers (real numbered enum) ─────────────────────────── */
+  .powers-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+  .pw{border:1px solid var(--line);border-radius:8px;padding:13px 12px;background:rgba(13,39,34,.4)}
+  .pw .n{font-family:var(--mono);font-size:11px;color:var(--pre);letter-spacing:.1em;display:block;margin-bottom:8px}
+  .pw .t{font-size:13px;font-weight:600;color:var(--foam);margin-bottom:5px;line-height:1.25}
+  .pw .d{font-size:11.5px;line-height:1.45;color:var(--faint)}
+
+  /* ── bench / next ──────────────────────────────────────────────────── */
+  .bench{border:1px solid var(--line);border-radius:10px;padding:18px 20px;background:rgba(13,39,34,.35)}
+  .bench ol{list-style:none;display:flex;flex-direction:column;gap:11px;counter-reset:b}
+  .bench li{display:flex;gap:14px;align-items:baseline;font-size:13.5px;color:var(--mute);line-height:1.5}
+  .bench li::before{counter-increment:b;content:counter(b);font-family:var(--mono);font-size:10px;color:var(--sodium);border:1px solid var(--line-hi);border-radius:5px;min-width:22px;height:22px;display:inline-grid;place-items:center;flex:none}
+  .bench li b{color:var(--foam);font-weight:600}
+  .bench li.now b{color:var(--sodium)}
+  .bench li.now::before{border-color:var(--sodium);color:var(--sodium)}
+
+  /* ── colophon ──────────────────────────────────────────────────────── */
+  .colophon{
+    margin-top:54px;padding-top:18px;border-top:1px solid var(--line);
+    display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;
+    font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.04em;line-height:1.7;
+  }
+  .colophon a{color:var(--mute);text-decoration:none;border-bottom:1px solid var(--line-hi)}
+  .colophon a:hover{color:var(--lumen);border-color:var(--lumen)}
+
+  /* ── responsive ────────────────────────────────────────────────────── */
+  @media (max-width:820px){
+    .suite{grid-template-columns:1fr}
+    .powers-grid{grid-template-columns:1fr 1fr}
+    .valence{grid-template-columns:1fr}
+  }
+  @media (max-width:540px){
+    .mast{flex-direction:column}
+    .mast .build{text-align:left;align-items:flex-start}
+    .powers-grid{grid-template-columns:1fr}
+    .canvas-stage{height:158px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    *{transition:none !important}
+  }
+  
+  --aqua:#31f7ff;
+--petal:#ffb4dd;
+--petal-hi:#ffe2f1;
+--sodium:#ffb229;
+--lime:#dfff6a;
+--petal-glow:rgba(255,180,221,.22);
+--sodium-glow:rgba(255,178,41,.14);
+--aqua-glow:rgba(49,247,255,.16);
+
+
+
+h1.wordmark{
+  position:relative;
+}
+
+h1.wordmark::before{
+  content:'HINDCASTS';
+  position:absolute;
+  left:-0.2em;
+  top: 0.2em;
+  color:rgba(49,247,255,.20);
+  text-shadow:
+    0 0 18px rgba(49,247,255,.18),
+    0 0 28px rgba(255,180,221,.10);
+  z-index:-1;
+  filter:blur(.35px);
+  pointer-events:none;
+}
+
+.mast{
+  position:relative;
+}
+
+.mast::after{
+  content:'';
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:-1px;
+  height:1px;
+  background:linear-gradient(90deg,
+    transparent,
+    var(--lumen) 18%,
+    var(--aqua) 42%,
+    var(--petal) 68%,
+    var(--sodium) 84%,
+    transparent
+  );
+  opacity:.58;
+  box-shadow:0 0 18px rgba(255,180,221,.16);
+}
+
+
+.oracle-pair{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  font-family:var(--mono);
+  font-size:10px;
+  letter-spacing:.08em;
+}
+
+.oracle-pair span{
+  border:1px solid var(--line-hi);
+  border-radius:999px;
+  padding:3px 8px;
+  color:var(--mute);
+  background:rgba(13,39,34,.55);
+}
+
+.oracle-pair span:first-child{
+  color:var(--lumen);
+  border-color:rgba(84,240,198,.32);
+}
+
+.oracle-pair span:last-child{
+  color:var(--petal-hi);
+  border-color:rgba(255,180,221,.30);
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ── masthead ─────────────────────────────────────────────────── -->
+  <header class="mast">
+    <div class="id">
+      <span class="eyebrow">a suite of un-live effects · audio + video</span>
+      <h1 class="wordmark"><b>HIND</b>CASTS</h1>
+      <span class="coord mono" style="font-size:11px">
+        <span class="dot"></span> hindcast (n.) — a forecast run over a span you already know the outcome of
+      </span>
+    </div>
+    <div class="build">
+      <span class="chip">suite index</span>
+      <span>03 instruments · live</span>
+
+    </div>
+  </header>
+
+  <!-- ── spine line ───────────────────────────────────────────────── -->
+  <p class="spine">
+    effects that have <span class="read">read to the end</span>
+    <span class="before">before they begin.</span>
+  </p>
+
+  <!-- ── the readout (signature) ──────────────────────────────────── -->
+  <section class="readout" aria-label="Causality readout — live versus hindcast">
+    <div class="readout-top">
+      <span class="label">causality readout · t↦output</span>
+      <div class="modes" role="group" aria-label="Processing model">
+        <button id="mLive" aria-pressed="false">live · causal</button>
+        <button id="mHind" class="pre" aria-pressed="true">hindcast · acausal</button>
+      </div>
+    </div>
+    <div class="canvas-stage">
+      <canvas id="wave" aria-hidden="true"></canvas>
+    </div>
+    <div class="readout-foot">
+      <span id="modeNote">effects working on the <em style="color:var(--pre);font-style:normal">whole span</em>, embracing the static file.</span>
+      <span class="key">
+        <span><i class="swatch sw-known"></i>known</span>
+        <span><i class="swatch sw-pre"></i>reach</span>
+        <span><i class="swatch sw-unk"></i>unread</span>
+		<span class="oracle-pair">
+  <span>control/source</span>
+  <span>body/material</span>
+</span>
+      </span>
+    </div>
+  </section>
+
+  <!-- ── statement ────────────────────────────────────────────────── -->
+  <section class="statement">
+    <p class="lede">
+      A live effect is <em>causal</em>: its output at time <em>t</em> can depend only on samples at or before <em>t</em>.
+      For example, A live audio compressor waits for evidence a peak arrived, and only then can respond, always behind. This reliance on realtime is built into most audio effects (less so with video effects), when the digital medium does not always have to work this way. That single constraint is <em>causality</em> and it forces the threshold-and-attack dance and the running estimate, then the late action. 
+    </p>
+    <p>
+      Hindcasts drops causality on purpose. These effects work with the full knowledge of the <b>static file</b>. This means effects can respond before, smooth backward, and fit their transfer curves to the
+      entire piece at once. 
+    </p>
+    <p>
+      This takes offline processing to its logical conclusion. Audio is often <em>causal-by-default</em>; image is <em>acausal-by-default</em> —
+      the same operation reads as a violation of commitments in one medium and as a quotidian in the other. Hindcasts rejects this inertia by tradition.
+    </p>
+
+   <!-- <div class="valence" role="group" aria-label="Valence per medium">
+      <div class="audio">
+        <div class="tag">in audio</div>
+        <div class="verb">reveals</div>
+        <p>a buried contingency. These effects shouldn't feel transgressive — but do. The constraint was naturalized so deeply that "an effect" and "a realtime causal system" became synonyms.</p>
+      </div>
+      <div class="video">
+        <div class="tag">in video</div>
+        <div class="verb">refuses</div>
+        <p>a naturalized one. Acausality there is normally corrective and invisible — deflicker, denoise, flow that wants to pass as real. Hindcast makes it expressive, and refuses to hide the hand.</p>
+      </div>
+    </div>
+  </section> -->
+
+  <!-- ── the suite ────────────────────────────────────────────────── -->
+  <div class="sec-head">
+    <h2>The instruments</h2>
+    <span class="meta">current cast</span>
+  </div>
+
+  <section class="suite">
+
+    <!-- pythia -->
+    <a class="tool" href="../pythia/" style="--accent:#54f0c6" aria-label="Open Pythia" id="pythia">
+      <div class="tool-top">
+        <div>
+          <div class="tool-name">pythia</div>
+        </div>
+        <div class="tool-op">delay<span class="medium">audio</span></div>
+      </div>
+      <p class="tool-desc">
+        Paracognitive granular delay. The control/source dual input is the shared interface for the whole suite —
+        one signal donates structure or statistics, the other is the body it gets done to.
+      </p>
+      <div class="tool-foot">
+        <div class="powers" aria-label="acausal powers used">
+          <span class="p" title="precognition">①</span>
+          <span class="p" title="whole-signal optimization">⑤</span>
+        </div>
+        <span class="open">open <span class="arr">→</span></span>
+      </div>
+    </a>
+
+    <!-- sounder -->
+    <a class="tool" href="/sounder/" style="--accent:#54f0c6" aria-label="Open Sounder" id="sounder">
+      <div class="tool-top">
+        <div>
+          <div class="tool-name">sounder</div>
+        </div>
+        <div class="tool-op">dynamics<span class="medium">audio</span></div>
+      </div>
+      <p class="tool-desc">
+        An un-live compressor. It reads the whole file, charts how long the sound spends at each depth, and lets you
+        redraw the bottom. One RMS-window knob slides the regime continuously from waveshape to normalizing.
+      </p>
+      <div class="tool-foot">
+        <div class="powers" aria-label="acausal powers used">
+          <span class="p" title="global statistics">②</span>
+          <span class="p" title="multi-pass">④</span>
+          <span class="p" title="whole-signal optimization">⑤</span>
+        </div>
+        <span class="open">open <span class="arr">→</span></span>
+      </div>
+    </a>
+
+    <!-- prolepsis -->
+    <a class="tool" href="/prolepsis/" style="--accent:#8e74ff" aria-label="Open Prolepsis" id="prolepsis">
+      <div class="tool-top">
+        <div>
+          <div class="tool-name">prolepsis</div>
+        </div>
+        <div class="tool-op">smear<span class="medium">video</span></div>
+      </div>
+      <p class="tool-desc">
+        An acausal feedback field — framesmear unshackled. The time-arrow set free: trails that bloom ahead of an
+        event, symmetric zero-phase wakes, and scrubbing that's instant because every frame already read end-to-end.
+      </p>
+      <div class="tool-foot">
+        <div class="powers" aria-label="acausal powers used">
+          <span class="p" title="precognition">①</span>
+          <span class="p" title="bidirectionality">③</span>
+          <span class="p" title="multi-pass">④</span>
+        </div>
+        <span class="open">open <span class="arr">→</span></span>
+      </div>
+    </a>
+
+  </section>
+
+  <!-- ── five superpowers ─────────────────────────────────────────── -->
+  <div class="sec-head">
+    <h2>The five principles of acausality</h2>
+    <span class="meta">guiding principles in digital space</span>
+  </div>
+  <section class="powers-grid">
+    <div class="pw"><span class="n">① </span><span class="t">Precognition</span><span class="d"> Respond before. Pre-ducking, pre-verb, the tail that precedes the hit.</span></div>
+    <div class="pw"><span class="n">② </span><span class="t">Global statistics</span><span class="d"> Shape relative to the whole file's distribution, not a running estimate.</span></div>
+    <div class="pw"><span class="n">③ </span><span class="t">Bidirectionality</span><span class="d"> Smooth and filter symmetrically, not only forward. Zero-phase.</span></div>
+    <div class="pw"><span class="n">④ </span><span class="t">Multi-pass</span><span class="d"> Measure, then act, then measure again. Convergence no live system gets.</span></div>
+    <div class="pw"><span class="n">⑤ </span><span class="t">Whole-signal optimization</span><span class="d"> Pick the curve / quantizer / kernel optimal over the entire piece.</span></div>
+  </section>
+
+  <!-- 
+  <div class="sec-head">
+    <h2>On the bench</h2>
+    <span class="meta">ordered by leverage</span>
+  </div>
+  <section class="bench">
+    <ol>
+      <li class="now"><b>sounder → gratuitous multiband.</b> Per-band RMS windows: waveshape the highs while you compress the body and normalize the sub — the regime slider becomes a regime field across frequency. Next up.</li>
+      <li><b>Histogram-waveshaper presets.</b> Automatic CDF-onto-target warps (uniform / Gaussian / arcsine / another file's histogram) inside sounder, plus the cross-file version on Pythia's control/source input.</li>
+      <li><b>Lloyd–Max quantizer.</b> The un-live bitcrusher. Equal-population bins for minimum character; invert the objective for maximum audible damage.</li>
+      <li><b>Dense anticipatory optical flow.</b> The harder video build prolepsis gestures at — per-pixel motion fit to the whole clip, run backward. Still genuinely unseen.</li>
+    </ol>
+  </section>-->
+
+  <!-- ── colophon ─────────────────────────────────────────────────── -->
+  <footer class="colophon">
+    <div>
+      HINDCASTS — un-live effects.<br>
+      a hindcast reforecasts a sea already measured.
+    </div>
+    <div>
+      by <a href="../">xyh</a><br>
+      
+    </div>
+  </footer>
+
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const cv = document.getElementById('wave');
+  const ctx = cv.getContext('2d');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // colours from CSS vars
+  const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  const C = {
+    lumen: css('--lumen'), lumenDim: css('--lumen-dim'),
+    pre: css('--pre'), faint: css('--faint'),
+    blood: css('--blood'), line: css('--line-hi'), abyss: css('--abyss')
+  };
+
+  // ── synthesize a deterministic "signal" with one clear transient ──────
+  const TR = 0.64;          // transient onset (fraction of width)
+  const PRE0 = 0.50;        // precursor window start
+  const N = 600;
+  let env = new Float32Array(N);
+  (() => {
+    // pseudo-random but fixed
+    let s = 1234567;
+    const rnd = () => (s = (s*1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+    for (let i=0;i<N;i++){
+      const x = i/(N-1);
+      // low ambient bed
+      let a = 0.10 + 0.05*Math.sin(x*22) + 0.04*(rnd()-0.5);
+      // a couple of small swells
+      a += 0.10*Math.exp(-((x-0.22)**2)/0.004);
+      a += 0.07*Math.exp(-((x-0.40)**2)/0.003);
+      // the main transient: sharp onset at TR, fast decay
+      if (x >= TR) a += 0.78*Math.exp(-(x-TR)/0.05);
+      else a += 0.015*Math.exp(-((TR-x))/0.02); // tiny natural lead-in
+      env[i] = Math.min(a, 0.98);
+    }
+  })();
+
+  let mode = 'hindcast';   // or 'live'
+  let now = 0;             // playhead 0..1
+  const PERIOD = 7.5;      // seconds per sweep
+  let last = performance.now();
+
+  function size(){
+    const r = cv.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio||1, 2);
+    cv.width = Math.max(1, Math.round(r.width*dpr));
+    cv.height = Math.max(1, Math.round(r.height*dpr));
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    return r;
+  }
+  let rect = size();
+  window.addEventListener('resize', () => { rect = size(); draw(); });
+
+  function waveY(i, W, H, mid){
+    return env[Math.max(0, Math.min(N-1, i))] * (H*0.42);
+  }
+
+  function draw(){
+    const W = rect.width, H = rect.height, mid = H*0.52;
+    ctx.clearRect(0,0,W,H);
+
+    // baseline
+    ctx.strokeStyle = 'rgba(132,181,166,.18)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, mid); ctx.lineTo(W, mid); ctx.stroke();
+
+    const nowX = now * W;
+    const knownLimit = mode === 'live' ? now : 1.0;
+
+    // ── filled mirrored waveform ──
+    // draw in two passes: known (lumen) and, in live mode, unread (dim)
+    const drawBand = (x0, x1, color, alpha) => {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.beginPath();
+      const i0 = Math.floor(x0/W*(N-1)), i1 = Math.ceil(x1/W*(N-1));
+      ctx.moveTo(x0, mid);
+      for (let i=i0;i<=i1;i++){ const x=i/(N-1)*W; ctx.lineTo(x, mid - waveY(i,W,H,mid)); }
+      for (let i=i1;i>=i0;i--){ const x=i/(N-1)*W; ctx.lineTo(x, mid + waveY(i,W,H,mid)); }
+      ctx.closePath();
+      const g = ctx.createLinearGradient(0, mid-H*0.42, 0, mid+H*0.42);
+      g.addColorStop(0, color); g.addColorStop(0.5, color); g.addColorStop(1, color);
+      ctx.fillStyle = g;
+      ctx.fill();
+      ctx.restore();
+    };
+
+    if (mode === 'live'){
+      // unread region: faint dotted, "unknown"
+      drawBand(now*W, W, '#16352d', 0.9);
+      // dotted overlay on the unread region
+      ctx.save();
+      ctx.strokeStyle = 'rgba(132,181,166,.12)';
+      ctx.setLineDash([1,4]); ctx.lineWidth = 1;
+      for (let x = now*W; x < W; x += 6){
+        ctx.beginPath(); ctx.moveTo(x, H*0.12); ctx.lineTo(x, H*0.88); ctx.stroke();
+      }
+      ctx.restore();
+      drawBand(0, now*W, C.lumen, 0.32);
+      // bright outline only on known part
+      strokeOutline(0, now*W, C.lumen, mid, W, H, 1);
+    } else {
+      drawBand(0, W, C.lumen, 0.30);
+      strokeOutline(0, W, C.lumen, mid, W, H, 1.2);
+    }
+
+    // ── precursor swarm (hindcast only): ramps INTO the transient ──
+    if (mode === 'hindcast'){
+      const x0 = PRE0*W, x1 = TR*W;
+      ctx.save();
+      for (let k=0;k<46;k++){
+        const f = k/45;
+        const x = x0 + (x1-x0)*f;
+        // density & height ramp toward the transient
+        const h = (0.06 + 0.46*f*f) * H*0.42;
+        ctx.globalAlpha = 0.18 + 0.55*f;
+        ctx.strokeStyle = C.pre;
+        ctx.lineWidth = 1;
+        // jitter so it reads as a swarm, deterministic
+        const j = Math.sin(k*12.9898)*0.5;
+        const xx = x + j*4;
+        ctx.beginPath(); ctx.moveTo(xx, mid-h); ctx.lineTo(xx, mid+h); ctx.stroke();
+      }
+      ctx.restore();
+      // a soft pre-glow ahead of the transient
+      const gg = ctx.createLinearGradient(x0,0,x1,0);
+      gg.addColorStop(0,'rgba(142,116,255,0)'); gg.addColorStop(1,'rgba(142,116,255,.16)');
+      ctx.fillStyle = gg; ctx.fillRect(x0, mid-H*0.42, x1-x0, H*0.84);
+    }
+
+    // ── the transient onset marker ──
+    ctx.save();
+    ctx.strokeStyle = C.blood; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.9;
+    ctx.beginPath(); ctx.moveTo(TR*W, H*0.08); ctx.lineTo(TR*W, H*0.92); ctx.stroke();
+    ctx.restore();
+
+    // ── playhead / now marker ──
+    ctx.save();
+    ctx.strokeStyle = mode==='live' ? C.lumen : 'rgba(223,243,234,.8)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(nowX, 0); ctx.lineTo(nowX, H); ctx.stroke();
+    // label cap
+    ctx.fillStyle = ctx.strokeStyle;
+    ctx.font = '9px "Space Mono", monospace';
+    ctx.textAlign = nowX > W-60 ? 'end' : 'start';
+    const lx = nowX > W-60 ? nowX-5 : nowX+5;
+    ctx.fillText(mode==='live' ? 'now · edge of knowledge' : 'now', lx, 11);
+    ctx.restore();
+
+    // reach arrows in hindcast mode (symmetric) — drawn near baseline at the playhead
+    if (mode === 'hindcast'){
+      drawReach(nowX, mid, W);
+    }
+  }
+
+  function strokeOutline(x0, x1, color, mid, W, H, lw){
+    ctx.save();
+    ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.globalAlpha = 0.95;
+    const i0 = Math.floor(x0/W*(N-1)), i1 = Math.ceil(x1/W*(N-1));
+    ctx.beginPath();
+    for (let i=i0;i<=i1;i++){ const x=i/(N-1)*W; const y=mid - waveY(i,W,H,mid); i===i0?ctx.moveTo(x,y):ctx.lineTo(x,y); }
+    ctx.stroke();
+    ctx.beginPath();
+    for (let i=i0;i<=i1;i++){ const x=i/(N-1)*W; const y=mid + waveY(i,W,H,mid); i===i0?ctx.moveTo(x,y):ctx.lineTo(x,y); }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawReach(x, mid, W){
+    const len = 26;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(142,116,255,.7)'; ctx.fillStyle = 'rgba(142,116,255,.7)';
+    ctx.lineWidth = 1;
+    [-1,1].forEach(dir=>{
+      const x1 = x + dir*len;
+      ctx.beginPath(); ctx.moveTo(x, mid); ctx.lineTo(x1, mid); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x1, mid);
+      ctx.lineTo(x1 - dir*4, mid-3);
+      ctx.lineTo(x1 - dir*4, mid+3);
+      ctx.closePath(); ctx.fill();
+    });
+    ctx.restore();
+  }
+
+  function tick(t){
+    const dt = (t - last)/1000; last = t;
+    if (!reduce){
+      now += dt/PERIOD;
+      if (now > 1) now -= 1;
+    }
+    draw();
+    requestAnimationFrame(tick);
+  }
+
+  // ── mode toggle ──
+  const bLive = document.getElementById('mLive');
+  const bHind = document.getElementById('mHind');
+  const note = document.getElementById('modeNote');
+  function setMode(m){
+    mode = m;
+    bLive.setAttribute('aria-pressed', m==='live');
+    bHind.setAttribute('aria-pressed', m==='hindcast');
+    note.innerHTML = m==='live'
+      ? 'causal. the span ahead of <em style="color:var(--lumen);font-style:normal">now</em> is unread — the effect can only ever react, late.'
+      : 'whole span known. the precursor swarm blooms <em style="color:var(--pre);font-style:normal">ahead</em> of the transient — impossible live.';
+    if (reduce) draw();
+  }
+  bLive.addEventListener('click', () => setMode('live'));
+  bHind.addEventListener('click', () => setMode('hindcast'));
+
+  // init
+  if (reduce){ now = 0.42; draw(); }
+  else requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
