@@ -50,6 +50,11 @@
         radial-gradient(ellipse 60% 45% at 92% 88%, rgba(49, 247, 255, 0.14) 0%, transparent 62%),
         linear-gradient(125deg, #170a03 0%, #41200f 33%, #6f3913 58%, #2f1627 100%);
       overflow-x: hidden;
+      transition: box-shadow 0.2s ease;
+    }
+
+    body.drag-active {
+      box-shadow: inset 0 0 0 6px var(--aqua);
     }
 
     /* smeared light-leak field */
@@ -217,11 +222,16 @@
     /* dual-view: before | after */
     .views {
       display: grid;
-      grid-template-columns: 1fr 1fr;
       gap: 8px;
       position: relative;
     }
-    .views.wipe { grid-template-columns: 1fr; }
+    .views.layout-tall {
+      grid-template-columns: 1fr 1fr;
+    }
+    .views.layout-wide {
+      grid-template-columns: 1fr;
+    }
+    .views.wipe { grid-template-columns: 1fr !important; grid-template-rows: 1fr !important; }
 
     .view {
       position: relative;
@@ -235,6 +245,7 @@
       aspect-ratio: 16 / 9;
       display: grid;
       place-items: center;
+      width: 100%;
     }
     .view canvas {
       width: 100%;
@@ -260,15 +271,6 @@
       pointer-events: none;
     }
     .view.after .corner { color: var(--sodium); border-color: rgba(255,178,41,0.42); text-shadow: 0 0 12px var(--sodium-glow); }
-
-    /* scanline overlay, kept from the original surface treatment */
-    .view::after {
-      content: '';
-      position: absolute; inset: 0;
-      background:
-        repeating-linear-gradient(to bottom, transparent 0px, transparent 3px, rgba(30, 10, 2, 0.07) 3px, rgba(30, 10, 2, 0.07) 4px);
-      pointer-events: none; z-index: 3; border-radius: inherit; mix-blend-mode: multiply;
-    }
 
     /* wipe mode: stack after over before, clipped by divider */
     .views.wipe .view.before { grid-area: 1 / 1; }
@@ -613,14 +615,88 @@
       main { grid-template-columns: 1fr; }
       .stage { position: relative; top: auto; }
       .controls { order: 2; }
-      .notes { order: 3; }
-    }
-    @media (max-width: 640px) {
-      .views { grid-template-columns: 1fr; }
+
     }
     @media (prefers-reduced-motion: reduce) {
       * { transition: none !important; }
     }
+	/* ── Modal & Button Styles ────────────────────────────────────────── */
+.notes-toggle {
+  position: absolute;
+  top: 12px; right: 14px;
+  z-index: 10;
+  font-family: inherit; font-size: 0.62rem; letter-spacing: 0.15em; text-transform: uppercase;
+  color: var(--mint); background: rgba(32, 14, 5, 0.6);
+  border: 1px solid rgba(154, 255, 207, 0.25); border-radius: 999px;
+  padding: 4px 9px; cursor: pointer; transition: all 0.15s;
+}
+.notes-toggle:hover {
+  background: rgba(154, 255, 207, 0.1); border-color: var(--mint);
+  box-shadow: 0 0 14px rgba(154, 255, 207, 0.15);
+  transform: translateY(-1px);
+}
+
+.notes-backdrop {
+  display: none;
+  position: fixed; inset: 0; z-index: 99;
+  background: rgba(4, 26, 35, 0.7);
+  backdrop-filter: blur(6px) saturate(120%);
+  opacity: 0; transition: opacity 0.2s ease;
+}
+.notes-backdrop.open { display: block; opacity: 1; }
+
+.close-notes {
+  position: absolute; top: 16px; right: 18px;
+  background: transparent; border: none; color: var(--petal-hi);
+  font-size: 1.2rem; line-height: 1; cursor: pointer; transition: color 0.15s;
+}
+.close-notes:hover { color: var(--sodium); text-shadow: 0 0 12px var(--sodium-glow); }
+
+/* Overwrite your existing .notes class with these modal properties */
+.notes {
+  display: none; /* hidden by default */
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -48%) scale(0.96);
+  z-index: 100;
+  width: min(92vw, 840px);
+  max-height: 85vh;
+  overflow-y: auto;
+  opacity: 0; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  
+  /* Keep your existing aesthetic properties below */
+  background:
+    linear-gradient(120deg, rgba(255, 178, 41, 0.14), rgba(255, 180, 221, 0.08), rgba(49, 247, 255, 0.04)),
+    rgba(32, 14, 5, 0.85); /* Slightly darkened the base for better modal contrast */
+  border: 1px solid var(--line); border-radius: 20px; padding: 20px 22px 24px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4), 0 16px 60px rgba(255, 178, 41, 0.10), 0 0 0 1px rgba(255,255,255,0.035) inset;
+  backdrop-filter: blur(18px) saturate(150%);
+}
+.notes.open {
+  display: block;
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* ── General Links ────────────────────────────────────────────────── */
+a {
+  color: var(--aqua);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(49, 247, 255, 0.25);
+  transition: color 0.15s ease, border-color 0.15s ease, text-shadow 0.15s ease;
+  text-shadow: 0 0 12px rgba(49, 247, 255, 0.15);
+}
+
+a:hover {
+  color: var(--sodium);
+  border-bottom-color: rgba(255, 178, 41, 0.6);
+  text-shadow: 0 0 16px var(--sodium-glow);
+}
+
+a:active {
+  color: var(--petal-hi);
+  border-bottom-color: var(--petal-hi);
+}
   </style>
 </head>
 <body>
@@ -634,15 +710,14 @@
     </div>
     <div class="header-right">
       <span class="version-tag">hindcast · v3.0</span>
-      <span class="lineage">framesmear, unshackled</span>
+      <span class="lineage"><a href="https://xyhtamura.github.io/framesmear.html">framesmear</a>, unshackled</span>
     </div>
   </header>
 
   <main>
 
-    <!-- ── Stage ─────────────────────────────────────────────────────── -->
     <section class="stage">
-      <div class="views" id="views">
+      <div class="views layout-tall" id="views">
         <div class="view before">
           <span class="corner">source</span>
           <canvas id="beforeCanvas"></canvas>
@@ -653,14 +728,13 @@
           <div class="process-veil" id="processVeil">
             <div class="pv-inner">
               <strong>not yet processed</strong>
-              <p id="veilMsg">Load a clip, choose a temporal stance, then press <b>process the whole clip</b>. Playback unlocks once the field has read end-to-end.</p>
+              <p id="veilMsg">Load a clip, choose a temporal stance, then press <b>process the whole clip</b> to unlock the processed preview.</p>
             </div>
           </div>
         </div>
         <div class="wipe-handle" id="wipeHandle"></div>
       </div>
 
-      <!-- progress -->
       <div class="progress" id="progress">
         <div class="progress-track">
           <div class="progress-fill" id="progressFill"></div>
@@ -668,7 +742,6 @@
         </div>
       </div>
 
-      <!-- transport -->
       <div class="transport">
         <div class="timeline">
           <div class="scrub-wrap">
@@ -707,10 +780,13 @@
       </div>
     </section>
 
-    <!-- ── Sidebar ────────────────────────────────────────────────────── -->
-    <aside class="controls">
 
-      <div class="section">
+<div class="notes-backdrop" id="notesBackdrop"></div>
+    <aside class="controls" style="position: relative;">
+  <button class="notes-toggle" id="openNotes" title="Read Liner Notes">ⓘ notes</button>
+  
+  <div class="section">
+
         <h2>Source</h2>
         <div class="file-row">
           <input id="file" type="file" accept="video/*" />
@@ -742,7 +818,7 @@
             </optgroup>
           </select>
         </div>
-        <p class="hint">High-contrast edges, bold motion, and strong light yield the densest trails.</p>
+        <p class="hint">Drop a video anywhere to load. High-contrast edges, bold motion, and strong light yield the densest trails.</p>
       </div>
 
       <div class="section">
@@ -815,8 +891,8 @@
 
     </aside>
 
-    <!-- ── Notes ──────────────────────────────────────────────────────── -->
-    <section class="notes">
+    <section class="notes" id="notesModal">
+	<button class="close-notes" id="closeNotes" title="Close">×</button>
       <p class="notes-head">liner notes — un-live</p>
       <p class="thesis">
         Every realtime effect is <em>causal</em>: its output at time <em>t</em> can depend only on frames at or before <em>t</em>.
@@ -934,7 +1010,7 @@
     N: 0,
 
     decodeDirty: true,   // need re-decode (width / fps / trim changed)
-    processed: false,    // playback allowed
+    processed: false,    // full workflow unlocked
 
     // playback
     playing: false,
@@ -1033,13 +1109,23 @@
     if (level === 'decode') state.decodeDirty = true;
     if (state.processed || state.loaded) {
       state.processed = false;
-      state.playing = false;
-      $('play').textContent = '▶';
-      enablePlayback(false);
+      if (state.playing) {
+          // Keep natively playing the pre-process preview
+          video.currentTime = state.framePos / state.fps;
+          video.playbackRate = parseFloat($('speed').value);
+          video.play();
+      } else {
+          $('play').textContent = '▶';
+      }
+
+      $('exportVideo').disabled = true;
+      $('snapshot').disabled = true;
+      afterCtx.clearRect(0,0,state.width,state.height);
+
       $('processVeil').style.display = 'grid';
       $('veilMsg').innerHTML = state.loaded
         ? 'Parameters changed. Press <b>process the whole clip</b> to re-render with the new settings.'
-        : 'Load a clip, choose a temporal stance, then press <b>process the whole clip</b>.';
+        : 'Load a clip, choose a temporal stance, then press <b>process the whole clip</b> to unlock the processed preview.';
       if (state.loaded) setState('needs processing', 'dirty');
     }
     updateEstimate();
@@ -1328,6 +1414,7 @@
   // ─── Orchestrate full process ────────────────────────────────────────────
   async function process() {
     if (state.busy || !state.loaded) return;
+    pause(); // halt any source preview
     state.busy = true;
     const job = ++state.job;
     $('process').disabled = true;
@@ -1435,42 +1522,136 @@
 
   // ─── Playback ────────────────────────────────────────────────────────────
   function drawFrame(i) {
-    const N = state.N; if (N < 1) return;
+    const N = state.processed ? state.N : Math.round(state.duration * state.fps);
+    if (N < 1) return;
     const idx = clamp(Math.round(i), 0, N - 1);
-    if (state.srcFrames[idx]) { beforeCtx.drawImage(state.srcFrames[idx], 0, 0, state.width, state.height); }
-    if (state.outFrames[idx]) { afterCtx.drawImage(state.outFrames[idx], 0, 0, state.width, state.height); }
-    $('scrub').value = String(idx);
-    const t = idx / state.fps;
-    $('tcode').textContent = `${fmt(t)} / ${fmt(state.N / state.fps)}`;
+
+    if (!state.processed) {
+        const t = idx / state.fps;
+        $('scrub').value = String(idx);
+        $('tcode').textContent = `${fmt(t)} / ${fmt(state.duration)}`;
+        if (!state.playing) {
+            seekTo(t).then(() => {
+                beforeCtx.drawImage(video, 0, 0, state.width, state.height);
+            });
+        }
+    } else {
+        if (state.srcFrames[idx]) { beforeCtx.drawImage(state.srcFrames[idx], 0, 0, state.width, state.height); }
+        if (state.outFrames[idx]) { afterCtx.drawImage(state.outFrames[idx], 0, 0, state.width, state.height); }
+        $('scrub').value = String(idx);
+        const t = idx / state.fps;
+        $('tcode').textContent = `${fmt(t)} / ${fmt(state.N / state.fps)}`;
+    }
   }
 
   function tick(ts) {
     requestAnimationFrame(tick);
-    if (!state.playing || !state.processed) { state.lastTs = ts; return; }
+    if (!state.playing || !state.loaded) { state.lastTs = ts; return; }
+
+    if (!state.processed) {
+        // Native video playback tracking for preview
+        const speed = parseFloat($('speed').value);
+        if (video.playbackRate !== speed) video.playbackRate = speed;
+
+        const t = video.currentTime;
+        state.framePos = t * state.fps;
+
+        $('scrub').value = Math.floor(state.framePos);
+        $('tcode').textContent = `${fmt(t)} / ${fmt(state.duration)}`;
+        beforeCtx.drawImage(video, 0, 0, state.width, state.height);
+
+        // Loop or stop
+        if (t >= state.outSec) { 
+            if ($('loop').checked) {
+                video.currentTime = state.inSec;
+            } else {
+                pause();
+                video.currentTime = state.inSec;
+                drawFrame(state.inSec * state.fps);
+            }
+        }
+        return;
+    }
+
     const dt = (ts - state.lastTs) / 1000; state.lastTs = ts;
     const speed = parseFloat($('speed').value);
     state.framePos += dt * state.fps * speed;
     if (state.framePos >= state.N - 0.5) {
       if ($('loop').checked) { state.framePos = 0; }
-      else { state.framePos = state.N - 1; state.playing = false; $('play').textContent = '▶'; }
+      else { state.framePos = state.N - 1; pause(); }
     }
     drawFrame(state.framePos);
   }
 
-  function play() { if (!state.processed) return; state.playing = true; state.lastTs = performance.now(); $('play').textContent = '⏸'; }
-  function pause() { state.playing = false; $('play').textContent = '▶'; }
+  function play() {
+    if (!state.loaded) return;
+    state.playing = true;
+    state.lastTs = performance.now();
+    $('play').textContent = '⏸';
+    if (!state.processed) {
+        video.playbackRate = parseFloat($('speed').value);
+        video.play();
+    }
+  }
+
+  function pause() {
+    state.playing = false;
+    $('play').textContent = '▶';
+    if (!state.processed) video.pause();
+  }
+
   function togglePlay() { state.playing ? pause() : play(); }
-  function stop() { pause(); state.framePos = 0; drawFrame(0); }
-  function stepBy(n) { pause(); state.framePos = clamp(Math.round(state.framePos) + n, 0, state.N - 1); drawFrame(state.framePos); }
+
+  function stop() {
+    pause();
+    state.framePos = 0;
+    if (!state.processed) {
+        video.currentTime = 0;
+    }
+    drawFrame(0);
+  }
+
+  function stepBy(n) {
+    pause();
+    const N = state.processed ? state.N : Math.round(state.duration * state.fps);
+    state.framePos = clamp(Math.round(state.framePos) + n, 0, N - 1);
+    if (!state.processed) {
+        video.currentTime = state.framePos / state.fps;
+    }
+    drawFrame(state.framePos);
+  }
 
   // ─── Events ──────────────────────────────────────────────────────────────
+  
+  function loadFile(file) {
+      if (!file || !file.type.startsWith('video/')) return;
+      video.src = URL.createObjectURL(file);
+      video.load();
+      setState('loading…', '');
+      $('downloads').innerHTML = '';
+  }
+
   $('file').addEventListener('change', e => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    video.src = URL.createObjectURL(file);
-    video.load();
-    setState('loading…', '');
-    $('downloads').innerHTML = '';
+      if (e.target.files && e.target.files.length > 0) loadFile(e.target.files[0]);
+  });
+
+  // Drag and Drop Logic
+  document.body.addEventListener('dragover', e => {
+      e.preventDefault();
+      document.body.classList.add('drag-active');
+  });
+  document.body.addEventListener('dragleave', e => {
+      e.preventDefault();
+      if (e.target === document.body || e.relatedTarget === null) {
+          document.body.classList.remove('drag-active');
+      }
+  });
+  document.body.addEventListener('drop', e => {
+      e.preventDefault();
+      document.body.classList.remove('drag-active');
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          loadFile(e.dataTransfer.files[0]);
+      }
   });
 
   video.addEventListener('loadedmetadata', () => {
@@ -1487,14 +1668,35 @@
     $('trimInVal').textContent = '0.00';
     $('trimOutVal').textContent = state.duration.toFixed(2);
     updateTrimShade();
-    // show first frame in the before pane
-    seekTo(0).then(() => { workCtx.drawImage(video, 0, 0, state.width, state.height); beforeCtx.drawImage(work, 0, 0); });
+
     $('process').disabled = false;
     state.decodeDirty = true;
     state.processed = false;
-    enablePlayback(false);
+
+    // Unlock Playback for Source Preview
+    enablePlayback(true);
+    $('exportVideo').disabled = true;
+    $('snapshot').disabled = true;
+    $('scrub').max = String(Math.max(0, Math.round(state.duration * state.fps) - 1));
+
+    // Dynamic Responsive Layout
+    const aspect = video.videoWidth / video.videoHeight;
+    const viewsEl = $('views');
+    if (aspect <= 1.0) {
+      viewsEl.classList.add('layout-tall');
+      viewsEl.classList.remove('layout-wide');
+    } else {
+      viewsEl.classList.add('layout-wide');
+      viewsEl.classList.remove('layout-tall');
+    }
+    document.querySelectorAll('.view').forEach(v => {
+      v.style.aspectRatio = `${video.videoWidth} / ${video.videoHeight}`;
+    });
+
+    seekTo(0).then(() => { beforeCtx.drawImage(video, 0, 0, state.width, state.height); });
+    
     $('processVeil').style.display = 'grid';
-    $('veilMsg').innerHTML = 'Choose a temporal stance, then press <b>process the whole clip</b>. Playback unlocks once the field has read end-to-end.';
+    $('veilMsg').innerHTML = 'Choose a temporal stance, then press <b>process the whole clip</b> to unlock the processed preview.';
     setState(`${video.videoWidth}×${video.videoHeight} loaded`, 'dirty');
     $('frames').textContent = '-- frames';
     updateEstimate();
@@ -1549,7 +1751,15 @@
   $('stop').addEventListener('click', stop);
   $('stepBack').addEventListener('click', () => stepBy(-1));
   $('stepFwd').addEventListener('click', () => stepBy(1));
-  $('scrub').addEventListener('input', e => { pause(); state.framePos = parseInt(e.target.value, 10); drawFrame(state.framePos); });
+  
+  $('scrub').addEventListener('input', e => { 
+      pause(); 
+      state.framePos = parseInt(e.target.value, 10); 
+      if (!state.processed) {
+          video.currentTime = state.framePos / state.fps;
+      }
+      drawFrame(state.framePos); 
+  });
 
   // compare mode (split / wipe)
   $('cmpMode').addEventListener('click', () => {
@@ -1576,7 +1786,7 @@
   // keyboard
   window.addEventListener('keydown', e => {
     if (['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName)) return;
-    if (!state.processed) return;
+    if (!state.loaded) return;
     if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
     else if (e.code === 'ArrowLeft')  { e.preventDefault(); stepBy(-1); }
     else if (e.code === 'ArrowRight') { e.preventDefault(); stepBy(1); }
@@ -1641,6 +1851,41 @@
   reflectMode();
   enablePlayback(false);
   requestAnimationFrame(tick);
+  
+  // ─── Modal Logic ─────────────────────────────────────────────────────────
+  const notesModal = $('notesModal');
+  const notesBackdrop = $('notesBackdrop');
+
+  const closeNotes = () => {
+    notesModal.classList.remove('open');
+    notesBackdrop.classList.remove('open');
+    // small timeout to wait for transition before setting display:none
+    setTimeout(() => {
+      if (!notesModal.classList.contains('open')) {
+        notesModal.style.display = 'none';
+        notesBackdrop.style.display = 'none';
+      }
+    }, 200); 
+  };
+
+  $('openNotes').addEventListener('click', () => {
+    notesModal.style.display = 'block';
+    notesBackdrop.style.display = 'block';
+    // flush layout to ensure transition fires
+    notesModal.offsetHeight; 
+    notesModal.classList.add('open');
+    notesBackdrop.classList.add('open');
+  });
+
+  $('closeNotes').addEventListener('click', closeNotes);
+  notesBackdrop.addEventListener('click', closeNotes);
+  
+  // Close modal on Escape key
+  window.addEventListener('keydown', e => {
+    if (e.code === 'Escape' && notesModal.classList.contains('open')) {
+      closeNotes();
+    }
+  });
 </script>
 </body>
 </html>
