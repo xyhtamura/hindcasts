@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HINDCASTS — a suite of un-live effects</title>
+<meta name="description" content="Hindcasts: a suite of acausal audio & video effects that have read to the end of the score before they begin." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@1,9..144,300;1,9..144,400;1,9..144,500;1,9..144,600&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+
+<style>
+  :root{
+    /* ── Sounder — the dominant voice. abyssal / sounding ─────────────── */
+    --abyss:#06130f; --abyss2:#0a1d17; --deep:#0d2722; --deep2:#102e27;
+    --line:#193f37; --line-hi:#2a675a; --grid:rgba(84,240,198,.05);
+    --foam:#dff3ea; --mute:#84b5a6; --faint:#52796d;
+    --lumen:#54f0c6;            /* the known signal — primary */
+    --lumen-dim:#2bbf9b;
+    --blood:#ff3145;           /* the transient onset, used once */
+
+    /* ── Pythia — the oracular warm pole. the reach that read ahead ───── */
+    --acid:#c2dc32;            /* chartreuse — the oracle */
+    --ember:#d86840;           /* terracotta */
+    --fog:#58b2a8;             /* teal — bridges abyss & oracle */
+    --cream:#e2dfcb;
+
+    /* ── Prolepsis — the transit-dream wing. amber concourse / afterglow  */
+    --sodium:#ffb229;          /* concourse amber */
+    --petal:#ffb4dd;           /* beauty-ad pink */
+    --petal-hi:#ffe2f1;
+    --aqua:#31f7ff;            /* afterglow */
+    --pre:#8a79ff;             /* precognition — shared by thesis + wing */
+    --pre-dim:#6552c9;
+
+    --mono:'Space Mono',ui-monospace,Menlo,Consolas,monospace;
+    --sans:'Space Grotesk',system-ui,sans-serif;
+    --oracle:'Fraunces',Georgia,'Times New Roman',serif;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--sans);
+    color:var(--foam);
+    background:var(--abyss);
+    background-image:
+      radial-gradient(130% 80% at 50% -18%, #0e2a23 0%, var(--abyss) 52%, var(--abyss2) 100%);
+    -webkit-font-smoothing:antialiased;
+    line-height:1.5;
+    overflow-x:hidden;
+  }
+
+  /* grain — Pythia's atmosphere, site-wide and faint */
+  body::after{
+    content:'';position:fixed;inset:-50%;width:200%;height:200%;
+    z-index:0;pointer-events:none;opacity:.032;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.86' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)'/%3E%3C/svg%3E");
+    animation:grain 9s steps(1) infinite;
+  }
+  @keyframes grain{
+    0%{transform:translate(0,0)}12%{transform:translate(-2%,-3%)}27%{transform:translate(3%,-1%)}
+    43%{transform:translate(-1%,2%)}58%{transform:translate(2%,3%)}74%{transform:translate(-3%,1%)}89%{transform:translate(1%,-2%)}
+  }
+
+  .wrap{position:relative;z-index:1;width:min(1080px, calc(100vw - 40px));margin:0 auto;padding:30px 0 64px}
+
+  /* utility type ─────────────────────────────────────────────────────── */
+  .eyebrow{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.28em;text-transform:uppercase;
+    color:var(--lumen-dim);
+  }
+  .mono{font-family:var(--mono)}
+
+  /* ── masthead ──────────────────────────────────────────────────────── */
+  .mast{
+    position:relative;
+    display:flex;justify-content:space-between;align-items:flex-start;gap:18px;
+    padding-bottom:14px;
+  }
+  .mast .id{display:flex;flex-direction:column;gap:7px}
+  .coord{display:flex;gap:14px;align-items:center;color:var(--faint)}
+  .coord .dot{width:5px;height:5px;border-radius:50%;background:var(--lumen);box-shadow:0 0 8px var(--lumen)}
+
+  h1.wordmark{
+    position:relative;
+    font-family:var(--mono);font-weight:700;
+    font-size:clamp(30px,8.5vw,68px);letter-spacing:.06em;line-height:.96;
+    color:var(--foam);
+    text-shadow:0 0 30px rgba(84,240,198,.16);
+  }
+  h1.wordmark b{color:var(--lumen);font-weight:700}
+  /* chroma-split ghost — Prolepsis's signature, the smear under the word */
+  h1.wordmark::before,
+  h1.wordmark::after{
+    content:'HINDCASTS';position:absolute;top:0;z-index:-1;pointer-events:none;
+    font-weight:700;letter-spacing:.06em;
+  }
+  h1.wordmark::before{left:-.045em;color:rgba(49,247,255,.22);filter:blur(.3px)}
+  h1.wordmark::after{left:.05em;color:rgba(255,180,221,.16);filter:blur(.3px)}
+
+  .mast .build{
+    text-align:right;display:flex;flex-direction:column;gap:6px;align-items:flex-end;
+    font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--faint);white-space:nowrap;
+  }
+  .chip{
+    border:1px solid var(--line-hi);border-radius:999px;padding:4px 10px;color:var(--mute);
+    text-transform:uppercase;letter-spacing:.16em;
+  }
+  /* braided rule under the masthead — the three voices in one line */
+  .mast::after{
+    content:'';position:absolute;left:0;right:0;bottom:-1px;height:1px;
+    background:linear-gradient(90deg,
+      transparent, var(--lumen) 16%, var(--fog) 34%, var(--aqua) 50%,
+      var(--petal) 66%, var(--sodium) 82%, var(--acid) 92%, transparent);
+    opacity:.6;box-shadow:0 0 18px rgba(255,180,221,.14);
+  }
+
+  /* ══ HERO — the thesis line, set as the page's one memorable image ════ */
+  .hero{
+    position:relative;overflow:hidden;
+    margin:0 -20px;padding:64px 20px 58px;
+    isolation:isolate;
+  }
+  /* oracular heat from the chasm + afterglow — Pythia + Prolepsis, dialed down */
+  .hero::before{
+    content:'';position:absolute;inset:0;z-index:-2;pointer-events:none;
+    background:
+      radial-gradient(120% 130% at 50% 132%, rgba(194,220,50,.10), transparent 56%),
+      radial-gradient(90% 110% at 22% 128%, rgba(216,104,64,.085), transparent 58%),
+      radial-gradient(80% 120% at 84% 120%, rgba(255,178,41,.07), transparent 60%),
+      radial-gradient(70% 90% at 50% 40%, rgba(84,240,198,.05), transparent 64%);
+    /* omphalos fossil bed, if it resolves — graceful if it doesn't */
+    background-blend-mode:screen;
+    mask-image:radial-gradient(120% 100% at 50% 60%, #000 38%, transparent 96%);
+    -webkit-mask-image:radial-gradient(120% 100% at 50% 60%, #000 38%, transparent 96%);
+  }
+  .hero .omph{
+    position:absolute;inset:0;z-index:-2;pointer-events:none;
+    background:url("omphalos.png") center/cover no-repeat;
+    mix-blend-mode:overlay;opacity:.10;
+    mask-image:radial-gradient(110% 96% at 50% 78%, #000 8%, transparent 80%);
+    -webkit-mask-image:radial-gradient(110% 96% at 50% 78%, #000 8%, transparent 80%);
+  }
+  /* single light-leak streak — Prolepsis */
+  .hero .leak{
+    position:absolute;inset:-20% -10%;z-index:-1;pointer-events:none;
+    background:linear-gradient(101deg,
+      transparent 0 41%, rgba(255,247,235,.09) 43%, rgba(255,178,41,.10) 47%,
+      rgba(255,180,221,.06) 51%, transparent 55% 100%);
+    filter:blur(10px) saturate(120%);transform:skewY(-3deg);opacity:.9;
+  }
+  .hero-eye{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;
+    color:var(--lumen-dim);margin-bottom:18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+  }
+  .hero-eye .sep{color:var(--faint)}
+  .hero-eye .pneuma{color:var(--acid)}
+  .thesis{
+    font-family:var(--oracle);font-style:italic;font-optical-sizing:auto;font-weight:400;
+    font-size:clamp(34px,7.6vw,82px);line-height:1.0;letter-spacing:-.018em;
+    max-width:15ch;color:var(--cream);
+  }
+  .thesis .read{
+    color:var(--lumen);
+    text-shadow:0 0 26px rgba(84,240,198,.28);
+  }
+  .thesis .ahead{
+    background:linear-gradient(94deg, var(--acid), var(--ember) 52%, var(--sodium));
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;
+    text-shadow:none;
+  }
+  .hero-foot{
+    margin-top:26px;max-width:62ch;
+    font-size:14px;line-height:1.6;color:var(--mute);
+  }
+  .hero-foot .gloss{
+    font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--faint);
+    display:block;margin-top:9px;
+  }
+  .hero-foot .gloss b{color:var(--fog);font-weight:400}
+
+  /* ── statement ─────────────────────────────────────────────────────── */
+  .statement{margin:46px 0 10px;display:grid;grid-template-columns:1fr;gap:18px}
+  .statement .lede{font-size:17px;line-height:1.6;color:var(--foam);max-width:66ch}
+  .statement .lede em{font-family:var(--oracle);font-style:italic;color:var(--cream);font-size:1.04em}
+  .statement p{font-size:14.5px;line-height:1.68;color:var(--mute);max-width:66ch}
+  .statement em{color:var(--foam);font-style:italic}
+  .statement b{color:var(--lumen);font-weight:600}
+
+  /* ── section heads ─────────────────────────────────────────────────── */
+  .sec-head{
+    display:flex;align-items:baseline;justify-content:space-between;gap:14px;
+    margin:54px 0 18px;padding-bottom:10px;border-bottom:1px solid var(--line);
+  }
+  .sec-head h2{font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:var(--foam)}
+  .sec-head .meta{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--faint)}
+
+  /* ── suite / tool cards (channel strips, each honest to its instrument)  */
+  .suite{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .tool{
+    --accent:var(--lumen);
+    --wash-a:rgba(84,240,198,.045);
+    --wash-b:rgba(13,39,34,.92);
+    display:flex;flex-direction:column;position:relative;overflow:hidden;
+    border:1px solid var(--line-hi);border-radius:10px;
+    background:
+      linear-gradient(180deg, var(--wash-a), var(--wash-b) 64%),
+      linear-gradient(180deg, var(--deep2), var(--abyss2));
+    text-decoration:none;color:inherit;
+    transition:transform .2s cubic-bezier(.2,.7,.2,1), border-color .2s, box-shadow .2s;
+  }
+  .tool::before{
+    content:'';position:absolute;left:0;top:0;bottom:0;width:2px;
+    background:var(--accent);opacity:0;transition:opacity .2s;
+  }
+  .tool:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 18px 40px rgba(0,0,0,.4)}
+  .tool:hover::before{opacity:1}
+  .tool:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .tool-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:14px 15px 8px}
+  .tool-name{font-family:var(--mono);font-size:19px;font-weight:700;letter-spacing:.02em;color:var(--foam)}
+  .tool-op{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);text-align:right;line-height:1.5}
+  .tool-op .medium{display:block;color:var(--faint)}
+  .tool-desc{padding:0 15px 14px;font-size:13px;line-height:1.55;color:var(--mute);flex:1}
+  .tool-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:11px 15px;border-top:1px solid var(--line)}
+  .powers{display:flex;gap:5px}
+  .powers .p{
+    font-family:var(--mono);font-size:10px;width:19px;height:19px;display:grid;place-items:center;
+    border:1px solid var(--line-hi);border-radius:5px;color:var(--mute);
+  }
+  .tool:hover .powers .p{border-color:var(--accent);color:var(--accent)}
+  .open{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--accent);display:inline-flex;align-items:center;gap:6px}
+  .open .arr{transition:transform .2s}
+  .tool:hover .open .arr{transform:translateX(3px)}
+
+  /* Pythia — oracular: chartreuse/ember, its name in its own Fraunces hand */
+  #pythia{
+    --accent:var(--acid);
+    --wash-a:rgba(194,220,50,.075);
+    --wash-b:rgba(11,12,8,.92);
+  }
+  #pythia .tool-name{
+    font-family:var(--oracle);font-style:italic;font-weight:600;font-size:24px;letter-spacing:-.01em;
+    color:var(--cream);text-transform:none;
+  }
+  #pythia .tool-desc b{color:var(--acid);font-weight:600}
+
+  /* Sounder — abyssal, the depth instrument */
+  #sounder{
+    --accent:var(--lumen);
+    --wash-a:rgba(84,240,198,.07);
+    --wash-b:rgba(6,19,15,.94);
+  }
+
+  /* Prolepsis — transit-dream: sodium/petal/aqua, a light-leak across it */
+  #prolepsis{
+    --accent:var(--petal);
+    --wash-a:rgba(255,178,41,.075);
+    --wash-b:rgba(13,39,34,.92);
+  }
+  #prolepsis::after{
+    content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
+    background:linear-gradient(104deg,
+      transparent 0 52%, rgba(255,247,235,.06) 55%, rgba(255,180,221,.07) 60%, transparent 66% 100%);
+    filter:blur(6px);transform:skewY(-2deg);opacity:.7;
+  }
+  #prolepsis > *{position:relative;z-index:1}
+  #prolepsis .tool-op{color:var(--sodium)}
+  #prolepsis:hover{border-color:var(--petal)}
+
+  /* ── five superpowers (a real numbered enum) ───────────────────────── */
+  .powers-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+  .pw{border:1px solid var(--line);border-radius:8px;padding:13px 12px;background:rgba(13,39,34,.4)}
+  .pw .n{font-family:var(--mono);font-size:11px;color:var(--pre);letter-spacing:.1em;display:block;margin-bottom:8px}
+  .pw .t{font-size:13px;font-weight:600;color:var(--foam);margin-bottom:5px;line-height:1.25}
+  .pw .d{font-size:11.5px;line-height:1.45;color:var(--faint)}
+
+  /* ── colophon ──────────────────────────────────────────────────────── */
+  .colophon{
+    margin-top:54px;padding-top:18px;border-top:1px solid var(--line);
+    display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;
+    font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.04em;line-height:1.7;
+  }
+  .colophon em{font-family:var(--oracle);font-style:italic;color:var(--fog)}
+  .colophon a{color:var(--mute);text-decoration:none;border-bottom:1px solid var(--line-hi)}
+  .colophon a:hover{color:var(--lumen);border-color:var(--lumen)}
+
+  /* ── responsive ────────────────────────────────────────────────────── */
+  @media (max-width:820px){
+    .suite{grid-template-columns:1fr}
+    .powers-grid{grid-template-columns:1fr 1fr}
+  }
+  @media (max-width:540px){
+    .mast{flex-direction:column}
+    .mast .build{text-align:left;align-items:flex-start}
+    .powers-grid{grid-template-columns:1fr}
+    .hero{padding:44px 20px 40px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    *{transition:none !important}
+    body::after{animation:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ── masthead ─────────────────────────────────────────────────── -->
+  <header class="mast">
+    <div class="id">
+      <span class="eyebrow">a suite of un-live effects · audio + video</span>
+      <h1 class="wordmark"><b>HIND</b>CASTS</h1>
+      <span class="coord mono" style="font-size:11px">
+        <span class="dot"></span> hindcast (n.) — a forecast run over a span you already know the outcome of
+      </span>
+    </div>
+    <div class="build">
+      <span class="chip">suite index</span>
+      <span>03 instruments · live</span>
+    </div>
+  </header>
+
+  <!-- ══ HERO — typography-led thesis ═══════════════════════════════ -->
+  <section class="hero" aria-label="Thesis">
+    <span class="omph" aria-hidden="true"></span>
+    <span class="leak" aria-hidden="true"></span>
+    <div class="hero-eye">
+      <span>causal ↦ acausal</span>
+      <span class="sep">·</span>
+      <span class="pneuma">the score, read end to end</span>
+    </div>
+    <h2 class="thesis">
+      effects that have <span class="read">read to the end</span>
+      <span class="ahead">before they begin.</span>
+    </h2>
+    <p class="hero-foot">
+      A live effect is causal — its output can only react, late, to evidence already past. Hindcasts drops that
+      constraint on purpose: each instrument works with the whole static file in hand, so it can respond before an
+      event, smooth backward, and fit its curves to the entire piece at once.
+      <span class="gloss"><b>sounder</b> sounds the depth · <b>pythia</b> speaks ahead of knowing · <b>prolepsis</b> blooms before the hit</span>
+    </p>
+  </section>
+
+  <!-- ── statement ────────────────────────────────────────────────── -->
+  <section class="statement">
+    <p class="lede">
+      A live effect is <em>causal</em>: its output at time <em>t</em> can depend only on samples at or before <em>t</em>.
+      A live compressor waits for evidence a peak arrived, then responds — always behind. That reliance on realtime is
+      built into most audio effects (less so video), yet the digital medium does not have to work this way. That single
+      constraint is <em>causality</em>, and it forces the threshold-and-attack dance, the running estimate, the late action.
+    </p>
+    <p>
+      Hindcasts drops causality on purpose. These effects work with full knowledge of the <b>static file</b> — so they can
+      respond before, smooth backward, and fit their transfer curves to the entire piece at once.
+    </p>
+    <p>
+      It takes offline processing to its logical conclusion. Audio is <em>causal-by-default</em>; image is
+      <em>acausal-by-default</em>. Hindcasts lets audio feel the way image processing already works in digital space, and
+      refuses the inertia of that hidden commitment to realtime.
+    </p>
+  </section>
+
+  <!-- ── the suite ────────────────────────────────────────────────── -->
+  <div class="sec-head">
+    <h2>The instruments</h2>
+    <span class="meta">current cast</span>
+  </div>
+
+  <section class="suite">
+
+    <!-- pythia -->
+    <a class="tool" href="../pythia/" aria-label="Open Pythia" id="pythia">
+      <div class="tool-top">
+        <div><div class="tool-name">pythia</div></div>
+        <div class="tool-op">delay<span class="medium">audio</span></div>
+      </div>
+      <p class="tool-desc">
+        Paracognitive granular delay. The <b>control/source</b> dual input is the shared interface for the whole suite —
+        one signal donates structure or statistics, the other is the body it gets done to.
+      </p>
+      <div class="tool-foot">
+        <div class="powers" aria-label="acausal powers used">
+          <span class="p" title="precognition">①</span>
+          <span class="p" title="whole-signal optimization">⑤</span>
+        </div>
+        <span class="open">open <span class="arr">→</span></span>
+      </div>
+    </a>
+
+    <!-- sounder -->
+    <a class="tool" href="/hindcasts/sounder/" aria-label="Open Sounder" id="sounder">
+      <div class="tool-top">
+        <div><div class="tool-name">sounder</div></div>
+        <div class="tool-op">dynamics<span class="medium">audio</span></div>
+      </div>
+      <p class="tool-desc">
+        An un-live compressor. It reads the whole file, charts how long the sound spends at each depth, and lets you
+        redraw the bottom. One RMS-window knob slides the regime continuously from waveshape to normalizing.
+      </p>
+      <div class="tool-foot">
+        <div class="powers" aria-label="acausal powers used">
+          <span class="p" title="global statistics">②</span>
+          <span class="p" title="multi-pass">④</span>
+          <span class="p" title="whole-signal optimization">⑤</span>
+        </div>
+        <span class="open">open <span class="arr">→</span></span>
+      </div>
+    </a>
+
+    <!-- prolepsis -->
+    <a class="tool" href="/hindcasts/prolepsis/" aria-label="Open Prolepsis" id="prolepsis">
+      <div class="tool-top">
+        <div><div class="tool-name">prolepsis</div></div>
+        <div class="tool-op">smear<span class="medium">video</span></div>
+      </div>
+      <p class="tool-desc">
+        An acausal feedback field — framesmear unshackled. The time-arrow set free: trails that bloom ahead of an event,
+        symmetric zero-phase wakes, scrubbing that's instant because every frame already read end-to-end.
+      </p>
+      <div class="tool-foot">
+        <div class="powers" aria-label="acausal powers used">
+          <span class="p" title="precognition">①</span>
+          <span class="p" title="bidirectionality">③</span>
+          <span class="p" title="multi-pass">④</span>
+        </div>
+        <span class="open">open <span class="arr">→</span></span>
+      </div>
+    </a>
+
+  </section>
+
+  <!-- ── five superpowers ─────────────────────────────────────────── -->
+  <div class="sec-head">
+    <h2>The five principles of acausality</h2>
+    <span class="meta">what offline unlocks</span>
+  </div>
+  <section class="powers-grid">
+    <div class="pw"><span class="n">①</span><span class="t">Precognition</span><span class="d"><br>Respond before. Pre-ducking, pre-verb, the tail that precedes the hit.</span></div>
+    <div class="pw"><span class="n">②</span><span class="t">Global statistics</span><span class="d"><br>Shape relative to the whole file's distribution, not a running estimate.</span></div>
+    <div class="pw"><span class="n">③</span><span class="t">Bidirectionality</span><span class="d"><br>Smooth and filter symmetrically, not only forward. Zero-phase.</span></div>
+    <div class="pw"><span class="n">④</span><span class="t">Multi-pass</span><span class="d"><br>Measure, then act, then measure again. Convergence no live system gets.</span></div>
+    <div class="pw"><span class="n">⑤</span><span class="t">Whole-signal optimization</span><span class="d"><br>Pick the curve / quantizer / kernel optimal over the entire piece.</span></div>
+  </section>
+
+  <!-- ── colophon ─────────────────────────────────────────────────── -->
+  <footer class="colophon">
+    <div>
+      HINDCASTS — un-live effects.<br>
+      <em>a hindcast reforecasts a sea already measured.</em>
+    </div>
+    <div>
+      by <a href="../">xyh</a>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>

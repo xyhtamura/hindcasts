@@ -36,6 +36,11 @@
       --muted: rgba(190, 232, 235, 0.50);
       --muted-hi: rgba(226, 255, 252, 0.76);
     }
+	
+	@font-face{
+  font-family:"Blur Regular";
+  src:url("../fonts/BlurMedium.otf") format("opentype");
+}
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -115,7 +120,7 @@
       backdrop-filter: blur(18px) saturate(150%);
     }
 
-    h1 { font-family: 'Averia Sans Libre', sans-serif; }
+    h1 { font-family: 'Blur Regular', 'Averia Sans Libre', sans-serif; }
 
     .header-left h1 {
       position: relative;

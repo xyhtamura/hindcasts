@@ -23,14 +23,14 @@
 }
 *{box-sizing:border-box}
 /* Lock to viewport height */
-html,body{margin:0;min-height:100vh;}
+html,body{margin:0;height:100vh;overflow:hidden;}
 body{font-family:var(--sans);color:var(--seafoam);
   background:radial-gradient(120% 80% at 50% -10%, #0e2a23 0%, var(--abyss) 55%, var(--abyss2) 100%);
   -webkit-font-smoothing:antialiased}
 #snow{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.7}
 
 /* Flex container to distribute vertical space */
-.container{position:relative;z-index:1;max-width:1120px;min-height:100%;margin:0 auto;
+.container{position:relative;z-index:1;max-width:1120px;height:100%;margin:0 auto;
   display:flex;flex-direction:column;padding:12px 22px 16px;overflow-y:auto;}
 
 /* header - tighter padding */
@@ -95,10 +95,6 @@ h1.wordmark span{display:inline-block;text-shadow:0 0 24px rgba(84,240,198,.2)}
 .presets button{font-family:var(--mono);font-size:10.5px;color:var(--seafoam);background:rgba(29,88,73,.4);
   border:1px solid var(--silt);border-radius:8px;padding:6px 9px;cursor:pointer;transition:.15s}
 .presets button:hover{border-color:var(--lumen);color:var(--lumen);background:rgba(84,240,198,.08)}
-.state-io{margin-top:8px;display:flex;gap:6px}
-.state-io button{font-family:var(--mono);font-size:10.5px;color:var(--mute);background:transparent;
-  border:1px solid var(--line);border-radius:8px;padding:6px 9px;cursor:pointer;transition:.15s}
-.state-io button:hover{border-color:var(--lumen-dim);color:var(--seafoam)}
 
 /* depth chart */
 .chart-panel{padding:12px; overflow:hidden;}
@@ -193,30 +189,6 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;bor
   .console{grid-template-columns:1fr}
 }
 @media (prefers-reduced-motion:reduce){#snow{display:none}}
-
-/* ── multiband: spectrum / crossover field ── */
-.spectrum-panel{background:linear-gradient(180deg,var(--deep2),var(--deep));border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:14px;flex:none;}
-.sp-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px;flex-wrap:wrap;}
-.sp-head h3{margin:0;font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--lumen);font-weight:700;font-family:var(--mono);}
-.sp-actions{display:flex;gap:6px;}
-.sp-actions button{font-family:var(--mono);font-size:10.5px;color:var(--seafoam);background:rgba(29,88,73,.4);border:1px solid var(--silt);border-radius:8px;padding:6px 10px;cursor:pointer;transition:.15s;}
-.sp-actions button:hover:not(:disabled){border-color:var(--lumen);color:var(--lumen);background:rgba(84,240,198,.08);}
-.sp-actions button:disabled{opacity:.35;cursor:not-allowed;}
-.sp-stage{position:relative;width:100%;height:96px;}
-#spectrum{position:absolute;inset:0;width:100%;height:100%;border:1px solid var(--line);border-radius:8px;background:linear-gradient(180deg,#0a201b,#081813);cursor:crosshair;touch-action:none;display:block;}
-.band-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
-.band-chip{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10.5px;color:var(--mute);background:rgba(13,39,34,.55);border:1px solid var(--line);border-radius:9px;padding:5px 8px;cursor:pointer;transition:.15s;}
-.band-chip:hover{border-color:var(--lumen-dim);}
-.band-chip.sel{border-color:var(--lumen);color:var(--seafoam);background:rgba(84,240,198,.07);}
-.band-chip .sw{width:10px;height:10px;border-radius:3px;flex:none;box-shadow:0 0 6px currentColor;}
-.band-chip .rng{color:var(--seafoam);}
-.band-chip .tog{font-family:var(--mono);font-size:9px;border:1px solid var(--silt);border-radius:5px;padding:2px 5px;color:var(--faint);background:transparent;cursor:pointer;}
-.band-chip .tog.solo.on{color:#06130f;background:var(--warn);border-color:var(--warn);font-weight:700;}
-.band-chip .tog.mute.on{color:#fff;background:var(--blood);border-color:var(--blood);font-weight:700;}
-.params .grp-label{grid-column:1/-1;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin:6px 0 -2px;display:flex;align-items:center;gap:8px;}
-.params .grp-label .sw{width:9px;height:9px;border-radius:2px;flex:none;}
-#band-indicator{font-family:var(--mono);font-size:10px;color:var(--mute);display:inline-flex;align-items:center;gap:6px;}
-#band-indicator .sw{width:9px;height:9px;border-radius:2px;}
 </style>
 </head>
 <body>
@@ -226,23 +198,11 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;bor
   <header>
     <div class="title-row">
       <h1 class="wordmark" id="wordmark"></h1>
-      <span class="build-tag">depth · dynamics · multiband</span>
+      <span class="build-tag">depth · dynamics</span>
     </div>
     <p class="tagline">An <em>un-live</em> whole-file dynamics processor. Like a normalizer with transfer curves.</p>
     <div class="waterline"></div>
   </header>
-
-  <div class="spectrum-panel" id="spectrum-panel">
-    <div class="sp-head">
-      <h3>Crossover field</h3>
-      <div class="sp-actions">
-        <button id="band-split" type="button" title="Split the selected band in two">＋ split band</button>
-        <button id="band-merge" type="button" title="Merge selected band into its neighbour">－ merge</button>
-      </div>
-    </div>
-    <div class="sp-stage"><canvas id="spectrum"></canvas></div>
-    <div class="band-list" id="band-list"></div>
-  </div>
 
   <div class="console">
     <div>
@@ -275,19 +235,13 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;bor
           <button data-p="lift">Lift floor</button>
           <button data-p="invert">Invert</button>
         </div>
-
-        <div class="state-io">
-          <button id="state-save" type="button">Save state</button>
-          <button id="state-load" type="button">Load state</button>
-          <input type="file" id="state-file" accept=".json,application/json" hidden>
-        </div>
       </div>
     </div>
 
     <div class="panel chart-panel" id="chart-panel">
       <div class="chart-head">
         <div class="left">
-          <h3>Depth chart</h3><span id="band-indicator"></span>
+          <h3>Depth chart</h3>
           <button class="fs-btn" id="btn-fs">Full Screen</button>
           <span class="hint">drag · click add · dbl-click (or del) remove</span>
         </div>
@@ -298,15 +252,14 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;bor
       </div>
       <div class="chart-stage">
         <canvas id="chart"></canvas>
-        <div class="axis-x">input level (dB) — seabed&nbsp;◂&nbsp;&nbsp;&nbsp;&nbsp;▸&nbsp;surface (0)</div>
-        <div class="axis-y">output level (dB) →</div>
+        <div class="axis-x">input level — seabed&nbsp;◂&nbsp;&nbsp;&nbsp;&nbsp;▸&nbsp;surface (0 dB)</div>
+        <div class="axis-y">output level →</div>
       </div>
       <p class="chart-foot">Filled terrain is <b>time-occupancy</b>. Magenta ghost is where your curve moves it.</p>
     </div>
   </div>
 
   <div class="params">
-    <div class="grp-label" id="band-grp-label"><span class="sw" id="band-grp-sw"></span>selected band</div>
     <div class="slider-group">
       <label for="floor">Seabed (floor)<span class="v" id="floor-v">−90<small>dB</small></span></label>
       <input type="range" id="floor" min="-120" max="-40" value="-90" step="1">
@@ -320,17 +273,8 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;bor
       <input type="range" id="makeup" min="-12" max="24" value="0" step="0.5">
     </div>
     <div class="slider-group">
-      <label for="mix">Band dry/wet<span class="v" id="mix-v">100<small>%</small></span></label>
+      <label for="mix">Dry/wet<span class="v" id="mix-v">100<small>%</small></span></label>
       <input type="range" id="mix" min="0" max="1" value="1" step="0.01">
-    </div>
-    <div class="grp-label">master</div>
-    <div class="slider-group">
-      <label for="mmakeup">Master makeup<span class="v" id="mmakeup-v">0.0<small>dB</small></span></label>
-      <input type="range" id="mmakeup" min="-12" max="24" value="0" step="0.5">
-    </div>
-    <div class="slider-group">
-      <label for="mmix">Master dry/wet<span class="v" id="mmix-v">100<small>%</small></span></label>
-      <input type="range" id="mmix" min="0" max="1" value="1" step="0.01">
     </div>
     <div class="slider-group safety">
       <label for="ceiling">Safety wall<span class="v" id="ceiling-v">−1.0<small>dB</small></span></label>
@@ -388,26 +332,14 @@ let srcBuffer=null,outBuffer=null,mono=null,sr=44100;
 const HOP=128; let nFrames=0;
 let framePrefixE=null,framePrefixN=null,levelN=null,hist=null;
 const HBINS=160,SHAPE_MS=2;
-const SCHEMA_VERSION=2;
-const BAND_COLORS=['#54f0c6','#8e74ff','#ff3145','#ffb347','#2bbf9b','#5a9bff','#ff6ec7','#9bff6e'];
-function mkBand(ci){return{tauMs:40,floorDb:-90,smoothMs:30,makeupDb:0,mix:1,
-  curve:[{x:0,y:0},{x:1,y:1}],enabled:true,solo:false,color:BAND_COLORS[ci%BAND_COLORS.length]};}
-/* single source of truth — bands[] + crossovers[]; one full-range band == single-band Sounder */
-const state={ version:SCHEMA_VERSION,
-  global:{ crossovers:[], ceilingDb:-1, makeupDb:0, mix:1 },
-  bands:[ mkBand(0) ] };
-let sel=0;                    // selected band index
-let band=state.bands[sel];   // reassigned on selection; existing band.* code retargets for free
-const G=state.global;
-let fullMono=null;           // whole-file mono (master dry + 1-band fast path)
-let lut=null; const LUTN=512;
+let floorDb=-90,tauMs=40,smoothMs=30,makeupDb=0,mix=1,ceilingDb=-1;
+let curve=[{x:0,y:0},{x:1,y:1}],lut=null; const LUTN=512;
 let inPeaks=null,outPeaks=null,WAVE_REF=1,clipCount=0,duration=0;
-let currentName='sounder';
 
 const $=id=>document.getElementById(id);
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
-const dbToN=db=>clamp((db-band.floorDb)/(0-band.floorDb),0,1);
-const nToDb=n=>band.floorDb+n*(0-band.floorDb);
+const dbToN=db=>clamp((db-floorDb)/(0-floorDb),0,1);
+const nToDb=n=>floorDb+n*(0-floorDb);
 const cssVar=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim()||'#fff';
 
 const chart=$('chart'),cctx=chart.getContext('2d');
@@ -429,15 +361,14 @@ async function loadFile(file){
     srcBuffer=await ctx.decodeAudioData(await file.arrayBuffer());
     sr=srcBuffer.sampleRate; duration=srcBuffer.duration;
     const len=srcBuffer.length,ch=srcBuffer.numberOfChannels;
-    fullMono=new Float32Array(len);
-    for(let c=0;c<ch;c++){const d=srcBuffer.getChannelData(c);for(let i=0;i<len;i++)fullMono[i]+=d[i]/ch;}
-    analyseSelected();
+    mono=new Float32Array(len);
+    for(let c=0;c<ch;c++){const d=srcBuffer.getChannelData(c);for(let i=0;i<len;i++)mono[i]+=d[i]/ch;}
+    buildFramePrefix(); analyse();
     inPeaks=computePeaks(srcBuffer);
     WAVE_REF=Math.max(inPeaks.peak,1.0);
     outBuffer=null;outPeaks=null;clipCount=0;
     transStop();
     filemeta.innerHTML=`<b>${file.name.replace(/\.[^.]+$/,'')}</b><br>${duration.toFixed(1)}s · ${ch}ch · ${(sr/1000).toFixed(1)}kHz<br>${nFrames.toLocaleString()} soundings`;
-    currentName=file.name.replace(/\.[^.]+$/,'')||'sounder';
     soundBtn.disabled=false;playBtn.disabled=false;stopBtn.disabled=false;exportBtn.disabled=true;abWrap.hidden=true;
     $('row-in').classList.remove('empty');$('msg-in').style.display='none';
     $('row-out').classList.add('empty');$('msg-out').style.display='';
@@ -449,105 +380,28 @@ async function loadFile(file){
   }catch(err){console.error(err);setStatus('Could not read that file.',false);}
 }
 
-/* ── multiband DSP: linear-phase STFT splitter (perfect reconstruction) ── */
-const FFT_N=4096, FFT_HOP=FFT_N>>2;
-const HANN=(()=>{const w=new Float64Array(FFT_N);for(let n=0;n<FFT_N;n++)w[n]=0.5-0.5*Math.cos(2*Math.PI*n/FFT_N);return w;})();
-function fft(re,im,inv){const n=re.length;
-  for(let i=1,j=0;i<n;i++){let bit=n>>1;for(;j&bit;bit>>=1)j^=bit;j^=bit;
-    if(i<j){const tr=re[i];re[i]=re[j];re[j]=tr;const ti=im[i];im[i]=im[j];im[j]=ti;}}
-  for(let len=2;len<=n;len<<=1){const ang=(inv?2:-2)*Math.PI/len,wr=Math.cos(ang),wi=Math.sin(ang);
-    for(let i=0;i<n;i+=len){let cr=1,ci=0;
-      for(let k=0;k<len>>1;k++){const a=i+k,b=a+(len>>1);
-        const xr=re[b]*cr-im[b]*ci,xi=re[b]*ci+im[b]*cr;
-        re[b]=re[a]-xr;im[b]=im[a]-xi;re[a]+=xr;im[a]+=xi;
-        const ncr=cr*wr-ci*wi;ci=cr*wi+ci*wr;cr=ncr;}}}
-  if(inv)for(let i=0;i<n;i++){re[i]/=n;im[i]/=n;}}
-function splitBand(x,mask){const N=FFT_N,hop=FFT_HOP,w=HANN,pad=N,plen=x.length+2*pad;
-  const xp=new Float64Array(plen);xp.set(x,pad);
-  const out=new Float64Array(plen),wsum=new Float64Array(plen),re=new Float64Array(N),im=new Float64Array(N);
-  for(let st=0;st+N<=plen;st+=hop){
-    for(let k=0;k<N;k++){re[k]=xp[st+k]*w[k];im[k]=0;}
-    fft(re,im,false);
-    for(let k=0;k<=N>>1;k++){const g=mask[k];re[k]*=g;im[k]*=g;if(k>0&&k<N-k){re[N-k]*=g;im[N-k]*=g;}}
-    fft(re,im,true);
-    for(let k=0;k<N;k++){out[st+k]+=re[k]*w[k];wsum[st+k]+=w[k]*w[k];}}
-  const y=new Float32Array(x.length);
-  for(let i=0;i<x.length;i++){const ws=wsum[pad+i];y[i]=ws>1e-9?out[pad+i]/ws:0;}
-  return y;}
-function crossoverBins(){const half=FFT_N>>1,cs=G.crossovers.slice().sort((a,b)=>a-b);
-  const fb=f=>clamp(Math.round(f/(sr/2)*half),2,half-2);
-  const bins=cs.map(fb);
-  return bins.map((bin,i)=>{const loN=i>0?bins[i-1]:0,hiN=i<bins.length-1?bins[i+1]:half;
-    let hw=Math.max(2,Math.round(bin*0.12));
-    hw=Math.min(hw,Math.floor(0.45*(bin-loN)),Math.floor(0.45*(hiN-bin)));
-    return {bin,half:Math.max(1,hw)};});}
-function buildMasks(xo){const half=FFT_N>>1,B=xo.length+1,masks=[];
-  const fall=(k,c)=>{const lo=c.bin-c.half,hi=c.bin+c.half;if(k<=lo)return 1;if(k>=hi)return 0;
-    const t=(k-lo)/(2*c.half);return Math.cos(0.5*Math.PI*t)**2;};
-  for(let b=0;b<B;b++){const m=new Float64Array(half+1),lo=b>0?xo[b-1]:null,hi=b<B-1?xo[b]:null;
-    for(let k=0;k<=half;k++){let g=1;if(hi)g*=fall(k,hi);if(lo)g*=(1-fall(k,lo));m[k]=g;}masks.push(m);}
-  return masks;}
-function avgMono(chs){const len=chs[0].length,m=new Float32Array(len),n=chs.length;
-  for(const c of chs)for(let i=0;i<len;i++)m[i]+=c[i]/n;return m;}
-
-/* ── per-band analysis engine (pure) ── */
-function analyseMono(m,tauMs,floorDb){const len=m.length,nF=Math.ceil(len/HOP);
-  const fe=new Float64Array(nF),fn=new Float64Array(nF);
-  for(let f=0;f<nF;f++){const a=f*HOP,b=Math.min(a+HOP,len);let e=0;for(let i=a;i<b;i++)e+=m[i]*m[i];fe[f]=e;fn[f]=b-a;}
-  const pe=new Float64Array(nF+1),pn=new Float64Array(nF+1);
-  for(let f=0;f<nF;f++){pe[f+1]=pe[f]+fe[f];pn[f+1]=pn[f]+fn[f];}
-  const W=Math.max(1,Math.round((tauMs/1000*sr)/HOP)),hw=W>>1;
-  const lev=new Float32Array(nF),h=new Float32Array(HBINS),toN=db=>clamp((db-floorDb)/(0-floorDb),0,1);
-  for(let f=0;f<nF;f++){const lo=clamp(f-hw,0,nF),hi=clamp(f+(W-hw),0,nF);
-    const e=pe[hi]-pe[lo],n=pn[hi]-pn[lo];
-    const rms=n>0?Math.sqrt(e/n):0,db=rms>1e-7?20*Math.log10(rms):-200,nn=toN(db);
-    lev[f]=nn;h[clamp(Math.floor(nn*(HBINS-1)),0,HBINS-1)]+=pn[f+1]-pn[f];}
-  let mx=0;for(let i=0;i<HBINS;i++)mx=Math.max(mx,h[i]);if(mx>0)for(let i=0;i<HBINS;i++)h[i]=Math.sqrt(h[i]/mx);
-  return {framePrefixE:pe,framePrefixN:pn,levelN:lev,hist:h,nFrames:nF};}
-function lutFor(P){const cv=P.map(p=>({...p})).sort((a,b)=>a.x-b.x);cv[0].x=0;cv[cv.length-1].x=1;
-  const out=new Float32Array(LUTN),n=cv.length;
-  const gp=idx=>idx<0?{x:2*cv[0].x-cv[1].x,y:2*cv[0].y-cv[1].y}:idx>n-1?{x:2*cv[n-1].x-cv[n-2].x,y:2*cv[n-1].y-cv[n-2].y}:cv[idx];
-  for(let i=0;i<LUTN;i++){const x=i/(LUTN-1);let k=0;while(k<n-2&&cv[k+1].x<x)k++;
-    const p0=gp(k-1),p1=cv[k],p2=cv[k+1],p3=gp(k+2);
-    const seg=Math.max(1e-6,p2.x-p1.x),t=clamp((x-p1.x)/seg,0,1),t2=t*t,t3=t2*t;
-    let y=0.5*((2*p1.y)+(-p0.y+p2.y)*t+(2*p0.y-5*p1.y+4*p2.y-p3.y)*t2+(-p0.y+3*p1.y-3*p2.y+p3.y)*t3);
-    out[i]=clamp(y,0,1);}return out;}
-const applyOn=(L,nx)=>{const t=clamp(nx,0,1)*(LUTN-1),i=t|0,fr=t-i;return i>=LUTN-1?L[LUTN-1]:L[i]*(1-fr)+L[i+1]*fr;};
-
-/* process one band's channels -> WET channels (per-band dry/wet handled by caller) */
-function processChannels(chs,m,P,len,ch){
-  const out=Array.from({length:ch},()=>new Float32Array(len)),L=lutFor(P.curve),fl=P.floorDb;
-  const nToD=n=>fl+n*(0-fl),dToN=db=>clamp((db-fl)/(0-fl),0,1);
-  if(P.tauMs<SHAPE_MS){
-    const Ntf=8193,TF=new Float32Array(Ntf),floorLin=Math.pow(10,fl/20),mk=Math.pow(10,P.makeupDb/20);
-    for(let i=0;i<Ntf;i++){const v=-1+2*i/(Ntf-1),a=v<0?-v:v;let g;
-      if(a<=floorLin)g=Math.min(mk,1);
-      else{const db=20*Math.log10(a),gd=clamp(nToD(applyOn(L,dToN(db)))-db,-60,36);g=Math.pow(10,gd/20)*mk;}
-      TF[i]=v*g;}
-    for(let c=0;c<ch;c++){const din=chs[c],dout=out[c];
-      for(let i=0;i<len;i++){const v=din[i],t=(clamp(v,-1,1)+1)*0.5*(Ntf-1),k=t|0,fr=t-k;
-        dout[i]=k>=Ntf-1?TF[Ntf-1]:TF[k]*(1-fr)+TF[k+1]*fr;}}
-  } else {
-    const A=analyseMono(m,P.tauMs,P.floorDb),nF=A.nFrames,lev=A.levelN,gdb=new Float32Array(nF);
-    for(let f=0;f<nF;f++){const nx=lev[f],inDb=nToD(nx),outDb=nToD(applyOn(L,nx));let g=outDb-inDb;
-      if(nx<=0.001)g=Math.min(g,0);else if(nx<0.06)g*=nx/0.06;g=clamp(g+P.makeupDb,-60,36);gdb[f]=g;}
-    const glin=new Float32Array(nF);for(let f=0;f<nF;f++)glin[f]=Math.pow(10,gdb[f]/20);
-    const frameMs=HOP/sr*1000,a=P.smoothMs>0?Math.exp(-frameMs/P.smoothMs):0;
-    if(a>0){for(let f=1;f<nF;f++)glin[f]=glin[f]*(1-a)+glin[f-1]*a;
-      for(let f=nF-2;f>=0;f--)glin[f]=glin[f]*(1-a)+glin[f+1]*a;}
-    for(let c=0;c<ch;c++){const din=chs[c],dout=out[c];
-      for(let i=0;i<len;i++){const fp=i/HOP,f0=fp|0,fr=fp-f0;
-        const g=f0>=nF-1?glin[nF-1]:glin[f0]*(1-fr)+glin[f0+1]*fr;dout[i]=din[i]*g;}}
+function buildFramePrefix(){
+  const len=mono.length; nFrames=Math.ceil(len/HOP);
+  const fe=new Float64Array(nFrames),fn=new Float64Array(nFrames);
+  for(let f=0;f<nFrames;f++){const a=f*HOP,b=Math.min(a+HOP,len);let s=0;
+    for(let i=a;i<b;i++)s+=mono[i]*mono[i];fe[f]=s;fn[f]=b-a;}
+  framePrefixE=new Float64Array(nFrames+1);framePrefixN=new Float64Array(nFrames+1);
+  for(let f=0;f<nFrames;f++){framePrefixE[f+1]=framePrefixE[f]+fe[f];framePrefixN[f+1]=framePrefixN[f]+fn[f];}
+}
+function analyse(){
+  if(!framePrefixE)return;
+  const W=Math.max(1,Math.round((tauMs/1000*sr)/HOP)),half=W>>1;
+  levelN=new Float32Array(nFrames);hist=new Float32Array(HBINS);
+  for(let f=0;f<nFrames;f++){
+    const lo=clamp(f-half,0,nFrames),hi=clamp(f+(W-half),0,nFrames);
+    const e=framePrefixE[hi]-framePrefixE[lo],n=framePrefixN[hi]-framePrefixN[lo];
+    const rms=n>0?Math.sqrt(e/n):0,db=rms>1e-7?20*Math.log10(rms):-200,nn=dbToN(db);
+    levelN[f]=nn;
+    hist[clamp(Math.floor(nn*(HBINS-1)),0,HBINS-1)]+=framePrefixN[f+1]-framePrefixN[f];
   }
-  return out;}
-
-/* selected-band mono (for the depth chart). 1 band -> whole-file mono (exact single-band path) */
-function computeBandMono(b){const xo=crossoverBins();if(!xo.length)return fullMono;
-  return splitBand(fullMono,buildMasks(xo)[b]);}
-function analyseSelected(){if(!fullMono)return;
-  mono=computeBandMono(sel);
-  const A=analyseMono(mono,band.tauMs,band.floorDb);
-  framePrefixE=A.framePrefixE;framePrefixN=A.framePrefixN;levelN=A.levelN;hist=A.hist;nFrames=A.nFrames;}
+  let mx=0;for(let i=0;i<HBINS;i++)mx=Math.max(mx,hist[i]);
+  if(mx>0)for(let i=0;i<HBINS;i++)hist[i]=Math.sqrt(hist[i]/mx);
+}
 
 /* ── peaks for waveform ── */
 function computePeaks(buf,B=3000){
@@ -567,8 +421,8 @@ function computePeaks(buf,B=3000){
 
 /* curve→LUT */
 function buildLut(){
-  band.curve.sort((a,b)=>a.x-b.x);band.curve[0].x=0;band.curve[band.curve.length-1].x=1;
-  lut=new Float32Array(LUTN);const P=band.curve,n=P.length;
+  curve.sort((a,b)=>a.x-b.x);curve[0].x=0;curve[curve.length-1].x=1;
+  lut=new Float32Array(LUTN);const P=curve,n=P.length;
   const gp=idx=>idx<0?{x:2*P[0].x-P[1].x,y:2*P[0].y-P[1].y}
               :idx>n-1?{x:2*P[n-1].x-P[n-2].x,y:2*P[n-1].y-P[n-2].y}:P[idx];
   for(let i=0;i<LUTN;i++){const x=i/(LUTN-1);let k=0;while(k<n-2&&P[k+1].x<x)k++;
@@ -578,7 +432,7 @@ function buildLut(){
     lut[i]=clamp(y,0,1);}
 }
 const applyCurve=nx=>{const t=clamp(nx,0,1)*(LUTN-1),i=t|0,fr=t-i;return i>=LUTN-1?lut[LUTN-1]:lut[i]*(1-fr)+lut[i+1]*fr;};
-function buildShapeTF(){const N=8193,TF=new Float32Array(N),floorLin=Math.pow(10,band.floorDb/20),mk=Math.pow(10,band.makeupDb/20);
+function buildShapeTF(){const N=8193,TF=new Float32Array(N),floorLin=Math.pow(10,floorDb/20),mk=Math.pow(10,makeupDb/20);
   for(let i=0;i<N;i++){const v=-1+2*i/(N-1),a=v<0?-v:v;let g;
     if(a<=floorLin)g=Math.min(mk,1);
     else{const db=20*Math.log10(a),gd=clamp(nToDb(applyCurve(dbToN(db)))-db,-60,36);g=Math.pow(10,gd/20)*mk;}
@@ -593,17 +447,12 @@ function draw(){
   if(!CW)sizeChart();
   cctx.clearRect(0,0,CW,CH);
   const pad=10,w=CW-pad*2,h=CH-pad*2,X=nx=>pad+nx*w,Y=ny=>pad+(1-ny)*h;
-  const marks=[0,-6,-12,-24,-48].filter(d=>d>band.floorDb).concat([band.floorDb]);
-  cctx.font='10px '+cssVar('--mono');cctx.textBaseline='alphabetic';
-  // dB grid on BOTH axes — same dB→norm mapping drives input (vertical) and output (horizontal)
-  marks.forEach(d=>{const n=dbToN(d),gx=X(n),gy=Y(n),seabed=d===band.floorDb;
+  const marks=[0,-6,-12,-24,-48].filter(d=>d>floorDb).concat([floorDb]);
+  cctx.font='10px '+cssVar('--mono');
+  marks.forEach(d=>{const nx=dbToN(d);
     cctx.strokeStyle='rgba(28,74,64,.55)';cctx.lineWidth=1;
-    cctx.beginPath();cctx.moveTo(gx,pad);cctx.lineTo(gx,pad+h);cctx.stroke();           // input level (vertical)
-    cctx.strokeStyle='rgba(28,74,64,.38)';
-    cctx.beginPath();cctx.moveTo(pad,gy);cctx.lineTo(pad+w,gy);cctx.stroke();           // output level (horizontal)
-    cctx.fillStyle='rgba(79,122,110,.85)';cctx.textAlign='left';
-    cctx.fillText(seabed?'seabed':d+'',gx+3,pad+h-4);                                    // input label (bottom)
-    if(!seabed)cctx.fillText(d+'',pad+3,gy-3);});                                        // output label (left)
+    cctx.beginPath();cctx.moveTo(X(nx),pad);cctx.lineTo(X(nx),pad+h);cctx.stroke();
+    cctx.fillStyle='rgba(79,122,110,.85)';cctx.fillText(d===floorDb?'seabed':d+'',X(nx)+3,pad+h-4);});
   if(hist){
     const grad=cctx.createLinearGradient(pad,0,pad+w,0);
     grad.addColorStop(0,'rgba(142,116,255,.55)');grad.addColorStop(.5,'rgba(43,191,155,.5)');grad.addColorStop(1,'rgba(84,240,198,.6)');
@@ -626,7 +475,7 @@ function draw(){
   cctx.strokeStyle='rgba(84,240,198,.7)';cctx.lineWidth=1.5;cctx.beginPath();cctx.moveTo(X(1),pad);cctx.lineTo(X(1),pad+h);cctx.stroke();
   if(lut){cctx.beginPath();for(let i=0;i<LUTN;i++){const px=X(i/(LUTN-1)),py=Y(lut[i]);i?cctx.lineTo(px,py):cctx.moveTo(px,py);}
     cctx.shadowColor='rgba(84,240,198,.6)';cctx.shadowBlur=8;cctx.strokeStyle='#9bffe6';cctx.lineWidth=2.4;cctx.stroke();cctx.shadowBlur=0;}
-  band.curve.forEach((p,i)=>{const px=X(p.x),py=Y(p.y);
+  curve.forEach((p,i)=>{const px=X(p.x),py=Y(p.y);
     cctx.beginPath();cctx.arc(px,py,i===dragIdx?7:5.5,0,7);cctx.fillStyle=i===dragIdx?'#fff':'#54f0c6';
     cctx.shadowColor='rgba(84,240,198,.9)';cctx.shadowBlur=i===dragIdx?14:7;cctx.fill();cctx.shadowBlur=0;
     cctx.strokeStyle='#06130f';cctx.lineWidth=2;cctx.stroke();});
@@ -637,10 +486,10 @@ let dragIdx=-1;
 function evtToN(e){const r=chart.getBoundingClientRect(),pad=10;
   return{x:clamp((e.clientX-r.left-pad)/(r.width-pad*2),0,1),y:clamp(1-(e.clientY-r.top-pad)/(r.height-pad*2),0,1)};}
 function hitPoint(n){const r=chart.getBoundingClientRect(),pad=10,w=r.width-pad*2,h=r.height-pad*2;
-  for(let i=0;i<band.curve.length;i++){const dx=(band.curve[i].x-n.x)*w,dy=(band.curve[i].y-n.y)*h;if(dx*dx+dy*dy<170)return i;}return -1;}
+  for(let i=0;i<curve.length;i++){const dx=(curve[i].x-n.x)*w,dy=(curve[i].y-n.y)*h;if(dx*dx+dy*dy<170)return i;}return -1;}
 chart.addEventListener('pointerdown',e=>{chart.setPointerCapture(e.pointerId);
   const n=evtToN(e);let i=hitPoint(n);
-  if(i<0){band.curve.push({x:n.x,y:n.y});band.curve.sort((a,b)=>a.x-b.x);i=band.curve.findIndex(p=>p.x===n.x&&p.y===n.y);}
+  if(i<0){curve.push({x:n.x,y:n.y});curve.sort((a,b)=>a.x-b.x);i=curve.findIndex(p=>p.x===n.x&&p.y===n.y);}
   dragIdx=i;buildLut();draw();});
 chart.addEventListener('pointermove',e=>{
   const n=evtToN(e);
@@ -653,16 +502,16 @@ chart.addEventListener('pointermove',e=>{
     }
     return;
   }
-  const last=band.curve.length-1;
-  if(dragIdx===0)n.x=0;else if(dragIdx===last)n.x=1;else n.x=clamp(n.x,band.curve[dragIdx-1].x+0.012,band.curve[dragIdx+1].x-0.012);
-  band.curve[dragIdx]={x:n.x,y:n.y};buildLut();draw();});
+  const last=curve.length-1;
+  if(dragIdx===0)n.x=0;else if(dragIdx===last)n.x=1;else n.x=clamp(n.x,curve[dragIdx-1].x+0.012,curve[dragIdx+1].x-0.012);
+  curve[dragIdx]={x:n.x,y:n.y};buildLut();draw();});
 chart.addEventListener('pointerup',()=>{
   dragIdx=-1; curveChanged(); draw();
   window.dispatchEvent(new Event('curve-interaction-end')); // API hook
 });
 chart.addEventListener('dblclick',e=>{const n=evtToN(e),i=hitPoint(n);
-  if(i>0&&i<band.curve.length-1){
-    band.curve.splice(i,1);buildLut();curveChanged();draw();
+  if(i>0&&i<curve.length-1){
+    curve.splice(i,1);buildLut();curveChanged();draw();
     window.dispatchEvent(new Event('curve-interaction-end')); // API hook
   }});
 function curveChanged(){if(srcBuffer){outBuffer=null;outPeaks=null;exportBtn.disabled=true;abWrap.hidden=true;
@@ -677,113 +526,60 @@ const PRE={identity:[{x:0,y:0},{x:1,y:1}],
   lift:[{x:0,y:.25},{x:.5,y:.6},{x:1,y:1}],
   invert:[{x:0,y:.85},{x:.5,y:.5},{x:1,y:.2}]};
 $('presets').addEventListener('click',e=>{const p=e.target.dataset.p;if(!p)return;
-  band.curve=PRE[p].map(o=>({...o}));buildLut();curveChanged();draw();
+  curve=PRE[p].map(o=>({...o}));buildLut();curveChanged();draw();
   window.dispatchEvent(new Event('curve-interaction-end')); // API hook
 });
-
-/* ── state JSON save / load — the preset substrate (audio stays out of the JSON) ── */
-function fmtHz(f){return f>=1000?(f/1000).toFixed(f<10000?1:0)+'k':Math.round(f)+'';}
-function bandRange(i){const B=state.bands.length,lo=i>0?G.crossovers[i-1]:20,hi=i<B-1?G.crossovers[i]:sr/2;return[lo,hi];}
-function bandRangeLabel(i){const r=bandRange(i);return fmtHz(r[0])+'–'+fmtHz(r[1])+' Hz';}
-function syncControls(){
-  $('floor').value=band.floorDb;   $('floor-v').innerHTML='−'+Math.abs(band.floorDb)+'<small>dB</small>';
-  $('smooth').value=band.smoothMs; $('smooth-v').innerHTML=band.smoothMs+'<small>ms</small>';
-  $('makeup').value=band.makeupDb; $('makeup-v').innerHTML=(band.makeupDb>0?'+':'')+band.makeupDb.toFixed(1)+'<small>dB</small>';
-  $('mix').value=band.mix;         $('mix-v').innerHTML=Math.round(band.mix*100)+'<small>%</small>';
-  $('mmakeup').value=G.makeupDb;   $('mmakeup-v').innerHTML=(G.makeupDb>0?'+':'')+G.makeupDb.toFixed(1)+'<small>dB</small>';
-  $('mmix').value=G.mix;           $('mmix-v').innerHTML=Math.round(G.mix*100)+'<small>%</small>';
-  $('ceiling').value=G.ceilingDb;  $('ceiling-v').innerHTML=(G.ceilingDb===0?'0.0':'−'+Math.abs(G.ceilingDb).toFixed(1))+'<small>dB</small>';
-  $('band-grp-label').innerHTML='<span class="sw" id="band-grp-sw" style="background:'+band.color+'"></span>selected band — '+bandRangeLabel(sel);
-  const bi=$('band-indicator');if(bi)bi.innerHTML='<span class="sw" style="background:'+band.color+'"></span>band '+(sel+1)+'/'+state.bands.length+' · '+bandRangeLabel(sel);
-  setTau(band.tauMs);
-}
-$('state-save').addEventListener('click',()=>{
-  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob),a=document.createElement('a');
-  a.href=url;a.download=currentName+'.sounder.json';a.click();
-  setTimeout(()=>URL.revokeObjectURL(url),1500);
-  setStatus('State saved.',false);
-});
-$('state-load').addEventListener('click',()=>$('state-file').click());
-$('state-file').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;
-  const r=new FileReader();
-  r.onload=()=>{try{applyState(JSON.parse(r.result));}
-    catch(err){console.error(err);setStatus('Could not read that state file.',false);}};
-  r.readAsText(f);e.target.value='';
-});
-function applyState(obj){
-  if(!obj||(obj.version!==1&&obj.version!==2)||!Array.isArray(obj.bands)||!obj.bands[0]){
-    setStatus('Unrecognized or wrong-version state.',false);return;}
-  const g=obj.global||{}, v2=obj.version===2;
-  G.crossovers=(v2&&Array.isArray(g.crossovers))?g.crossovers.slice():[];
-  G.ceilingDb=('ceilingDb'in g)?g.ceilingDb:-1;
-  G.makeupDb=(v2&&'makeupDb'in g)?g.makeupDb:0;     // v1 had no master makeup/mix
-  G.mix=(v2&&'mix'in g)?g.mix:1;
-  state.bands=obj.bands.map((b,i)=>({...mkBand(i),...b,
-    enabled:b.enabled!==false, solo:!!b.solo, color:b.color||BAND_COLORS[i%BAND_COLORS.length],
-    curve:(Array.isArray(b.curve)&&b.curve.length>=2)?b.curve.map(p=>({...p})):[{x:0,y:0},{x:1,y:1}]}));
-  while(state.bands.length<G.crossovers.length+1)state.bands.push(mkBand(state.bands.length)); // keep bands==crossovers+1
-  if(state.bands.length>G.crossovers.length+1){state.bands.length=G.crossovers.length+1;}
-  sel=0;band=state.bands[0];
-  buildLut();analyseSelected();buildSafety();
-  syncControls();renderBands();drawSpectrum();
-  curveChanged();draw();drawWaves();
-  setStatus('State loaded — re-process to hear it.',false);
-  window.dispatchEvent(new Event('curve-interaction-end'));
-}
 
 /* tau knob */
 const knob=$('knob'),ptr=$('knob-ptr'),TAU_MIN=0.5,TAU_MAX=2000;
 const tauToAngle=ms=>-135+(Math.log(ms/TAU_MIN)/Math.log(TAU_MAX/TAU_MIN))*270;
-function setTau(ms){band.tauMs=clamp(ms,TAU_MIN,TAU_MAX);
-  ptr.style.transform=`translateX(-50%) rotate(${tauToAngle(band.tauMs)}deg)`;
-  $('tau-val').innerHTML=(band.tauMs<10?band.tauMs.toFixed(1):Math.round(band.tauMs))+'<small>ms</small>';
-  const _rg=$('regime');_rg.textContent=regime(band.tauMs);_rg.classList.toggle('shape',band.tauMs<SHAPE_MS);knob.setAttribute('aria-valuenow',band.tauMs.toFixed(1));
-  if(fullMono){analyseSelected();draw();}}
+function setTau(ms){tauMs=clamp(ms,TAU_MIN,TAU_MAX);
+  ptr.style.transform=`translateX(-50%) rotate(${tauToAngle(tauMs)}deg)`;
+  $('tau-val').innerHTML=(tauMs<10?tauMs.toFixed(1):Math.round(tauMs))+'<small>ms</small>';
+  const _rg=$('regime');_rg.textContent=regime(tauMs);_rg.classList.toggle('shape',tauMs<SHAPE_MS);knob.setAttribute('aria-valuenow',tauMs.toFixed(1));
+  if(framePrefixE){analyse();draw();}}
 let knobDrag=false,knobStartY=0,knobStartT=0;
-knob.addEventListener('pointerdown',e=>{knobDrag=true;knobStartY=e.clientY;knobStartT=band.tauMs;knob.setPointerCapture(e.pointerId);});
+knob.addEventListener('pointerdown',e=>{knobDrag=true;knobStartY=e.clientY;knobStartT=tauMs;knob.setPointerCapture(e.pointerId);});
 knob.addEventListener('pointermove',e=>{if(!knobDrag)return;
   setTau(knobStartT*Math.pow(TAU_MAX/TAU_MIN,((knobStartY-e.clientY)/90)/8));curveChanged();});
 knob.addEventListener('pointerup',()=>{knobDrag=false;});
-knob.addEventListener('keydown',e=>{if(e.key==='ArrowUp'||e.key==='ArrowRight'){setTau(band.tauMs*1.12);curveChanged();e.preventDefault();}
-  if(e.key==='ArrowDown'||e.key==='ArrowLeft'){setTau(band.tauMs/1.12);curveChanged();e.preventDefault();}});
+knob.addEventListener('keydown',e=>{if(e.key==='ArrowUp'||e.key==='ArrowRight'){setTau(tauMs*1.12);curveChanged();e.preventDefault();}
+  if(e.key==='ArrowDown'||e.key==='ArrowLeft'){setTau(tauMs/1.12);curveChanged();e.preventDefault();}});
 
 /* params */
-$('floor').addEventListener('input',e=>{band.floorDb=+e.target.value;$('floor-v').innerHTML='−'+Math.abs(band.floorDb)+'<small>dB</small>';
-  if(fullMono)analyseSelected();buildLut();draw();curveChanged();});
-$('smooth').addEventListener('input',e=>{band.smoothMs=+e.target.value;$('smooth-v').innerHTML=band.smoothMs+'<small>ms</small>';curveChanged();});
-$('makeup').addEventListener('input',e=>{band.makeupDb=+e.target.value;$('makeup-v').innerHTML=(band.makeupDb>0?'+':'')+band.makeupDb.toFixed(1)+'<small>dB</small>';curveChanged();});
-$('mix').addEventListener('input',e=>{band.mix=+e.target.value;$('mix-v').innerHTML=Math.round(band.mix*100)+'<small>%</small>';curveChanged();});
-$('ceiling').addEventListener('input',e=>{G.ceilingDb=+e.target.value;$('ceiling-v').innerHTML=(G.ceilingDb===0?'0.0':'−'+Math.abs(G.ceilingDb).toFixed(1))+'<small>dB</small>';
+$('floor').addEventListener('input',e=>{floorDb=+e.target.value;$('floor-v').innerHTML='−'+Math.abs(floorDb)+'<small>dB</small>';
+  if(framePrefixE)analyse();buildLut();draw();curveChanged();});
+$('smooth').addEventListener('input',e=>{smoothMs=+e.target.value;$('smooth-v').innerHTML=smoothMs+'<small>ms</small>';curveChanged();});
+$('makeup').addEventListener('input',e=>{makeupDb=+e.target.value;$('makeup-v').innerHTML=(makeupDb>0?'+':'')+makeupDb.toFixed(1)+'<small>dB</small>';curveChanged();});
+$('mix').addEventListener('input',e=>{mix=+e.target.value;$('mix-v').innerHTML=Math.round(mix*100)+'<small>%</small>';curveChanged();});
+$('ceiling').addEventListener('input',e=>{ceilingDb=+e.target.value;$('ceiling-v').innerHTML=(ceilingDb===0?'0.0':'−'+Math.abs(ceilingDb).toFixed(1))+'<small>dB</small>';
   buildSafety();if(outPeaks)cacheWave('out',outPeaks);drawWaves();});
-$('mmakeup').addEventListener('input',e=>{G.makeupDb=+e.target.value;$('mmakeup-v').innerHTML=(G.makeupDb>0?'+':'')+G.makeupDb.toFixed(1)+'<small>dB</small>';curveChanged();});
-$('mmix').addEventListener('input',e=>{G.mix=+e.target.value;$('mmix-v').innerHTML=Math.round(G.mix*100)+'<small>%</small>';curveChanged();});
 
 /* ── PROCESS ── */
 soundBtn.addEventListener('click',async()=>{
   if(!srcBuffer)return;
   setStatus('Sounding the whole file…',true);await new Promise(r=>setTimeout(r,20));
   const len=srcBuffer.length,ch=srcBuffer.numberOfChannels;
-  const srcCh=Array.from({length:ch},(_,c)=>srcBuffer.getChannelData(c));
-  const xo=crossoverBins(),masks=xo.length?buildMasks(xo):null;
-  const anySolo=state.bands.some(b=>b.solo);
-  const acc=Array.from({length:ch},()=>new Float32Array(len));
-  for(let b=0;b<state.bands.length;b++){
-    const P=state.bands[b];
-    setStatus(`Sounding band ${b+1}/${state.bands.length}…`,true);await new Promise(r=>setTimeout(r));
-    let bch,bmono;
-    if(!masks){bch=srcCh;bmono=fullMono;}                       // 1 band: exact single-band path
-    else{bch=srcCh.map(x=>splitBand(x,masks[b]));bmono=avgMono(bch);}
-    const active=anySolo?P.solo:P.enabled;
-    if(!active)continue;                                        // muted / un-soloed: contributes nothing
-    const wet=processChannels(bch,bmono,P,len,ch);
-    for(let c=0;c<ch;c++){const w=wet[c],d=bch[c],o=acc[c];
-      for(let i=0;i<len;i++)o[i]+=P.mix*w[i]+(1-P.mix)*d[i];}    // per-band dry/wet vs its own clean split
-  }
-  const mk=Math.pow(10,G.makeupDb/20);                          // master makeup + master dry/wet
   outBuffer=ctx.createBuffer(ch,len,sr);
-  for(let c=0;c<ch;c++){const o=acc[c],src=srcCh[c],dout=outBuffer.getChannelData(c);
-    for(let i=0;i<len;i++){const v=o[i]*mk;dout[i]=(1-G.mix)*src[i]+G.mix*v;}}
+  if(tauMs<SHAPE_MS){
+    const TF=buildShapeTF(),N=TF.length;
+    for(let c=0;c<ch;c++){const din=srcBuffer.getChannelData(c),dout=outBuffer.getChannelData(c);
+      for(let i=0;i<len;i++){const v=din[i],t=(clamp(v,-1,1)+1)*0.5*(N-1),k=t|0,fr=t-k;
+        const sh=k>=N-1?TF[N-1]:TF[k]*(1-fr)+TF[k+1]*fr;
+        dout[i]=(1-mix)*v+mix*sh;}}
+  } else {
+    const gdb=new Float32Array(nFrames);
+    for(let f=0;f<nFrames;f++){const nx=levelN[f],inDb=nToDb(nx),outDb=nToDb(applyCurve(nx));let g=outDb-inDb;
+      if(nx<=0.001)g=Math.min(g,0);else if(nx<0.06)g*=nx/0.06;g=clamp(g+makeupDb,-60,36);gdb[f]=g;}
+    const glin=new Float32Array(nFrames);for(let f=0;f<nFrames;f++)glin[f]=Math.pow(10,gdb[f]/20);
+    const frameMs=HOP/sr*1000,a=smoothMs>0?Math.exp(-frameMs/smoothMs):0;
+    if(a>0){for(let f=1;f<nFrames;f++)glin[f]=glin[f]*(1-a)+glin[f-1]*a;
+      for(let f=nFrames-2;f>=0;f--)glin[f]=glin[f]*(1-a)+glin[f+1]*a;}
+    for(let c=0;c<ch;c++){const din=srcBuffer.getChannelData(c),dout=outBuffer.getChannelData(c);
+      for(let i=0;i<len;i++){const fp=i/HOP,f0=fp|0,fr=fp-f0;
+        const g=f0>=nFrames-1?glin[nFrames-1]:glin[f0]*(1-fr)+glin[f0+1]*fr;
+        dout[i]=(1-mix)*din[i]+mix*din[i]*g;}}
+  }
   outPeaks=computePeaks(outBuffer);clipCount=outPeaks.clips;
   WAVE_REF=Math.max(inPeaks.peak,outPeaks.peak,1.0);
   cacheWave('in',inPeaks);cacheWave('out',outPeaks);
@@ -799,7 +595,7 @@ let safetyNode=null,masterNode=null;
 function buildSafety(){
   if(!safetyNode){safetyNode=ctx.createWaveShaper();safetyNode.oversample='2x';
     masterNode=ctx.createGain();masterNode.connect(safetyNode);safetyNode.connect(ctx.destination);}
-  const c=Math.pow(10,G.ceilingDb/20),N=2048,cur=new Float32Array(N);
+  const c=Math.pow(10,ceilingDb/20),N=2048,cur=new Float32Array(N);
   for(let i=0;i<N;i++){const x=-1+2*i/(N-1);cur[i]=clamp(x,-c,c);}
   safetyNode.curve=cur;
 }
@@ -816,7 +612,7 @@ function cacheWave(which,pk){
   x.strokeStyle='rgba(255,77,94,.32)';x.setLineDash([5*dpr,5*dpr]);x.lineWidth=1;
   x.beginPath();x.moveTo(0,mid-1*yScale);x.lineTo(W,mid-1*yScale);x.moveTo(0,mid+1*yScale);x.lineTo(W,mid+1*yScale);x.stroke();
   x.setLineDash([]);
-  if(which==='out'){const c=Math.pow(10,G.ceilingDb/20);x.strokeStyle='rgba(255,179,71,.4)';x.setLineDash([2*dpr,4*dpr]);
+  if(which==='out'){const c=Math.pow(10,ceilingDb/20);x.strokeStyle='rgba(255,179,71,.4)';x.setLineDash([2*dpr,4*dpr]);
     x.beginPath();x.moveTo(0,mid-c*yScale);x.lineTo(W,mid-c*yScale);x.moveTo(0,mid+c*yScale);x.lineTo(W,mid+c*yScale);x.stroke();x.setLineDash([]);}
   const lumen=cssVar('--lumen'),blood=cssVar('--blood'),base=which==='out'?blood:lumen;
   for(let px=0;px<W;px++){const b=Math.min(pk.B-1,Math.floor(px/W*pk.B));
@@ -906,101 +702,16 @@ function setStatus(t,work){statusEl.textContent=t;statusEl.classList.toggle('wor
     requestAnimationFrame(l);}
   size();l();addEventListener('resize',size);})();
 
-
-/* ── selection · spectrum · band manager ── */
-const RATIO=Math.pow(2,0.4);                 // min crossover spacing (≈0.4 octave) -> guarantees PR
-const spec=$('spectrum'),sctx=spec.getContext('2d');
-let SW=0,SH=0,SDPR=1;
-function sizeSpectrum(){SDPR=Math.min(2,window.devicePixelRatio||1);const r=spec.getBoundingClientRect();
-  SW=r.width;SH=r.height;spec.width=SW*SDPR;spec.height=SH*SDPR;sctx.setTransform(SDPR,0,0,SDPR,0,0);}
-const FMIN=20;
-const xOfF=f=>{const fmax=sr/2;return Math.log(clamp(f,FMIN,fmax)/FMIN)/Math.log(fmax/FMIN);};
-const fOfX=x=>{const fmax=sr/2;return FMIN*Math.pow(fmax/FMIN,clamp(x,0,1));};
-function bandSegX(i){const B=state.bands.length,lo=i>0?xOfF(G.crossovers[i-1]):0,hi=i<B-1?xOfF(G.crossovers[i]):1;return[lo,hi];}
-function drawSpectrum(){
-  if(!SW)sizeSpectrum();
-  sctx.clearRect(0,0,SW,SH);const pad=8,w=SW-pad*2,h=SH-pad*2,X=x=>pad+x*w;
-  // octave gridlines
-  sctx.font='9px '+cssVar('--mono');sctx.textBaseline='alphabetic';
-  [50,100,200,500,1000,2000,5000,10000,20000].forEach(f=>{if(f>=sr/2)return;const gx=X(xOfF(f));
-    sctx.strokeStyle='rgba(28,74,64,.5)';sctx.lineWidth=1;sctx.beginPath();sctx.moveTo(gx,pad);sctx.lineTo(gx,pad+h);sctx.stroke();
-    sctx.fillStyle='rgba(79,122,110,.8)';sctx.fillText(f>=1000?(f/1000)+'k':f+'',gx+2,pad+h-3);});
-  // band segments
-  for(let i=0;i<state.bands.length;i++){const[lo,hi]=bandSegX(i),x0=X(lo),x1=X(hi),P=state.bands[i],seled=i===sel;
-    sctx.fillStyle=hexA(P.color,seled?0.28:0.13);sctx.fillRect(x0,pad,x1-x0,h);
-    if(seled){sctx.strokeStyle=P.color;sctx.lineWidth=1.5;sctx.strokeRect(x0+0.5,pad+0.5,x1-x0-1,h-1);}
-    const anySolo=state.bands.some(b=>b.solo),active=anySolo?P.solo:P.enabled;
-    sctx.fillStyle=active?hexA(P.color,.95):'rgba(124,175,159,.4)';sctx.font='10px '+cssVar('--mono');
-    sctx.fillText((i+1)+'',x0+5,pad+13);
-    if(!active){sctx.fillStyle='rgba(255,49,69,.8)';sctx.fillText('×',x0+5,pad+25);}}
-  // crossover handles
-  for(let i=0;i<G.crossovers.length;i++){const gx=X(xOfF(G.crossovers[i]));
-    sctx.strokeStyle='#9bffe6';sctx.lineWidth=2;sctx.shadowColor='rgba(84,240,198,.7)';sctx.shadowBlur=6;
-    sctx.beginPath();sctx.moveTo(gx,pad);sctx.lineTo(gx,pad+h);sctx.stroke();sctx.shadowBlur=0;
-    sctx.fillStyle='#9bffe6';sctx.font='9px '+cssVar('--mono');sctx.fillText(fmtHz(G.crossovers[i]),gx+3,pad+h-14);}
-}
-function hexA(hex,a){const n=parseInt(hex.slice(1),16);return`rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;}
-
-function renderBands(){const list=$('band-list');list.innerHTML='';
-  const anySolo=state.bands.some(b=>b.solo);
-  state.bands.forEach((P,i)=>{const chip=document.createElement('div');chip.className='band-chip'+(i===sel?' sel':'');
-    chip.innerHTML=`<span class="sw" style="background:${P.color};color:${P.color}"></span>`+
-      `<span class="rng">${i+1} · ${bandRangeLabel(i)}</span>`+
-      `<button class="tog solo${P.solo?' on':''}" data-a="solo" title="Solo">S</button>`+
-      `<button class="tog mute${!P.enabled?' on':''}" data-a="mute" title="Mute">M</button>`;
-    chip.addEventListener('click',e=>{const a=e.target.dataset.a;
-      if(a==='solo'){P.solo=!P.solo;curveChanged();renderBands();drawSpectrum();return;}
-      if(a==='mute'){P.enabled=!P.enabled;curveChanged();renderBands();drawSpectrum();return;}
-      selectBand(i);});
-    list.appendChild(chip);});
-  $('band-merge').disabled=state.bands.length<2;
-}
-function selectBand(i){sel=clamp(i,0,state.bands.length-1);band=state.bands[sel];
-  buildLut();analyseSelected();syncControls();renderBands();drawSpectrum();draw();}
-
-function splitSelected(){const[loF,hiF]=bandRange(sel),lo=Math.max(FMIN*1.02,loF),hi=Math.min(sr/2*0.98,hiF);
-  const f=Math.sqrt(lo*hi);
-  if(!(f>lo*RATIO&&f<hi/RATIO)){setStatus('Band too narrow to split.',false);return;}
-  G.crossovers.splice(sel,0,f);G.crossovers.sort((a,b)=>a-b);
-  state.bands.splice(sel+1,0,{...mkBand(state.bands.length),...JSON.parse(JSON.stringify(band)),
-    color:BAND_COLORS[state.bands.length%BAND_COLORS.length],solo:false});
-  selectBand(sel);curveChanged();
-  setStatus('Split — band '+(sel+1)+' divided.',false);
-}
-function mergeSelected(){if(state.bands.length<2)return;
-  if(sel>0){G.crossovers.splice(sel-1,1);state.bands.splice(sel,1);sel--;}
-  else{G.crossovers.splice(0,1);state.bands.splice(1,1);sel=0;}
-  selectBand(sel);curveChanged();setStatus('Merged.',false);
-}
-$('band-split').addEventListener('click',splitSelected);
-$('band-merge').addEventListener('click',mergeSelected);
-
-/* spectrum pointer: drag a crossover handle, else click selects a band */
-let dragX=-1;
-function specXof(e){const r=spec.getBoundingClientRect(),pad=8;return clamp((e.clientX-r.left-pad)/(r.width-pad*2),0,1);}
-function hitHandle(x){const pad=8,w=spec.getBoundingClientRect().width-pad*2;
-  for(let i=0;i<G.crossovers.length;i++){if(Math.abs((xOfF(G.crossovers[i])-x)*w)<7)return i;}return -1;}
-spec.addEventListener('pointerdown',e=>{spec.setPointerCapture(e.pointerId);const x=specXof(e),hi=hitHandle(x);
-  if(hi>=0){dragX=hi;}
-  else{for(let i=0;i<state.bands.length;i++){const[lo,h]=bandSegX(i);if(x>=lo&&x<=h){selectBand(i);break;}}}});
-spec.addEventListener('pointermove',e=>{if(dragX<0)return;
-  let f=fOfX(specXof(e));
-  const loN=dragX>0?G.crossovers[dragX-1]:FMIN, hiN=dragX<G.crossovers.length-1?G.crossovers[dragX+1]:sr/2;
-  f=clamp(f,loN*RATIO,hiN/RATIO);G.crossovers[dragX]=f;drawSpectrum();
-  const bi=$('band-indicator');if(bi)bi.textContent='crossover '+(dragX+1)+': '+fmtHz(f)+' Hz';});
-spec.addEventListener('pointerup',()=>{if(dragX<0)return;dragX=-1;
-  analyseSelected();syncControls();renderBands();draw();curveChanged();});
-
 /* EXPOSE API FOR SECOND SCRIPT */
 window.SounderApp = {
-  getCurve: () => band.curve,
-  setCurve: (c) => { band.curve = c; },
+  getCurve: () => curve,
+  setCurve: (c) => { curve = c; },
   getChartRef: () => chart,
   buildLut, draw, curveChanged, sizeChart
 };
 
-function init(){sizeChart();sizeSpectrum();buildLut();setTau(band.tauMs);buildSafety();renderBands();drawSpectrum();syncControls();draw();updateTime();
-  addEventListener('resize',()=>{sizeChart();sizeSpectrum();draw();drawSpectrum();if(inPeaks)cacheWave('in',inPeaks);if(outPeaks)cacheWave('out',outPeaks);drawWaves();});}
+function init(){sizeChart();buildLut();setTau(40);buildSafety();draw();updateTime();
+  addEventListener('resize',()=>{sizeChart();draw();if(inPeaks)cacheWave('in',inPeaks);if(outPeaks)cacheWave('out',outPeaks);drawWaves();});}
 init();
 })();
 </script>
