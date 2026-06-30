@@ -9,10 +9,23 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Averia+Sans+Libre:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&family=Averia+Serif+Libre:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&display=swap" rel="stylesheet" />
 
 
 
 <style>
+  @font-face{
+    font-family:"Elyaris";
+    src:url("../pythia/Elyaris.ttf") format("truetype");
+    font-display:swap;
+  }
+
+  @font-face{
+    font-family:"Blur Regular";
+    src:url("/fonts/BlurMedium.otf") format("opentype");
+    font-display:swap;
+  }
+
   :root{
     /* abyssal / sounding palette — inherited from the suite's oceanographic root */
     --abyss:#06130f; --abyss2:#0a1d17; --deep:#0d2722; --deep2:#102e27;
@@ -202,7 +215,7 @@
 }
 #pythia > *{position:relative;z-index:1}
 #pythia .tool-name{
-  font-family:Georgia,serif;
+  font-family:'Elyaris','Averia Serif Libre',Georgia,serif;
   font-size:24px;
   font-style:italic;
   font-weight:700;
@@ -224,8 +237,6 @@
   box-shadow:0 0 12px rgba(194,220,50,.42), inset 0 0 0 2px rgba(11,12,8,.75);
   transform:translateY(-.06em);
 }
-#pythia .tool-op{color:#c2dc32}
-#pythia .tool-op .medium{color:#58b2a8}
 #pythia .tool-desc{color:#9fa587}
 #pythia .tool-desc b{color:#e2dfcb;font-weight:500}
 #pythia:hover{border-color:#c2dc32;box-shadow:0 18px 42px rgba(0,0,0,.42),0 0 30px rgba(194,220,50,.10)}
@@ -243,19 +254,39 @@
 
 /* Prolepsis — amber/petal/aqua read-ahead video wing */
 #prolepsis{
-  --wash-a: rgba(255,178,41,.070);
-  --wash-b: rgba(255,180,221,.050);
-  --wash-c: rgba(13,39,34,.92);
-  --glow-a: rgba(255,180,221,.12);
-  --glow-b: rgba(49,247,255,.08);
+  --accent:#ffb229;
+  --wash-a:rgba(255,178,41,.090);
+  --wash-b:rgba(255,180,221,.060);
+  --wash-c:rgba(23,10,3,.94);
+  --glow-a:rgba(255,178,41,.15);
+  --glow-b:rgba(49,247,255,.08);
 }
+#prolepsis::after{
+  content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:
+    linear-gradient(104deg, transparent 0 46%, rgba(255,247,235,.08) 50%, rgba(255,180,221,.09) 57%, rgba(49,247,255,.05) 63%, transparent 70% 100%),
+    radial-gradient(ellipse 56% 38% at 20% 0%, rgba(255,178,41,.12), transparent 66%);
+  filter:blur(7px) saturate(120%);opacity:.82;
+}
+#prolepsis > *{position:relative;z-index:1}
 #prolepsis .tool-name{
+  font-family:'Blur Regular','Averia Sans Libre',sans-serif;
+  font-size:22px;
+  font-style:italic;
+  font-weight:500;
   letter-spacing:0;
   color:#fff4ea;
   text-shadow:
     -2px 0 12px rgba(255,180,221,.28),
     2px 0 18px rgba(255,178,41,.24),
     0 0 16px rgba(49,247,255,.14);
+}
+#prolepsis .brand-pro{
+  font-weight:500;
+  color: var(--lumen);
+  text-shadow:
+    0 0 16px rgba(255,178,41,.34),
+    -1px 0 0 rgba(49,247,255,.24);
 }
 #prolepsis .brand-l{
   color:#ffe2f1;
@@ -282,7 +313,7 @@
 }
 #hornofplenty > *{position:relative;z-index:1}
 #hornofplenty .tool-name{
-  font-family:Georgia,serif;
+  font-family:'Fraunces',Georgia,serif;
   font-size:21px;
   font-style:italic;
   font-weight:600;
@@ -540,7 +571,7 @@ h1.wordmark::before{
         <div>
           <div class="tool-name">Pythia</div>
         </div>
-        <div class="tool-op">pneuma<span class="medium">granular</span></div>
+        <div class="tool-op">delay<span class="medium">audio</span></div>
       </div>
       <p class="tool-desc">
         Paracognitive granular delay. A <b>control</b> signal breathes the future envelope; a <b>source</b> signal
@@ -578,10 +609,10 @@ h1.wordmark::before{
     </a>
 
     <!-- prolepsis -->
-    <a class="tool" href="/hindcasts/prolepsis/" style="--accent:#8e74ff" aria-label="Open ProLepsis" id="prolepsis">
+    <a class="tool" href="/hindcasts/prolepsis/" style="--accent:#ffb229" aria-label="Open ProLepsis" id="prolepsis">
       <div class="tool-top">
         <div>
-          <div class="tool-name">Pro<span class="brand-l">L</span>epsis</div>
+          <div class="tool-name"><span class="brand-pro">Pro</span><span class="brand-l">L</span>epsis</div>
         </div>
         <div class="tool-op">smear<span class="medium">video</span></div>
       </div>
@@ -600,7 +631,7 @@ h1.wordmark::before{
     </a>
 
     <!-- horn of plenty -->
-    <a class="tool" href="/hindcasts/hornofplenty/" style="--accent:#e8a93f" aria-label="Open Horn of Plenty" id="hornofplenty">
+    <a class="tool" href="/hindcasts/horn-of-plenty/" style="--accent:#e8a93f" aria-label="Open Horn of Plenty" id="hornofplenty">
       <div class="tool-top">
         <div>
           <div class="tool-name">Horn <span class="of">of</span> Plenty</div>

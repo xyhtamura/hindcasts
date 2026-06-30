@@ -26,6 +26,7 @@
       --sodium: #ffb229;
       --lime: #dfff6a;
       --violet: #8a79ff;
+	  --
 
       --aqua-lo: rgba(49, 247, 255, 0.12);
       --aqua-mid: rgba(49, 247, 255, 0.34);
@@ -139,6 +140,17 @@
         -6px 0 22px rgba(255, 180, 221, 0.34),
         8px 0 34px rgba(255, 178, 41, 0.42),
         0 0 7px rgba(255, 255, 255, 0.42);
+    }
+
+    .header-left h1 .brand-pro {
+      display: inline-block;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      color: var(--ink);
+      text-shadow:
+        -0.05em 0 0 rgba(49, 247, 255, 0.30),
+        0.06em 0 0 rgba(255, 180, 221, 0.34),
+        0 0 26px rgba(255, 178, 41, 0.66);
     }
 
     .header-left h1 .brand-l {
@@ -720,7 +732,7 @@ a:active {
 
   <header>
     <div class="header-left">
-      <h1>Pro<span class="brand-l">L</span>epsis</h1>
+      <h1><span class="brand-pro">Pro</span><span class="brand-l">L</span>epsis</h1>
       <p class="tagline">acausal feedback field — the smear that has <em>read ahead</em></p>
     </div>
     <div class="header-right">
