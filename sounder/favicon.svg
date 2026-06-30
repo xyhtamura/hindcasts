@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <radialGradient id="abyss" cx="35%" cy="20%" r="82%">
+      <stop stop-color="#103029"/>
+      <stop offset=".58" stop-color="#06130f"/>
+      <stop offset="1" stop-color="#0a1d17"/>
+    </radialGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#abyss)"/>
+  <path d="M11 20H53M11 32H53M11 44H53" stroke="#1c4a40" stroke-width="2" stroke-linecap="round"/>
+  <path d="M32 9V54" stroke="#54f0c6" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="32" cy="47" r="7" fill="#06130f" stroke="#54f0c6" stroke-width="3"/>
+  <path d="M16 38C20 30 25 30 29 38C34 49 41 49 48 29" fill="none" stroke="#d3efe1" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="48" cy="29" r="5" fill="#ff3145"/>
+</svg>

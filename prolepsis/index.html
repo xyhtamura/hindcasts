@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>prolepsis — hindcast feedback field</title>
+  <title>ProLepsis — hindcast feedback field</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Averia+Sans+Libre:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
@@ -128,20 +129,29 @@
       font-weight: 500;
       font-style: italic;
       font-size: clamp(2.1rem, 5.2vw, 6.0rem);
-      letter-spacing: -0.075em;
-      text-transform: lowercase;
+      letter-spacing: 0;
+      text-transform: none;
       line-height: 0.82;
       color: #fff4ea;
       transform: skewX(-8deg);
+      font-variant-ligatures: none;
       text-shadow:
         -6px 0 22px rgba(255, 180, 221, 0.34),
         8px 0 34px rgba(255, 178, 41, 0.42),
         0 0 7px rgba(255, 255, 255, 0.42);
     }
 
+    .header-left h1 .brand-l {
+      color: var(--petal-hi);
+      text-shadow:
+        -0.04em 0 0 rgba(49, 247, 255, 0.46),
+        0.05em 0 0 rgba(255, 178, 41, 0.42),
+        0 0 22px rgba(255, 180, 221, 0.60);
+    }
+
     /* the title's own anticipation: a precursor ghost that LEADS the glyphs */
     .header-left h1::before {
-      content: 'prolepsis';
+      content: 'ProLepsis';
       position: absolute;
       left: -0.10em;
       top: -0.04em;
@@ -710,7 +720,7 @@ a:active {
 
   <header>
     <div class="header-left">
-      <h1>prolepsis</h1>
+      <h1>Pro<span class="brand-l">L</span>epsis</h1>
       <p class="tagline">acausal feedback field — the smear that has <em>read ahead</em></p>
     </div>
     <div class="header-right">
@@ -902,7 +912,7 @@ a:active {
       <p class="thesis">
         Every realtime effect is <em>causal</em>: its output at time <em>t</em> can depend only on frames at or before <em>t</em>.
         A live feedback smear can therefore only trail <b>behind</b> motion, and seeking has to wipe its buffer — the state can't be
-        rebuilt from the middle. Prolepsis drops causality on purpose. It reads the clip end-to-end, then runs the same field with the
+        rebuilt from the middle. ProLepsis drops causality on purpose. It reads the clip end-to-end, then runs the same field with the
         time-arrow free: smears that bloom <b>ahead</b> of an event, symmetric zero-phase trails, and a scrubber where every frame is
         already correct — so seeking is <b>instant and acausal</b> instead of a reset. The live <em>framesmear</em> isn't deleted; it's
         kept as the degraded, causal variant of the clean offline thing.

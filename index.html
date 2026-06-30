@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>HINDCASTS — a suite of un-live effects</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
 <meta name="description" content="Hindcasts: a suite of acausal audio & video effects that have read to the end of the score before they begin." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -164,7 +165,7 @@
   .sec-head .meta{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--faint)}
 
   /* ── suite / tool cards (channel strips) ───────────────────────────── */
-  .suite{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .suite{display:grid;grid-template-columns:repeat(auto-fit,minmax(235px,1fr));gap:12px}
   .tool{
     --wash-a: rgba(84,240,198,.045);
   --wash-b: rgba(142,116,255,.025);
@@ -180,13 +181,55 @@
     transition:transform .2s cubic-bezier(.2,.7,.2,1), border-color .2s, box-shadow .2s;
     position:relative;
   }
-  /* Pythia — violet/oracular/precognitive */
+  /* Pythia — olive-black oracle, chartreuse pneuma */
 #pythia{
-  --wash-a: rgba(142,116,255,.080);
-  --wash-b: rgba(84,240,198,.035);
-  --wash-c: rgba(13,39,34,.94);
-  --glow-a: rgba(142,116,255,.14);
-  --glow-b: rgba(84,240,198,.08);
+  --accent:#c2dc32;
+  --wash-a:rgba(194,220,50,.070);
+  --wash-b:rgba(88,178,168,.050);
+  --wash-c:rgba(17,18,9,.95);
+  --glow-a:rgba(194,220,50,.12);
+  --glow-b:rgba(216,104,64,.08);
+  border-color:#333720;
+}
+#pythia::after{
+  content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 42% 28% at 18% 88%, rgba(88,178,168,.14), transparent 68%),
+    radial-gradient(ellipse 32% 38% at 52% 78%, rgba(194,220,50,.10), transparent 70%),
+    radial-gradient(ellipse 36% 26% at 82% 86%, rgba(216,104,64,.10), transparent 72%),
+    linear-gradient(0deg, rgba(160,100,30,.050), transparent 58%);
+  filter:blur(10px);opacity:.90;
+}
+#pythia > *{position:relative;z-index:1}
+#pythia .tool-name{
+  font-family:Georgia,serif;
+  font-size:24px;
+  font-style:italic;
+  font-weight:700;
+  letter-spacing:0;
+  line-height:.92;
+  color:#e2dfcb;
+  text-shadow:
+    0 0 18px rgba(194,220,50,.16),
+    2px 0 16px rgba(216,104,64,.10);
+}
+#pythia .tool-name::after{
+  content:'';
+  display:inline-block;
+  width:.42em;
+  height:.42em;
+  margin-left:.24em;
+  border:2px solid #c2dc32;
+  border-radius:50%;
+  box-shadow:0 0 12px rgba(194,220,50,.42), inset 0 0 0 2px rgba(11,12,8,.75);
+  transform:translateY(-.06em);
+}
+#pythia .tool-op{color:#c2dc32}
+#pythia .tool-op .medium{color:#58b2a8}
+#pythia .tool-desc{color:#9fa587}
+#pythia .tool-desc b{color:#e2dfcb;font-weight:500}
+#pythia:hover{border-color:#c2dc32;box-shadow:0 18px 42px rgba(0,0,0,.42),0 0 30px rgba(194,220,50,.10)}
+#pythia:hover .powers .p{border-color:#c2dc32;color:#c2dc32}
 }
 
 /* Sounder — abyssal/practical/depth instrument */
@@ -206,6 +249,57 @@
   --glow-a: rgba(255,180,221,.12);
   --glow-b: rgba(49,247,255,.08);
 }
+#prolepsis .tool-name{
+  letter-spacing:0;
+  color:#fff4ea;
+  text-shadow:
+    -2px 0 12px rgba(255,180,221,.28),
+    2px 0 18px rgba(255,178,41,.24),
+    0 0 16px rgba(49,247,255,.14);
+}
+#prolepsis .brand-l{
+  color:#ffe2f1;
+  text-shadow:
+    -1px 0 0 rgba(49,247,255,.62),
+    1px 0 0 rgba(255,178,41,.58),
+    0 0 14px rgba(255,180,221,.44);
+}
+
+/* Horn of Plenty — harvest/stationarizer audio wing */
+#hornofplenty{
+  --accent:#e8a93f;
+  --wash-a:rgba(232,169,63,.075);
+  --wash-b:rgba(200,68,58,.045);
+  --wash-c:rgba(35,26,15,.94);
+  --glow-a:rgba(232,169,63,.12);
+  --glow-b:rgba(111,155,83,.08);
+}
+#hornofplenty::after{
+  content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:linear-gradient(104deg,
+    transparent 0 34%, rgba(110,59,82,.09) 40%, rgba(210,98,45,.10) 53%, rgba(198,194,76,.08) 66%, transparent 72% 100%);
+  filter:blur(7px);opacity:.70;
+}
+#hornofplenty > *{position:relative;z-index:1}
+#hornofplenty .tool-name{
+  font-family:Georgia,serif;
+  font-size:21px;
+  font-style:italic;
+  font-weight:600;
+  letter-spacing:-.01em;
+  color:#efe2c6;
+}
+#hornofplenty .tool-name .of{
+  font-size:.62em;
+  background:linear-gradient(90deg,#6e3b52,#c8443a,#e8a93f,#6f9b53);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+  padding:0 .12em;
+  vertical-align:.12em;
+}
+#hornofplenty .tool-op{color:#c6c24c}
+#hornofplenty:hover{border-color:#e8a93f}
   .tool::before{
     content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--accent,var(--lumen));opacity:.0;transition:opacity .2s;
   }
@@ -256,13 +350,14 @@
 
   /* ── responsive ────────────────────────────────────────────────────── */
   @media (max-width:820px){
-    .suite{grid-template-columns:1fr}
+    .suite{grid-template-columns:repeat(2,minmax(0,1fr))}
     .powers-grid{grid-template-columns:1fr 1fr}
     .valence{grid-template-columns:1fr}
   }
   @media (max-width:540px){
     .mast{flex-direction:column}
     .mast .build{text-align:left;align-items:flex-start}
+    .suite{grid-template-columns:1fr}
     .powers-grid{grid-template-columns:1fr}
     .canvas-stage{height:158px}
   }
@@ -366,7 +461,7 @@ h1.wordmark::before{
     </div>
     <div class="build">
       <span class="chip">suite index</span>
-      <span>03 instruments · live</span>
+      <span>04 instruments · live</span>
 
     </div>
   </header>
@@ -440,16 +535,16 @@ h1.wordmark::before{
   <section class="suite">
 
     <!-- pythia -->
-    <a class="tool" href="../pythia/" style="--accent:#54f0c6" aria-label="Open Pythia" id="pythia">
+    <a class="tool" href="../pythia/" style="--accent:#c2dc32" aria-label="Open Pythia" id="pythia">
       <div class="tool-top">
         <div>
-          <div class="tool-name">pythia</div>
+          <div class="tool-name">Pythia</div>
         </div>
-        <div class="tool-op">delay<span class="medium">audio</span></div>
+        <div class="tool-op">pneuma<span class="medium">granular</span></div>
       </div>
       <p class="tool-desc">
-        Paracognitive granular delay. The control/source dual input is the shared interface for the whole suite —
-        one signal donates structure or statistics, the other is the body it gets done to.
+        Paracognitive granular delay. A <b>control</b> signal breathes the future envelope; a <b>source</b> signal
+        becomes the body scattered through it.
       </p>
       <div class="tool-foot">
         <div class="powers" aria-label="acausal powers used">
@@ -483,10 +578,10 @@ h1.wordmark::before{
     </a>
 
     <!-- prolepsis -->
-    <a class="tool" href="/hindcasts/prolepsis/" style="--accent:#8e74ff" aria-label="Open Prolepsis" id="prolepsis">
+    <a class="tool" href="/hindcasts/prolepsis/" style="--accent:#8e74ff" aria-label="Open ProLepsis" id="prolepsis">
       <div class="tool-top">
         <div>
-          <div class="tool-name">prolepsis</div>
+          <div class="tool-name">Pro<span class="brand-l">L</span>epsis</div>
         </div>
         <div class="tool-op">smear<span class="medium">video</span></div>
       </div>
@@ -499,6 +594,28 @@ h1.wordmark::before{
           <span class="p" title="precognition">①</span>
           <span class="p" title="bidirectionality">③</span>
           <span class="p" title="multi-pass">④</span>
+        </div>
+        <span class="open">open <span class="arr">→</span></span>
+      </div>
+    </a>
+
+    <!-- horn of plenty -->
+    <a class="tool" href="/hindcasts/hornofplenty/" style="--accent:#e8a93f" aria-label="Open Horn of Plenty" id="hornofplenty">
+      <div class="tool-top">
+        <div>
+          <div class="tool-name">Horn <span class="of">of</span> Plenty</div>
+        </div>
+        <div class="tool-op">texture<span class="medium">audio</span></div>
+      </div>
+      <p class="tool-desc">
+        A stationarizer. It winnows a sound that runs out, sows the grains evenly, and pours an endless substrate
+        you can sample anywhere without hearing the loop.
+      </p>
+      <div class="tool-foot">
+        <div class="powers" aria-label="acausal powers used">
+          <span class="p" title="global statistics">②</span>
+          <span class="p" title="multi-pass">④</span>
+          <span class="p" title="whole-signal optimization">⑤</span>
         </div>
         <span class="open">open <span class="arr">→</span></span>
       </div>
@@ -529,7 +646,7 @@ h1.wordmark::before{
       <li class="now"><b>sounder → gratuitous multiband.</b> Per-band RMS windows: waveshape the highs while you compress the body and normalize the sub — the regime slider becomes a regime field across frequency. Next up.</li>
       <li><b>Histogram-waveshaper presets.</b> Automatic CDF-onto-target warps (uniform / Gaussian / arcsine / another file's histogram) inside sounder, plus the cross-file version on Pythia's control/source input.</li>
       <li><b>Lloyd–Max quantizer.</b> The un-live bitcrusher. Equal-population bins for minimum character; invert the objective for maximum audible damage.</li>
-      <li><b>Dense anticipatory optical flow.</b> The harder video build prolepsis gestures at — per-pixel motion fit to the whole clip, run backward. Still genuinely unseen.</li>
+      <li><b>Dense anticipatory optical flow.</b> The harder video build ProLepsis gestures at — per-pixel motion fit to the whole clip, run backward. Still genuinely unseen.</li>
     </ol>
   </section>-->
 

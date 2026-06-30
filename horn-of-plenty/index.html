@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Horn of Plenty</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;1,9..144,500;1,9..144,600&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --void:#15110a; --void2:#1d1610;
+  --loom:#231a0f; --loom2:#2d2214;
+  --edge:#3a2c19; --line:#2c2114;
+  --wheat:#efe2c6; --oat:#c7b288; --faint:#7d6a4b;
+  /* the harvest ramp — produce, dark to bright */
+  --plum:#6e3b52; --pom:#a3322b; --cherry:#c8443a; --persimmon:#d2622d; --horn:#e8a93f; --pear:#c6c24c; --leaf:#6f9b53;
+  --horn-dim:#b9842c; --madder:#cf5430; --madder-dim:#8f3a23;
+  --disp:'Bricolage Grotesque',Georgia,serif;
+  --sans:'Space Grotesk',system-ui,sans-serif;
+  --mono:'Space Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  font-family:var(--sans);color:var(--wheat);
+  background:radial-gradient(120% 80% at 50% -10%, #241a0f 0%, var(--void2) 42%, var(--void) 100%);
+  min-height:100vh;line-height:1.5;-webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:940px;margin:0 auto;padding:38px 22px 64px}
+
+.hero{margin-bottom:30px}
+h1.wordmark{margin:0;font-family:var(--disp);font-style:italic;font-weight:600;
+  font-size:clamp(40px,8vw,76px);line-height:.95;letter-spacing:-.01em;color:var(--wheat)}
+h1.wordmark .of{font-style:italic;font-weight:500;font-size:.52em;
+  background:linear-gradient(90deg,var(--plum),var(--cherry),var(--horn),var(--leaf));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  padding:0 .12em;vertical-align:.12em}
+.build-tag{margin-top:12px;font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--faint)}
+.thesis{margin:14px 0 0;max-width:62ch;font-size:14.5px;color:var(--oat)}
+.thesis b{color:var(--wheat);font-weight:500}
+
+.card{background:linear-gradient(180deg,var(--loom),var(--loom2));
+  border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:18px}
+.card h3{margin:0 0 14px;font-family:var(--mono);font-size:11px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--horn);font-weight:700;display:flex;align-items:center;gap:9px}
+.card h3::before{content:"";width:7px;height:7px;border-radius:1px;background:var(--horn);
+  transform:rotate(45deg);box-shadow:0 0 10px var(--horn-dim)}
+
+.drop{border:1.5px dashed var(--edge);border-radius:12px;padding:26px 18px;text-align:center;
+  cursor:pointer;transition:.18s;background:rgba(0,0,0,.12)}
+.drop:hover,.drop.over{border-color:var(--horn);background:rgba(232,169,63,.06)}
+.drop .big{font-family:var(--disp);font-style:italic;font-size:19px;color:var(--wheat)}
+.drop .sub{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:6px}
+.filemeta{margin-top:12px;font-family:var(--mono);font-size:11px;color:var(--oat);line-height:1.7;min-height:1.7em}
+.filemeta .k{color:var(--faint)}
+
+.subhead{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--faint);margin:4px 0 12px;display:flex;align-items:center;gap:8px}
+.subhead::after{content:"";flex:1;height:1px;background:var(--line)}
+.knobs{display:grid;grid-template-columns:1fr 1fr;gap:16px 26px}
+@media(max-width:620px){.knobs{grid-template-columns:1fr}}
+.knob{display:flex;flex-direction:column;gap:7px}
+.knob .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.knob .lab{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--oat)}
+.knob .val{font-family:var(--mono);font-size:13px;color:var(--wheat);font-weight:700}
+.knob .hint{font-family:var(--mono);font-size:9.5px;color:var(--faint);min-height:1.2em}
+.knob .poles{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;
+  color:var(--faint);letter-spacing:.04em;text-transform:uppercase}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:3px;
+  background:var(--edge);outline:none;margin:2px 0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+  background:var(--horn);cursor:pointer;border:2px solid var(--void);box-shadow:0 0 8px var(--horn-dim)}
+input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:var(--horn);
+  cursor:pointer;border:2px solid var(--void)}
+input[type=range].pom::-webkit-slider-thumb{background:var(--pom);box-shadow:0 0 8px var(--madder-dim)}
+input[type=range].pom::-moz-range-thumb{background:var(--pom)}
+input[type=range].pear::-webkit-slider-thumb{background:var(--pear);box-shadow:0 0 8px #8a861f}
+input[type=range].pear::-moz-range-thumb{background:var(--pear)}
+input[type=range].plum::-webkit-slider-thumb{background:var(--plum);box-shadow:0 0 8px #3d2030}
+input[type=range].plum::-moz-range-thumb{background:var(--plum)}
+input[type=range].leaf::-webkit-slider-thumb{background:var(--leaf);box-shadow:0 0 8px #3f5a2e}
+input[type=range].leaf::-moz-range-thumb{background:var(--leaf)}
+.suggest{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--horn);background:transparent;border:1px solid var(--horn-dim);border-radius:6px;
+  padding:3px 8px;cursor:pointer;transition:.15s}
+.suggest:hover{background:var(--horn);color:var(--void)}
+.suggest:disabled{opacity:.35;cursor:default}
+
+.render-row{display:flex;align-items:center;gap:14px;margin-top:20px;flex-wrap:wrap}
+.presets{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.presets .plab{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.presets button{font-family:var(--disp);font-style:italic;font-size:15px;color:var(--wheat);
+  background:rgba(0,0,0,.18);border:1px solid var(--edge);border-radius:8px;padding:5px 14px;cursor:pointer;transition:.15s}
+.presets button:hover{border-color:var(--horn);color:var(--horn)}
+.presets button.on{background:var(--horn);color:var(--void);border-color:var(--horn)}
+.level{margin-top:4px}
+.lvl-check{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--oat);cursor:pointer}
+.lvl-check input{accent-color:var(--horn);width:15px;height:15px}
+.lvl-set{display:flex;align-items:center;gap:12px;margin-top:10px;max-width:440px}
+.lvl-set.off{opacity:.4}
+.lvl-set .lab{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--oat);white-space:nowrap}
+.lvl-set input[type=range]{flex:1}
+.lvl-set .val{font-family:var(--mono);font-size:13px;color:var(--wheat);font-weight:700;min-width:70px;text-align:right}
+.lvl-note{font-family:var(--mono);font-size:9.5px;color:var(--faint);margin-top:8px}
+.btn{font-family:var(--sans);font-size:14px;font-weight:600;border:none;border-radius:10px;
+  padding:11px 24px;cursor:pointer;transition:.15s}
+.btn-go{background:linear-gradient(90deg,var(--persimmon),var(--horn));color:#1a1206}
+.btn-go:hover{filter:brightness(1.08)}
+.btn-go:disabled{background:var(--edge);color:var(--faint);cursor:default;filter:none}
+.status{font-family:var(--mono);font-size:11px;color:var(--oat)}
+.status.work{color:var(--horn)}
+.status.err{color:var(--madder)}
+
+.reads{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.read{flex:1;min-width:118px;background:rgba(0,0,0,.18);border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+.read .rl{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.read .rv{font-family:var(--mono);font-size:17px;font-weight:700;color:var(--wheat);margin-top:3px}
+.read .rv.hot{color:var(--pom)}
+
+.panel{margin-top:14px}
+.panel .head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.panel .ttl{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--oat)}
+.panel .ttl b{color:var(--wheat);font-weight:700}
+.panel .meta{font-family:var(--mono);font-size:10px;color:var(--faint)}
+canvas.viz{display:block;width:100%;border:1px solid var(--line);border-radius:10px;
+  background:linear-gradient(180deg,#1a130b,#120d07)}
+#c-scrap{height:74px}
+#c-palette{height:104px}
+#c-yard{height:152px}
+.empty-note{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:11px;color:var(--faint);pointer-events:none}
+.panel .frame{position:relative}
+
+.transport{display:flex;align-items:center;gap:12px;margin-top:18px;flex-wrap:wrap}
+.tbtn{font-family:var(--mono);font-size:13px;width:42px;height:42px;border-radius:10px;
+  border:1px solid var(--edge);background:var(--loom2);color:var(--wheat);cursor:pointer;transition:.15s}
+.tbtn:hover{border-color:var(--horn)}
+.tbtn.on{background:var(--horn);color:var(--void);border-color:var(--horn)}
+.tbtn:disabled{opacity:.3;cursor:default}
+.ab{display:inline-flex;border:1px solid var(--edge);border-radius:9px;overflow:hidden}
+.ab button{font-family:var(--mono);font-size:11px;padding:9px 13px;border:none;cursor:pointer;
+  background:transparent;color:var(--faint);transition:.15s}
+.ab button.on{background:var(--pom);color:#fff;font-weight:700}
+.ab button:last-child.on{background:var(--horn);color:var(--void)}
+.ab button:disabled{opacity:.4;cursor:default}
+.time{font-family:var(--mono);font-size:12px;color:var(--oat);min-width:90px}
+.btn-export{font-family:var(--mono);font-size:11.5px;color:var(--wheat);background:transparent;
+  border:1px solid var(--edge);border-radius:9px;padding:10px 16px;cursor:pointer;transition:.15s}
+.btn-export:hover{border-color:var(--horn);color:var(--horn)}
+.btn-export:disabled{opacity:.35;cursor:default}
+.spacer{flex:1}
+.foot{margin-top:40px;font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:.04em}
+.foot i{font-family:var(--disp);font-style:italic;color:var(--oat)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <h1 class="wordmark">Horn <span class="of">of</span> Plenty</h1>
+    <div class="build-tag">audio stationarizer · audio texture synthesis</div>
+    <p class="thesis">A handful of seed into a whole field. Create a texture from a sample.</p>
+  </div>
+
+  <div class="card">
+    <h3>The seed</h3>
+    <div class="drop" id="drop">
+      <div class="big">drop a sound, or click to gather</div>
+      <div class="sub">wav · mp3 · flac · ogg — granular material works best</div>
+      <input type="file" id="file" accept="audio/*" hidden>
+    </div>
+    <div class="filemeta" id="filemeta"><span class="k">no seed gathered</span></div>
+  </div>
+
+  <div class="card">
+    <h3>The sowing</h3>
+
+    <div class="presets" id="presets">
+      <span class="plab">start from</span>
+      <button data-p="mist">Mist</button>
+      <button data-p="sand">Sand</button>
+      <button data-p="orchard">Orchard</button>
+      <button data-p="husk">Husk</button>
+    </div>
+
+    <div class="subhead">the field</div>
+    <div class="knobs">
+      <div class="knob">
+        <div class="top"><span class="lab">Grain</span>
+          <span style="display:flex;gap:8px;align-items:center">
+            <span class="val" id="v-fiber">80 ms</span>
+            <button class="suggest" id="suggest" disabled>suggest</button></span></div>
+        <input type="range" id="k-fiber" min="15" max="300" step="1" value="80">
+        <div class="poles"><span>fine meal</span><span>whole grain</span></div>
+        <div class="hint" id="h-fiber">the kernel size</div>
+      </div>
+      <div class="knob">
+        <div class="top"><span class="lab">Whiteness</span><span class="val" id="v-white">55%</span></div>
+        <input type="range" class="pom" id="k-white" min="0" max="100" step="1" value="55">
+        <div class="poles"><span>true to the strain</span><span>wild scatter</span></div>
+        <div class="hint">how hard to scramble above the grain</div>
+      </div>
+      <div class="knob">
+        <div class="top"><span class="lab">Yield length</span><span class="val" id="v-len">20.0 s</span></div>
+        <input type="range" id="k-len" min="2" max="120" step="0.5" value="20">
+        <div class="poles"><span>a handful</span><span>a harvest</span></div>
+        <div class="hint">final clip length</div>
+      </div>
+      <div class="knob">
+        <div class="top"><span class="lab">Density</span><span class="val" id="v-dens">5.0×</span></div>
+        <input type="range" id="k-dens" min="2" max="10" step="0.5" value="5">
+        <div class="poles"><span>sparse sow</span><span>thick sow</span></div>
+        <div class="hint">average overlap</div>
+      </div>
+      <div class="knob">
+        <div class="top"><span class="lab">Evenness</span><span class="val" id="v-even">85%</span></div>
+        <input type="range" id="k-even" min="0" max="100" step="1" value="85">
+        <div class="poles"><span>let it breathe</span><span>level the field</span></div>
+        <div class="hint">spacing between grains</div>
+      </div>
+    </div>
+
+    <div class="subhead" style="margin-top:18px">the grain motion <span style="color:var(--faint)">· optional variety</span></div>
+    <div class="knobs">
+      <div class="knob">
+        <div class="top"><span class="lab">Pitch jitter</span><span class="val" id="v-pitch">0 st</span></div>
+        <input type="range" class="pear" id="k-pitch" min="0" max="12" step="0.5" value="0">
+        <div class="poles"><span>same kernel</span><span>±octave</span></div>
+        <div class="hint">randomize each grain's pitch — a shifted crackle reads as another crackle</div>
+      </div>
+      <div class="knob">
+        <div class="top"><span class="lab">Reverse</span><span class="val" id="v-rev">0%</span></div>
+        <input type="range" class="plum" id="k-rev" min="0" max="100" step="1" value="0">
+        <div class="poles"><span>forward</span><span>tumbled</span></div>
+        <div class="hint">chance a grain plays backward — doubles the palette for free</div>
+      </div>
+      <div class="knob">
+        <div class="top"><span class="lab">Spread</span><span class="val" id="v-spread">35%</span></div>
+        <input type="range" class="leaf" id="k-spread" min="0" max="100" step="1" value="35">
+        <div class="poles"><span>mono · centred</span><span>wide · scattered</span></div>
+        <div class="hint">stereo scatter — pans each grain across the field</div>
+      </div>
+    </div>
+
+    <div class="subhead" style="margin-top:18px">the measure</div>
+    <div class="level">
+      <label class="lvl-check"><input type="checkbox" id="lvl-own" checked> match own average <span style="color:var(--faint)">— even, at a safe ceiling</span></label>
+      <div class="lvl-set off" id="lvl-set">
+        <span class="lab">Output level</span>
+        <input type="range" id="k-level" min="-36" max="0" step="0.5" value="-14" disabled>
+        <span class="val" id="v-level">−14.0 dB</span>
+      </div>
+      <div class="lvl-note">0 dB is the hard ceiling — Horn of Plenty won't pour past full scale.</div>
+    </div>
+
+    <div class="render-row">
+      <button class="btn btn-go" id="render" disabled>Fill the horn</button>
+      <span class="status" id="status">gather a seed to begin</span>
+    </div>
+
+    <div class="reads">
+      <div class="read"><div class="rl">grains</div><div class="rv" id="r-grains">—</div></div>
+      <div class="read"><div class="rl">reuse factor</div><div class="rv" id="r-reuse">—</div></div>
+      <div class="read"><div class="rl">seed length</div><div class="rv" id="r-src">—</div></div>
+      <div class="read"><div class="rl">yield length</div><div class="rv" id="r-out">—</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>The yield</h3>
+
+    <div class="panel">
+      <div class="head"><div class="ttl"><b>the seed</b> — what you gathered</div>
+        <div class="meta" id="m-scrap"></div></div>
+      <div class="frame"><canvas id="c-scrap" class="viz"></canvas>
+        <div class="empty-note" id="n-scrap">—</div></div>
+    </div>
+
+    <div class="panel">
+      <div class="head"><div class="ttl"><b>the winnow</b> — every grain by weight, coloured by its grain</div>
+        <div class="meta" id="m-palette"></div></div>
+      <div class="frame"><canvas id="c-palette" class="viz"></canvas>
+        <div class="empty-note" id="n-palette">—</div></div>
+    </div>
+
+    <div class="panel">
+      <div class="head"><div class="ttl"><b>the pour</b> — even, endless, drift erased</div>
+        <div class="meta" id="m-yard"></div></div>
+      <div class="frame"><canvas id="c-yard" class="viz"></canvas>
+        <div class="empty-note" id="n-yard">fill the horn to see the pour</div></div>
+    </div>
+
+    <div class="transport">
+      <button class="tbtn" id="play" disabled>▶</button>
+      <button class="tbtn" id="loop" disabled title="audition continuity">⟲</button>
+      <div class="ab">
+        <button id="ab-src" disabled>seed</button>
+        <button id="ab-out" class="on" disabled>yield</button>
+      </div>
+      <span class="time"><span id="t-cur">0:00</span> / <span id="t-tot">0:00</span></span>
+      <span class="spacer"></span>
+      <button class="btn-export" id="export" disabled>Export WAV</button>
+    </div>
+  </div>
+
+  <div class="foot"><i>Horn of Plenty</i> — the vessel that never empties · HINDCASTS</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const AC=window.AudioContext||window.webkitAudioContext;
+const ctx=new AC();
+
+/* harvest ramp: fig -> pomegranate -> cherry -> persimmon -> gold -> pear -> leaf */
+const RAMP=[[0,[110,59,82]],[0.16,[163,50,43]],[0.34,[200,68,58]],[0.50,[210,98,45]],[0.68,[232,169,63]],[0.84,[198,194,76]],[1,[111,155,83]]];
+function ramp(t){t=clamp(t,0,1);for(let i=0;i<RAMP.length-1;i++){const a=RAMP[i],b=RAMP[i+1];
+  if(t<=b[0]){const f=(t-a[0])/(b[0]-a[0]||1);
+    return[Math.round(a[1][0]+(b[1][0]-a[1][0])*f),Math.round(a[1][1]+(b[1][1]-a[1][1])*f),Math.round(a[1][2]+(b[1][2]-a[1][2])*f)];}}
+  return RAMP[RAMP.length-1][1];}
+function rgb(c,a){return a==null?`rgb(${c[0]},${c[1]},${c[2]})`:`rgba(${c[0]},${c[1]},${c[2]},${a})`;}
+
+/* state */
+let src=null,sr=44100,grains=[];   // grain: {start,power,bright}
+let outL=null,outR=null,srcAudioBuf=null,outAudioBuf=null;
+let preEnv=null,postEnv=null;
+const P={fiber:80,white:55,len:20,dens:5,even:85,pitch:0,rev:0,spread:35,lvlOwn:true,level:-14};
+
+/* load */
+const drop=$('drop'),fileIn=$('file');
+drop.addEventListener('click',()=>fileIn.click());
+drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('over');});
+drop.addEventListener('dragleave',()=>drop.classList.remove('over'));
+drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('over');
+  if(e.dataTransfer.files[0])loadFile(e.dataTransfer.files[0]);});
+fileIn.addEventListener('change',e=>{if(e.target.files[0])loadFile(e.target.files[0]);});
+
+async function loadFile(file){
+  setStatus('gathering the seed…',true);
+  try{
+    const buf=await ctx.decodeAudioData(await file.arrayBuffer());
+    sr=buf.sampleRate;const n=buf.length,ch=buf.numberOfChannels;
+    src=new Float32Array(n);
+    for(let c=0;c<ch;c++){const d=buf.getChannelData(c);for(let i=0;i<n;i++)src[i]+=d[i]/ch;}
+    srcAudioBuf=buf;const dur=n/sr;
+    $('filemeta').innerHTML=`<span class="k">${file.name}</span> &nbsp;·&nbsp; ${dur.toFixed(2)}s &nbsp;·&nbsp; ${(sr/1000).toFixed(1)}kHz &nbsp;·&nbsp; ${ch===1?'mono':ch+'ch → mono'}`;
+    $('r-src').textContent=fmtDur(dur);
+    $('suggest').disabled=false;$('render').disabled=false;$('ab-src').disabled=false;
+    drawScrap();analyze(true);
+    setStatus('seed gathered — fill the horn, or suggest a grain size',false);
+  }catch(err){console.error(err);setStatus('could not read that file — try a wav or mp3',false,true);}
+}
+
+/* analysis: winnow into a grain library, with per-grain brightness */
+function analyze(redraw){
+  if(!src)return;
+  const gLen=Math.max(64,Math.round(P.fiber/1000*sr)),hop=Math.max(1,Math.round(gLen/2));
+  const cand=[];
+  for(let s=0;s+gLen<=src.length;s+=hop){
+    let e=0,zc=0,prev=src[s];
+    for(let i=0;i<gLen;i++){const v=src[s+i];e+=v*v;if((v>=0)!==(prev>=0))zc++;prev=v;}
+    cand.push({start:s,power:e/gLen,bright:zc/gLen}); // bright = zero-crossing rate proxy
+  }
+  if(!cand.length){grains=[];return;}
+  const ps=cand.map(c=>c.power).sort((a,b)=>a-b);
+  const loudRef=ps[Math.floor(ps.length*0.90)]||ps[ps.length-1];
+  let kept=cand.filter(c=>c.power>=loudRef*0.016&&c.power>0);
+  if(kept.length<Math.min(24,cand.length))
+    kept=cand.filter(c=>c.power>0).sort((a,b)=>b.power-a.power).slice(0,Math.min(48,cand.length));
+  // normalize brightness across kept grains -> 0..1
+  let bmin=Infinity,bmax=-Infinity;kept.forEach(g=>{if(g.bright<bmin)bmin=g.bright;if(g.bright>bmax)bmax=g.bright;});
+  const span=(bmax-bmin)||1;kept.forEach(g=>g.bn=(g.bright-bmin)/span);
+  grains=kept;
+  $('r-grains').textContent=String(grains.length);
+  if(redraw)drawPalette();
+  updateReuse();
+}
+
+function suggestFiber(){
+  if(!src)return;
+  const fh=Math.max(1,Math.round(sr*0.005)),nf=Math.floor(src.length/fh);
+  const env=new Float32Array(nf);
+  for(let f=0;f<nf;f++){let e=0;for(let i=0;i<fh;i++){const v=src[f*fh+i];e+=v*v;}env[f]=Math.sqrt(e/fh);}
+  let mean=0;for(let f=0;f<nf;f++)mean+=env[f];mean/=nf;for(let f=0;f<nf;f++)env[f]-=mean;
+  let r0=0;for(let f=0;f<nf;f++)r0+=env[f]*env[f];if(r0<=0)return;
+  const maxLag=Math.min(nf-1,60);let lag=16;
+  for(let L=1;L<=maxLag;L++){let r=0;for(let f=0;f+L<nf;f++)r+=env[f]*env[f+L];if(r<r0*0.3678){lag=L;break;}}
+  const ms=clamp(Math.round(lag*5),15,300);
+  P.fiber=ms;$('k-fiber').value=ms;$('v-fiber').textContent=ms+' ms';
+  $('h-fiber').textContent='suggested from the seed’s own grain — adjust to taste';
+  analyze(true);setStatus('grain set to the seed’s natural kernel — fill the horn to hear it',false);
+}
+$('suggest').addEventListener('click',suggestFiber);
+
+/* render: sow + flatten, stereo */
+function render(){
+  if(!src||!grains.length){setStatus('no grains to sow — try a louder seed',false,true);return;}
+  setStatus('pouring…',true);$('render').disabled=true;
+  setTimeout(()=>{try{doRender();}catch(err){console.error(err);setStatus('pour failed — '+err.message,false,true);}$('render').disabled=false;},20);
+}
+function doRender(){
+  const gLen=Math.max(64,Math.round(P.fiber/1000*sr)),outLen=Math.round(P.len*sr),total=outLen+gLen;
+  const L=new Float32Array(total),R=new Float32Array(total);
+  const win=new Float32Array(gLen);for(let i=0;i<gLen;i++)win[i]=0.5-0.5*Math.cos(2*Math.PI*i/(gLen-1));
+  const hopOut=Math.max(1,Math.round(gLen/P.dens)),nOn=Math.ceil(outLen/hopOut)+1;
+  const w=P.white/100,jit=hopOut*(0.22+0.5*w);
+  const maxRecent=clamp(Math.round(grains.length*(0.12+0.6*w)),1,Math.max(1,grains.length-1));
+  const recent=[],pjit=P.pitch,revP=P.rev/100,spread=P.spread/100;
+  const rnd=(a,b)=>a+Math.random()*(b-a);
+  function pick(){for(let t=0;t<14;t++){const i=(Math.random()*grains.length)|0;
+    if(recent.indexOf(i)===-1){recent.push(i);if(recent.length>maxRecent)recent.shift();return i;}}
+    const i=(Math.random()*grains.length)|0;recent.push(i);if(recent.length>maxRecent)recent.shift();return i;}
+
+  for(let k=0;k<nOn;k++){
+    let pos=Math.round(k*hopOut+rnd(-jit,jit));if(pos<0)pos=0;if(pos>=outLen)continue;
+    const g=grains[pick()],base=g.start;
+    const rev=revP>0&&Math.random()<revP;
+    const ratio=pjit>0?Math.pow(2,rnd(-pjit,pjit)/12):1;
+    const pan=(Math.random()*2-1)*spread,ang=(pan+1)*Math.PI/4,gL=Math.cos(ang),gR=Math.sin(ang);
+    for(let i=0;i<gLen;i++){
+      const oi=pos+i;if(oi>=total)break;
+      const sp=rev?base+(gLen-1-i)*ratio:base+i*ratio;
+      const i0=sp|0,fr=sp-i0;
+      if(i0<0||i0+1>=src.length)continue;
+      const s=(src[i0]*(1-fr)+src[i0+1]*fr)*win[i];
+      L[oi]+=s*gL;R[oi]+=s*gR;
+    }
+  }
+
+  // loudness envelope on total cross-channel power
+  const pow=new Float32Array(outLen);for(let i=0;i<outLen;i++)pow[i]=L[i]*L[i]+R[i]*R[i];
+  const sm=Math.max(gLen*3,Math.round(sr*0.05));
+  const env=movRMSpow(pow,outLen,sm);
+  let acc=0;for(let i=0;i<outLen;i++)acc+=pow[i];const target=Math.sqrt(acc/outLen)||1e-6;
+  const evenness=P.even/100,mb=Math.pow(10,9/20);
+  for(let i=0;i<outLen;i++){let g=target/Math.max(env[i],1e-6);g=clamp(g,1/mb,mb);g=Math.pow(g,evenness);L[i]*=g;R[i]*=g;}
+
+  const fz=Math.min(Math.round(sr*0.004),outLen>>1);
+  for(let i=0;i<fz;i++){const a=i/fz;L[i]*=a;R[i]*=a;L[outLen-1-i]*=a;R[outLen-1-i]*=a;}
+
+  let pk=0,rms2=0;for(let i=0;i<outLen;i++){pk=Math.max(pk,Math.abs(L[i]),Math.abs(R[i]));rms2+=L[i]*L[i]+R[i]*R[i];}
+  rms2=Math.sqrt(rms2/(2*outLen))||1e-9;
+  let norm;
+  if(P.lvlOwn){
+    norm=pk>0?Math.pow(10,-1/20)/pk:1;            // own average: even, safe -1 dBFS peak
+  }else{
+    const tgt=Math.pow(10,P.level/20);             // fixed loudness target (RMS)
+    norm=tgt/rms2;
+    if(pk*norm>1)norm=pk>0?1/pk:1;                 // 0 dBFS hard ceiling — the guardian
+  }
+  outL=new Float32Array(outLen);outR=new Float32Array(outLen);
+  for(let i=0;i<outLen;i++){outL[i]=L[i]*norm;outR[i]=R[i]*norm;}
+
+  outAudioBuf=ctx.createBuffer(2,outLen,sr);
+  outAudioBuf.getChannelData(0).set(outL);outAudioBuf.getChannelData(1).set(outR);
+
+  // viz envelopes
+  const pow2=new Float32Array(outLen);for(let i=0;i<outLen;i++)pow2[i]=outL[i]*outL[i]+outR[i]*outR[i];
+  postEnv=movRMSpow(pow2,outLen,sm);preEnv=env;
+  const ref=Math.max(maxArr(preEnv),maxArr(postEnv),1e-6);
+  for(let i=0;i<preEnv.length;i++)preEnv[i]/=ref;for(let i=0;i<postEnv.length;i++)postEnv[i]/=ref;
+
+  $('r-out').textContent=fmtDur(P.len);updateReuse(nOn);drawYard();
+  $('export').disabled=false;$('play').disabled=false;$('loop').disabled=false;$('ab-out').disabled=false;
+  monitor='out';refreshAB();
+  setStatus('poured. play it, loop to test the seam, or export.',false);
+}
+$('render').addEventListener('click',render);
+
+function movRMSpow(pow,len,win){
+  const ps=new Float64Array(len+1);for(let i=0;i<len;i++)ps[i+1]=ps[i]+pow[i];
+  const half=win>>1,out=new Float32Array(len);
+  for(let i=0;i<len;i++){const a=Math.max(0,i-half),b=Math.min(len,i+half+1);out[i]=Math.sqrt((ps[b]-ps[a])/(b-a));}
+  return out;
+}
+function maxArr(a){let m=0;for(let i=0;i<a.length;i++)if(a[i]>m)m=a[i];return m;}
+function updateReuse(nOn){
+  if(!grains.length){$('r-reuse').textContent='—';return;}
+  const gl=Math.max(64,Math.round(P.fiber/1000*sr));
+  const placements=nOn||Math.ceil((P.len*sr)/Math.max(1,Math.round(gl/P.dens)));
+  const ratio=placements/grains.length;const el=$('r-reuse');
+  el.textContent='×'+ratio.toFixed(1);el.classList.toggle('hot',ratio>40);
+}
+
+/* drawing */
+function setup(cv){const r=cv.getBoundingClientRect(),dpr=Math.min(2,window.devicePixelRatio||1);
+  cv.width=Math.max(1,r.width*dpr);cv.height=Math.max(1,r.height*dpr);
+  const x=cv.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);return{x,W:r.width,H:r.height};}
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+
+function drawScrap(){
+  if(!src)return;$('n-scrap').style.display='none';
+  const{x,W,H}=setup($('c-scrap')),mid=H/2,N=src.length,step=Math.max(1,Math.floor(N/W));
+  x.strokeStyle=css('--pom');x.globalAlpha=.95;x.lineWidth=1;x.beginPath();
+  for(let px=0;px<W;px++){let mn=1,mx=-1;const a=px*step,b=Math.min(N,a+step);
+    for(let i=a;i<b;i++){const v=src[i];if(v<mn)mn=v;if(v>mx)mx=v;}
+    x.moveTo(px+.5,mid-mx*mid*0.92);x.lineTo(px+.5,mid-mn*mid*0.92);}
+  x.stroke();x.globalAlpha=1;
+  $('m-scrap').textContent=(src.length/sr).toFixed(2)+'s · the frayed end is the drift';
+}
+
+function drawPalette(){
+  if(!grains.length){$('n-palette').textContent='—';return;}
+  $('n-palette').style.display='none';const{x,W,H}=setup($('c-palette'));
+  const BIN=48,db=grains.map(g=>10*Math.log10(g.power+1e-12));
+  let lo=Math.min(...db),hi=Math.max(...db);if(hi-lo<1){lo-=1;hi+=1;}
+  const cnt=new Array(BIN).fill(0),brt=new Array(BIN).fill(0);
+  grains.forEach(g=>{let b=Math.floor((10*Math.log10(g.power+1e-12)-lo)/(hi-lo)*BIN);b=clamp(b,0,BIN-1);
+    cnt[b]++;brt[b]+=g.bn;});
+  const peak=Math.max(...cnt,1),bw=W/BIN,pad=14;
+  for(let b=0;b<BIN;b++){if(!cnt[b])continue;
+    const h=(cnt[b]/peak)*(H-pad-12),col=ramp(brt[b]/cnt[b]);
+    x.fillStyle=rgb(col,0.92);x.fillRect(b*bw+1,H-pad-h,bw-1.5,h);}
+  x.fillStyle=css('--faint');x.font='9px "Space Mono",monospace';
+  x.fillText(lo.toFixed(0)+' dB (light)',2,H-2);
+  x.textAlign='right';x.fillText('(heavy) '+hi.toFixed(0)+' dB',W-2,H-2);x.textAlign='left';
+  $('m-palette').textContent=grains.length+' grains · dark = low · bright = high';
+}
+
+function drawYard(){
+  if(!postEnv)return;$('n-yard').style.display='none';
+  const{x,W,H}=setup($('c-yard')),base=H-10,n=postEnv.length,step=Math.max(1,Math.floor(n/W));
+  // overflowing produce: horizontal harvest gradient under the even envelope
+  const grad=x.createLinearGradient(0,0,W,0);
+  grad.addColorStop(0,rgb(ramp(0.2),0.30));grad.addColorStop(0.45,rgb(ramp(0.55),0.26));
+  grad.addColorStop(1,rgb(ramp(0.92),0.30));
+  x.fillStyle=grad;x.beginPath();x.moveTo(0,base);
+  for(let px=0;px<W;px++){let m=0;const a=px*step,b=Math.min(n,a+step);for(let i=a;i<b;i++)if(postEnv[i]>m)m=postEnv[i];
+    x.lineTo(px,base-m*(H-22));}
+  x.lineTo(W,base);x.closePath();x.fill();
+  x.strokeStyle='rgba(232,169,63,0.10)';x.lineWidth=1;
+  for(let r=0;r<5;r++){const y=base-(r+1)/6*(H-22);x.beginPath();x.moveTo(0,y);x.lineTo(W,y);x.stroke();}
+  x.strokeStyle=css('--horn');x.lineWidth=1.4;x.beginPath();
+  for(let px=0;px<W;px++){let m=0;const a=px*step,b=Math.min(n,a+step);for(let i=a;i<b;i++)if(postEnv[i]>m)m=postEnv[i];
+    const y=base-m*(H-22);px?x.lineTo(px,y):x.moveTo(px,y);}
+  x.stroke();
+  x.strokeStyle='rgba(176,57,46,0.7)';x.lineWidth=1;x.setLineDash([4,4]);x.beginPath();
+  const pn=preEnv.length,ps=Math.max(1,Math.floor(pn/W));
+  for(let px=0;px<W;px++){let m=0;const a=px*ps,b=Math.min(pn,a+ps);for(let i=a;i<b;i++)if(preEnv[i]>m)m=preEnv[i];
+    const y=base-m*(H-22);px?x.lineTo(px,y):x.moveTo(px,y);}
+  x.stroke();x.setLineDash([]);
+  $('m-yard').textContent='gold = even pour · dashed = the drift it erased';
+}
+
+/* transport */
+let node=null,playing=false,startedAt=0,offset=0,raf=0,monitor='out',looping=false;
+const playBtn=$('play'),loopBtn=$('loop');
+loopBtn.addEventListener('click',()=>{looping=!looping;loopBtn.classList.toggle('on',looping);});
+playBtn.addEventListener('click',()=>{playing?pause():play();});
+function curBuf(){return monitor==='src'?srcAudioBuf:outAudioBuf;}
+function dur(){const b=curBuf();return b?b.duration:0;}
+function curT(){return clamp(playing?offset+(ctx.currentTime-startedAt):offset,0,dur());}
+function play(){const b=curBuf();if(!b)return;ctx.resume();killNode();
+  node=ctx.createBufferSource();node.buffer=b;node.loop=looping;node.connect(ctx.destination);
+  node.onended=()=>{if(!looping)stop();};startedAt=ctx.currentTime;node.start(0,offset%b.duration);
+  playing=true;playBtn.textContent='⏸';tick();}
+function pause(){if(!playing)return;offset=curT();killNode();playing=false;playBtn.textContent='▶';cancelAnimationFrame(raf);}
+function stop(){killNode();playing=false;offset=0;playBtn.textContent='▶';cancelAnimationFrame(raf);updTime();}
+function killNode(){if(node){try{node.onended=null;node.stop();}catch(e){}node.disconnect();node=null;}}
+function tick(){updTime();if(!looping&&curT()>=dur()){stop();return;}raf=requestAnimationFrame(tick);}
+function updTime(){$('t-cur').textContent=fmtClock(curT());$('t-tot').textContent=fmtClock(dur());}
+$('ab-src').addEventListener('click',()=>swap('src'));
+$('ab-out').addEventListener('click',()=>swap('out'));
+function swap(m){if(m==='out'&&!outAudioBuf)return;if(m==='src'&&!srcAudioBuf)return;
+  const wp=playing;pause();offset=0;monitor=m;refreshAB();updTime();if(wp)play();}
+function refreshAB(){$('ab-src').classList.toggle('on',monitor==='src');$('ab-out').classList.toggle('on',monitor==='out');updTime();}
+
+/* export (stereo) */
+$('export').addEventListener('click',()=>{if(!outL)return;
+  const wav=encodeWAV(outL,outR,sr);const url=URL.createObjectURL(new Blob([wav],{type:'audio/wav'}));
+  const a=document.createElement('a');a.href=url;a.download='horn-of-plenty.wav';a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);});
+function encodeWAV(Lc,Rc,rate){
+  const len=Lc.length,ch=2,ab=new ArrayBuffer(44+len*ch*2),v=new DataView(ab);
+  const ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
+  ws(0,'RIFF');v.setUint32(4,36+len*ch*2,true);ws(8,'WAVE');ws(12,'fmt ');
+  v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,ch,true);
+  v.setUint32(24,rate,true);v.setUint32(28,rate*ch*2,true);v.setUint16(32,ch*2,true);v.setUint16(34,16,true);
+  ws(36,'data');v.setUint32(40,len*ch*2,true);let o=44;
+  for(let i=0;i<len;i++){let l=clamp(Lc[i],-1,1),r=clamp(Rc[i],-1,1);
+    v.setInt16(o,l<0?l*32768:l*32767,true);o+=2;v.setInt16(o,r<0?r*32768:r*32767,true);o+=2;}
+  return ab;}
+
+/* knob wiring */
+let analyzeTimer=null;
+$('k-fiber').addEventListener('input',e=>{P.fiber=+e.target.value;$('v-fiber').textContent=P.fiber+' ms';
+  $('h-fiber').textContent='the kernel size — how much of each event survives whole';
+  clearTimeout(analyzeTimer);analyzeTimer=setTimeout(()=>analyze(true),120);});
+$('k-white').addEventListener('input',e=>{P.white=+e.target.value;$('v-white').textContent=P.white+'%';});
+$('k-len').addEventListener('input',e=>{P.len=+e.target.value;$('v-len').textContent=P.len.toFixed(1)+' s';updateReuse();});
+$('k-dens').addEventListener('input',e=>{P.dens=+e.target.value;$('v-dens').textContent=P.dens.toFixed(1)+'×';updateReuse();});
+$('k-even').addEventListener('input',e=>{P.even=+e.target.value;$('v-even').textContent=P.even+'%';});
+$('k-pitch').addEventListener('input',e=>{P.pitch=+e.target.value;$('v-pitch').textContent=P.pitch+' st';});
+$('k-rev').addEventListener('input',e=>{P.rev=+e.target.value;$('v-rev').textContent=P.rev+'%';});
+$('k-spread').addEventListener('input',e=>{P.spread=+e.target.value;$('v-spread').textContent=P.spread+'%';});
+
+/* presets — points on the grain × whiteness plane (plus motion) */
+const PRESETS={
+  mist:   {fiber:25, white:85, dens:8,   even:95, pitch:1.5, rev:20, spread:55},
+  sand:   {fiber:45, white:70, dens:6.5, even:90, pitch:0.5, rev:15, spread:40},
+  orchard:{fiber:90, white:50, dens:5,   even:80, pitch:3,   rev:35, spread:50},
+  husk:   {fiber:160,white:25, dens:4,   even:65, pitch:0,   rev:10, spread:25}
+};
+function syncKnobs(){
+  $('k-fiber').value=P.fiber;$('v-fiber').textContent=P.fiber+' ms';
+  $('k-white').value=P.white;$('v-white').textContent=P.white+'%';
+  $('k-dens').value=P.dens;$('v-dens').textContent=P.dens.toFixed(1)+'×';
+  $('k-even').value=P.even;$('v-even').textContent=P.even+'%';
+  $('k-pitch').value=P.pitch;$('v-pitch').textContent=P.pitch+' st';
+  $('k-rev').value=P.rev;$('v-rev').textContent=P.rev+'%';
+  $('k-spread').value=P.spread;$('v-spread').textContent=P.spread+'%';
+}
+function applyPreset(name){const p=PRESETS[name];if(!p)return;Object.assign(P,p);syncKnobs();
+  if(src)analyze(true);updateReuse();
+  document.querySelectorAll('#presets button').forEach(b=>b.classList.toggle('on',b.dataset.p===name));
+  setStatus('preset “'+name+'” loaded — fill the horn',false);}
+document.querySelectorAll('#presets button').forEach(b=>b.addEventListener('click',()=>applyPreset(b.dataset.p)));
+/* clear preset highlight on any manual knob nudge */
+['k-fiber','k-white','k-dens','k-even','k-pitch','k-rev','k-spread'].forEach(id=>
+  $(id).addEventListener('input',()=>document.querySelectorAll('#presets button.on').forEach(b=>b.classList.remove('on'))));
+
+/* level */
+$('lvl-own').addEventListener('change',e=>{P.lvlOwn=e.target.checked;
+  $('k-level').disabled=P.lvlOwn;$('lvl-set').classList.toggle('off',P.lvlOwn);});
+$('k-level').addEventListener('input',e=>{P.level=+e.target.value;
+  $('v-level').textContent=(P.level<0?'−':'')+Math.abs(P.level).toFixed(1)+' dB';});
+
+/* helpers */
+function fmtDur(s){return s>=60?Math.floor(s/60)+'m '+(s%60).toFixed(0).padStart(2,'0')+'s':s.toFixed(1)+'s';}
+function fmtClock(s){s=Math.max(0,s);const m=Math.floor(s/60),x=Math.floor(s%60);return m+':'+String(x).padStart(2,'0');}
+function setStatus(t,work,err){const el=$('status');el.textContent=t;el.classList.toggle('work',!!work);el.classList.toggle('err',!!err);}
+window.addEventListener('resize',()=>{if(src)drawScrap();if(grains.length)drawPalette();if(postEnv)drawYard();});
+</script>
+</body>
+</html>

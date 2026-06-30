@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="harvest" x1="9" y1="48" x2="56" y2="13" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6e3b52"/>
+      <stop offset=".28" stop-color="#c8443a"/>
+      <stop offset=".58" stop-color="#e8a93f"/>
+      <stop offset="1" stop-color="#6f9b53"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#15110a"/>
+  <path d="M12 42C18 27 31 16 47 16C55 16 58 23 52 28C43 35 39 48 30 53C21 58 12 52 12 42Z" fill="url(#harvest)" stroke="#efe2c6" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M18 42C24 31 34 24 47 21" fill="none" stroke="#15110a" stroke-width="4" stroke-linecap="round" opacity=".42"/>
+  <path d="M22 45C28 36 36 31 47 29" fill="none" stroke="#efe2c6" stroke-width="2" stroke-linecap="round" opacity=".70"/>
+  <circle cx="43" cy="13" r="3.3" fill="#c6c24c"/>
+  <circle cx="51" cy="20" r="3.6" fill="#e8a93f"/>
+  <circle cx="38" cy="23" r="3.2" fill="#d2622d"/>
+  <circle cx="48" cy="31" r="2.7" fill="#6f9b53"/>
+</svg>
