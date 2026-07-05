@@ -26,6 +26,25 @@
     font-display:swap;
   }
 
+  @font-face{
+    font-family:"Hundred Ligatture";
+    src:url("Hundred Ligatture demo.otf") format("truetype");
+    font-display:swap;
+  }
+
+  .backwards-italic,
+  em,
+  .spine .before,
+  #pythia .tool-name,
+  #prolepsis .tool-name,
+  #hornofplenty .tool-name{
+    display:inline-block;
+    font-style:normal;
+    transform:skewX(12deg);
+    transform-origin:50% 100%;
+  }
+
+
   :root{
     /* abyssal / sounding palette — inherited from the suite's oceanographic root */
     --abyss:#06130f; --abyss2:#0a1d17; --deep:#0d2722; --deep2:#102e27;
@@ -37,6 +56,7 @@
     --pre-dim:#6552c9;
     --sodium:#ffb347;          /* warm accent, used sparingly */
     --blood:#ff3145;           /* the transient onset, used once */
+    --display:'Hundred Ligatture','Space Grotesk',system-ui,sans-serif;
     --mono:'Space Mono',ui-monospace,Menlo,Consolas,monospace;
     --sans:'Space Grotesk',system-ui,sans-serif;
   }
@@ -89,12 +109,19 @@
   .coord{display:flex;gap:14px;align-items:center;color:var(--faint)}
   .coord .dot{width:5px;height:5px;border-radius:50%;background:var(--lumen);box-shadow:0 0 8px var(--lumen)}
   h1.wordmark{
-    font-family:var(--mono);font-weight:700;
-    font-size:clamp(30px,8.5vw,68px);letter-spacing:.06em;line-height:.96;
+    font-family:var(--display);font-weight:700;
+    font-size:clamp(34px,8.5vw,74px);letter-spacing:.035em;line-height:.96;
     color:var(--foam);
     text-shadow:0 0 30px rgba(84,240,198,.16);
+    font-variant-ligatures:no-common-ligatures no-discretionary-ligatures no-contextual;
+    font-feature-settings:"liga" 0, "dlig" 0, "calt" 0;
   }
   h1.wordmark b{color:var(--lumen);font-weight:700}
+  h1.wordmark .ligature,
+  h1.wordmark .nero-ligature{
+    font-variant-ligatures:common-ligatures discretionary-ligatures contextual;
+    font-feature-settings:"liga" 1, "dlig" 1, "calt" 1;
+  }
   .mast .build{
     text-align:right;display:flex;flex-direction:column;gap:6px;align-items:flex-end;
     font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--faint);white-space:nowrap;
@@ -111,7 +138,7 @@
     max-width:24ch;
   }
   .spine .read{color:var(--lumen)}
-  .spine .before{color:var(--pre);font-style:italic}
+  .spine .before{color:var(--pre);font-style:normal}
 
   /* ── readout (the signature) ───────────────────────────────────────── */
   .readout{
@@ -154,18 +181,19 @@
   .statement{margin:46px 0 10px;display:grid;grid-template-columns:1fr;gap:18px}
   .statement .lede{font-size:17px;line-height:1.6;color:var(--foam);max-width:66ch}
   .statement p{font-size:14.5px;line-height:1.68;color:var(--mute);max-width:66ch}
-  .statement em{color:var(--foam);font-style:italic}
+  .statement em{color:var(--foam);font-style:normal}
   .statement b{color:var(--lumen);font-weight:600}
 
   /* valence callout — the suite's sharpest claim */
   .valence{
-    display:grid;grid-template-columns:1fr 1fr;gap:1px;margin-top:8px;
+    display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;margin-top:8px;
     border:1px solid var(--line-hi);border-radius:10px;overflow:hidden;background:var(--line);
   }
   .valence > div{padding:16px 18px;background:var(--deep)}
   .valence .tag{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;margin-bottom:8px}
   .valence .audio .tag{color:var(--lumen-dim)}
   .valence .video .tag{color:var(--pre)}
+  .valence .infra .tag{color:var(--sodium)}
   .valence .verb{font-size:18px;font-weight:600;margin-bottom:5px;color:var(--foam)}
   .valence p{font-size:13px;color:var(--mute);line-height:1.55;margin:0}
 
@@ -217,7 +245,7 @@
 #pythia .tool-name{
   font-family:'Elyaris','Averia Serif Libre',Georgia,serif;
   font-size:24px;
-  font-style:italic;
+  font-style:normal;
   font-weight:700;
   letter-spacing:0;
   line-height:.92;
@@ -272,7 +300,7 @@
 #prolepsis .tool-name{
   font-family:'Blur Regular','Averia Sans Libre',sans-serif;
   font-size:22px;
-  font-style:italic;
+  font-style:normal;
   font-weight:500;
   letter-spacing:0;
   color:#fff4ea;
@@ -296,6 +324,41 @@
     0 0 14px rgba(255,180,221,.44);
 }
 
+/* CyberScotoma - photophobic visual-field graft */
+#cyberscotoma{
+  --accent:#f0dd5f;
+  --wash-a:rgba(240,221,95,.095);
+  --wash-b:rgba(121,173,234,.060);
+  --wash-c:rgba(22,16,31,.94);
+  --glow-a:rgba(240,221,95,.14);
+  --glow-b:rgba(232,91,82,.08);
+  border-color:#5b5140;
+}
+#cyberscotoma::after{
+  content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(circle at 62% 38%, rgba(240,221,95,.16), transparent 28%),
+    radial-gradient(circle at 45% 48%, rgba(22,16,31,.52), transparent 17%),
+    linear-gradient(102deg, transparent 0 42%, rgba(121,173,234,.08) 48%, rgba(232,91,82,.07) 55%, transparent 66% 100%);
+  filter:blur(6px) saturate(120%);opacity:.88;
+}
+#cyberscotoma > *{position:relative;z-index:1}
+#cyberscotoma .tool-name{
+  font-family:'Averia Sans Libre','Space Grotesk',system-ui,sans-serif;
+  font-size:22px;
+  font-weight:700;
+  letter-spacing:0;
+  color:#edf2e5;
+  text-shadow:
+    -1.4px 0 0 rgba(121,173,234,.70),
+    1.6px 0 0 rgba(232,91,82,.62),
+    0 0 18px rgba(240,221,95,.18);
+}
+#cyberscotoma .tool-name .cy{color:#f0dd5f}
+#cyberscotoma .tool-name .scot{color:#79adea}
+#cyberscotoma .tool-op{color:#e85b52}
+#cyberscotoma:hover{border-color:#f0dd5f}
+
 /* Horn of Plenty — harvest/stationarizer audio wing */
 #hornofplenty{
   --accent:#e8a93f;
@@ -315,7 +378,7 @@
 #hornofplenty .tool-name{
   font-family:'Fraunces',Georgia,serif;
   font-size:21px;
-  font-style:italic;
+  font-style:normal;
   font-weight:600;
   letter-spacing:-.01em;
   color:#efe2c6;
@@ -485,7 +548,7 @@ h1.wordmark::before{
   <header class="mast">
     <div class="id">
       <span class="eyebrow">a suite of un-live effects · audio + video</span>
-      <h1 class="wordmark"><b>HIND</b>CASTS</h1>
+      <h1 class="wordmark backwards-italic"><span class="nero-ligature"><b>HIND</b>CAST</span>S</h1>
       <span class="coord mono" style="font-size:11px">
         <span class="dot"></span> hindcast (n.) — a forecast run over a span you already know the outcome of
       </span>
@@ -542,8 +605,11 @@ h1.wordmark::before{
     <p>
       This takes offline processing to its logical conclusion. Audio is often <em>causal-by-default</em>; image is <em>acausal-by-default</em>, and this enables audio processing to be able to feel like how image processing already works in digital space. Hindcasts rejects this inertia of hidden commitments to realtime.
     </p>
+    <p>
+      I come into Hindcasts with the same mindset I've had working with technology in the Philippines. Technology has been slow to arrive, and so has internet infrastructure. Lag in hardware and connectivity is a very real, everyday thing. Media processing that privileges realtime often locks out anyone for whom that technological speed is simply hard to reach. People here can get realtime processing more easily now than they used to. But thinking from that older position, even after the constraint eases, destabilizes norms that were never questioned much in the first place. This suite works from that place: what can we make, starting from this position, that's harder to imagine from the default one?
+    </p>
 
-   <!-- <div class="valence" role="group" aria-label="Valence per medium">
+    <!-- <div class="valence" role="group" aria-label="Valence per medium">
       <div class="audio">
         <div class="tag">in audio</div>
         <div class="verb">reveals</div>
@@ -553,6 +619,11 @@ h1.wordmark::before{
         <div class="tag">in video</div>
         <div class="verb">refuses</div>
         <p>a naturalized one. Acausality there is normally corrective and invisible — deflicker, denoise, flow that wants to pass as real. Hindcast makes it expressive, and refuses to hide the hand.</p>
+      </div>
+      <div class="infra">
+        <div class="tag">as infrastructure</div>
+        <div class="verb">redistributes</div>
+        <p>who gets to want more from an effect. Live processing taxes the periphery in silicon; offline processing taxes everyone equally, in time. The "degraded" position was aimed at the ideal all along.</p>
       </div>
     </div>
   </section> -->
@@ -627,6 +698,26 @@ h1.wordmark::before{
           <span class="p" title="multi-pass">④</span>
         </div>
         <span class="open">open <span class="arr">→</span></span>
+      </div>
+    </a>
+
+    <!-- cyberscotoma -->
+    <a class="tool" href="/sgueltch/cyberscotoma/" style="--accent:#f0dd5f" aria-label="Open CyberScotoma" id="cyberscotoma">
+      <div class="tool-top">
+        <div>
+          <div class="tool-name"><span class="cy">Cyber</span><span class="scot">Scotoma</span></div>
+        </div>
+        <div class="tool-op">graft<span class="medium">video</span></div>
+      </div>
+      <p class="tool-desc">
+        A scintillating-scotoma datamosh. Voronoi hold-regions stop refreshing, keep receiving the current motion
+        field, and seed from future or cross-clip donor frames: the aura as a non-grid, acausal image graft.
+      </p>
+      <div class="tool-foot">
+        <div class="powers" aria-label="acausal powers used">
+          <span class="p" title="precognition">&#9312;</span>
+        </div>
+        <span class="open">open <span class="arr">&rarr;</span></span>
       </div>
     </a>
 

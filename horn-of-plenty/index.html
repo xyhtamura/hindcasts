@@ -16,8 +16,8 @@
   --edge:#3a2c19; --line:#2c2114;
   --wheat:#efe2c6; --oat:#c7b288; --faint:#7d6a4b;
   /* the harvest ramp — produce, dark to bright */
-  --plum:#6e3b52; --pom:#a3322b; --cherry:#c8443a; --persimmon:#d2622d; --horn:#e8a93f; --pear:#c6c24c; --leaf:#6f9b53;
-  --horn-dim:#b9842c; --madder:#cf5430; --madder-dim:#8f3a23;
+  --plum:#6e3b52; --blueberry:#353363; --pom:#a3322b; --cherry:#c8443a; --persimmon:#d2622d; --horn:#e8a93f; --pear:#c6c24c; --leaf:#6f9b53;
+  --horn-dim:#b9842c; --madder:#cf5430; --madder-dim:#8f3a23; --blueberry-dim:#303b5f;
   --disp:'Fraunces',Georgia,serif;
   --sans:'Space Grotesk',system-ui,sans-serif;
   --mono:'Space Mono',ui-monospace,monospace;
@@ -43,15 +43,19 @@ h1.wordmark .of{font-style:italic;font-weight:800;font-size:.52em;
 .thesis{margin:14px 0 0;max-width:62ch;font-size:14.5px;color:var(--oat)}
 .thesis b{color:var(--wheat);font-weight:500}
 
-.card{background:linear-gradient(180deg,var(--loom),var(--loom2));
-  border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:18px}
+.card{background:
+  linear-gradient(180deg,rgba(255,242,211,.035),transparent 36%),
+  linear-gradient(180deg,var(--loom),var(--loom2));
+  border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:18px;
+  box-shadow:0 18px 42px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,236,190,.04)}
 .card h3{margin:0 0 14px;font-family:var(--mono);font-size:11px;letter-spacing:.16em;
   text-transform:uppercase;color:var(--horn);font-weight:700;display:flex;align-items:center;gap:9px}
 .card h3::before{content:"";width:7px;height:7px;border-radius:1px;background:var(--horn);
   transform:rotate(45deg);box-shadow:0 0 10px var(--horn-dim)}
 
 .drop{border:1.5px dashed var(--edge);border-radius:12px;padding:26px 18px;text-align:center;
-  cursor:pointer;transition:.18s;background:rgba(0,0,0,.12)}
+  cursor:pointer;transition:.18s;background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(0,0,0,.12));
+  box-shadow:inset 0 1px 0 rgba(255,236,190,.035)}
 .drop:hover,.drop.over{border-color:var(--horn);background:rgba(232,169,63,.06)}
 .drop .big{font-family:var(--disp);font-style:italic;font-size:19px;color:var(--wheat)}
 .drop .sub{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:6px}
@@ -70,20 +74,29 @@ h1.wordmark .of{font-style:italic;font-weight:800;font-size:.52em;
 .knob .hint{font-family:var(--mono);font-size:9.5px;color:var(--faint);min-height:1.2em}
 .knob .poles{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;
   color:var(--faint);letter-spacing:.04em;text-transform:uppercase}
-input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:3px;
-  background:var(--edge);outline:none;margin:2px 0}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;
-  background:var(--horn);cursor:pointer;border:2px solid var(--void);box-shadow:0 0 8px var(--horn-dim)}
-input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:var(--horn);
-  cursor:pointer;border:2px solid var(--void)}
-input[type=range].pom::-webkit-slider-thumb{background:var(--pom);box-shadow:0 0 8px var(--madder-dim)}
-input[type=range].pom::-moz-range-thumb{background:var(--pom)}
-input[type=range].pear::-webkit-slider-thumb{background:var(--pear);box-shadow:0 0 8px #8a861f}
-input[type=range].pear::-moz-range-thumb{background:var(--pear)}
-input[type=range].plum::-webkit-slider-thumb{background:var(--plum);box-shadow:0 0 8px #3d2030}
-input[type=range].plum::-moz-range-thumb{background:var(--plum)}
-input[type=range].leaf::-webkit-slider-thumb{background:var(--leaf);box-shadow:0 0 8px #3f5a2e}
-input[type=range].leaf::-moz-range-thumb{background:var(--leaf)}
+input[type=range]{--thumb:var(--horn);--thumb-dim:var(--horn-dim);--thumb-hi:#fff0c7;
+  -webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:999px;
+  background:linear-gradient(180deg,#1b1209,#332616);outline:none;margin:5px 0;
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.78),0 1px 0 rgba(255,236,190,.035)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:19px;height:19px;border-radius:50%;
+  background:
+    radial-gradient(circle at 31% 27%,var(--thumb-hi) 0 11%,rgba(255,255,255,.38) 12% 18%,transparent 20%),
+    radial-gradient(circle at 42% 38%,var(--thumb) 0 40%,var(--thumb-dim) 74%,#170f08 100%);
+  cursor:pointer;border:1px solid rgba(255,239,205,.24);
+  box-shadow:0 3px 7px rgba(0,0,0,.55),0 0 11px rgba(232,169,63,.18),inset -3px -4px 6px rgba(0,0,0,.30),inset 2px 2px 4px rgba(255,255,255,.16);
+  box-shadow:0 3px 7px rgba(0,0,0,.55),0 0 11px color-mix(in srgb,var(--thumb) 45%,transparent),inset -3px -4px 6px rgba(0,0,0,.30),inset 2px 2px 4px rgba(255,255,255,.16)}
+input[type=range]::-moz-range-thumb{width:19px;height:19px;border-radius:50%;
+  background:
+    radial-gradient(circle at 31% 27%,var(--thumb-hi) 0 11%,rgba(255,255,255,.38) 12% 18%,transparent 20%),
+    radial-gradient(circle at 42% 38%,var(--thumb) 0 40%,var(--thumb-dim) 74%,#170f08 100%);
+  cursor:pointer;border:1px solid rgba(255,239,205,.24);
+  box-shadow:0 3px 7px rgba(0,0,0,.55),0 0 11px rgba(232,169,63,.18),inset -3px -4px 6px rgba(0,0,0,.30),inset 2px 2px 4px rgba(255,255,255,.16);
+  box-shadow:0 3px 7px rgba(0,0,0,.55),0 0 11px color-mix(in srgb,var(--thumb) 45%,transparent),inset -3px -4px 6px rgba(0,0,0,.30),inset 2px 2px 4px rgba(255,255,255,.16)}
+input[type=range].pom{--thumb:var(--pom);--thumb-dim:var(--madder-dim);--thumb-hi:#ffc0a6}
+input[type=range].pear{--thumb:var(--pear);--thumb-dim:#8a861f;--thumb-hi:#ffffb2}
+input[type=range].plum{--thumb:var(--plum);--thumb-dim:#3d2030;--thumb-hi:#d6a4bd}
+input[type=range].leaf{--thumb:var(--leaf);--thumb-dim:#3f5a2e;--thumb-hi:#c9e8a3}
+input[type=range].blueberry{--thumb:var(--blueberry);--thumb-dim:var(--blueberry-dim);--thumb-hi:#bcc8ef}
 .suggest{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;
   color:var(--horn);background:transparent;border:1px solid var(--horn-dim);border-radius:6px;
   padding:3px 8px;cursor:pointer;transition:.15s}
@@ -94,9 +107,12 @@ input[type=range].leaf::-moz-range-thumb{background:var(--leaf)}
 .presets{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 .presets .plab{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
 .presets button{font-family:var(--disp);font-style:italic;font-size:15px;color:var(--wheat);
-  background:rgba(0,0,0,.18);border:1px solid var(--edge);border-radius:8px;padding:5px 14px;cursor:pointer;transition:.15s}
+  background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(0,0,0,.18));
+  border:1px solid var(--edge);border-radius:8px;padding:5px 14px;cursor:pointer;transition:.15s;
+  box-shadow:inset 0 1px 0 rgba(255,236,190,.04),0 2px 7px rgba(0,0,0,.18)}
 .presets button:hover{border-color:var(--horn);color:var(--horn)}
-.presets button.on{background:var(--horn);color:var(--void);border-color:var(--horn)}
+.presets button.on{background:linear-gradient(180deg,#f0c46d,var(--horn) 64%,var(--horn-dim));color:var(--void);border-color:var(--horn);
+  box-shadow:0 4px 12px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.30)}
 .level{margin-top:4px}
 .lvl-check{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--oat);cursor:pointer}
 .lvl-check input{accent-color:var(--horn);width:15px;height:15px}
@@ -108,7 +124,8 @@ input[type=range].leaf::-moz-range-thumb{background:var(--leaf)}
 .lvl-note{font-family:var(--mono);font-size:9.5px;color:var(--faint);margin-top:8px}
 .btn{font-family:var(--sans);font-size:14px;font-weight:600;border:none;border-radius:10px;
   padding:11px 24px;cursor:pointer;transition:.15s}
-.btn-go{background:linear-gradient(90deg,var(--persimmon),var(--horn));color:#1a1206}
+.btn-go{background:linear-gradient(180deg,#f0bc61,var(--horn) 46%,var(--persimmon));color:#1a1206;
+  box-shadow:0 7px 18px rgba(0,0,0,.32),inset 0 1px 0 rgba(255,255,255,.32),inset 0 -2px 7px rgba(95,43,9,.25)}
 .btn-go:hover{filter:brightness(1.08)}
 .btn-go:disabled{background:var(--edge);color:var(--faint);cursor:default;filter:none}
 .status{font-family:var(--mono);font-size:11px;color:var(--oat)}
@@ -116,7 +133,8 @@ input[type=range].leaf::-moz-range-thumb{background:var(--leaf)}
 .status.err{color:var(--madder)}
 
 .reads{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
-.read{flex:1;min-width:118px;background:rgba(0,0,0,.18);border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+.read{flex:1;min-width:118px;background:linear-gradient(180deg,rgba(255,255,255,.026),rgba(0,0,0,.20));border:1px solid var(--line);border-radius:10px;padding:9px 12px;
+  box-shadow:inset 0 1px 0 rgba(255,236,190,.035),0 5px 12px rgba(0,0,0,.18)}
 .read .rl{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
 .read .rv{font-family:var(--mono);font-size:17px;font-weight:700;color:var(--wheat);margin-top:3px}
 .read .rv.hot{color:var(--pom)}
@@ -127,7 +145,8 @@ input[type=range].leaf::-moz-range-thumb{background:var(--leaf)}
 .panel .ttl b{color:var(--wheat);font-weight:700}
 .panel .meta{font-family:var(--mono);font-size:10px;color:var(--faint)}
 canvas.viz{display:block;width:100%;border:1px solid var(--line);border-radius:10px;
-  background:linear-gradient(180deg,#1a130b,#120d07)}
+  background:linear-gradient(180deg,#1a130b,#120d07);
+  box-shadow:inset 0 1px 0 rgba(255,236,190,.035),inset 0 -10px 18px rgba(0,0,0,.20)}
 #c-scrap{height:74px}
 #c-palette{height:104px}
 #c-yard{height:152px}
@@ -137,7 +156,8 @@ canvas.viz{display:block;width:100%;border:1px solid var(--line);border-radius:1
 
 .transport{display:flex;align-items:center;gap:12px;margin-top:18px;flex-wrap:wrap}
 .tbtn{font-family:var(--mono);font-size:13px;width:42px;height:42px;border-radius:10px;
-  border:1px solid var(--edge);background:var(--loom2);color:var(--wheat);cursor:pointer;transition:.15s}
+  border:1px solid var(--edge);background:linear-gradient(180deg,rgba(255,255,255,.035),var(--loom2));
+  color:var(--wheat);cursor:pointer;transition:.15s;box-shadow:inset 0 1px 0 rgba(255,236,190,.035),0 3px 9px rgba(0,0,0,.20)}
 .tbtn:hover{border-color:var(--horn)}
 .tbtn.on{background:var(--horn);color:var(--void);border-color:var(--horn)}
 .tbtn:disabled{opacity:.3;cursor:default}
@@ -212,7 +232,7 @@ canvas.viz{display:block;width:100%;border:1px solid var(--line);border-radius:1
       </div>
       <div class="knob">
         <div class="top"><span class="lab">Density</span><span class="val" id="v-dens">5.0×</span></div>
-        <input type="range" id="k-dens" min="2" max="10" step="0.5" value="5">
+        <input type="range" class="blueberry" id="k-dens" min="2" max="10" step="0.5" value="5">
         <div class="poles"><span>sparse sow</span><span>thick sow</span></div>
         <div class="hint">average overlap</div>
       </div>
@@ -230,19 +250,19 @@ canvas.viz{display:block;width:100%;border:1px solid var(--line);border-radius:1
         <div class="top"><span class="lab">Pitch jitter</span><span class="val" id="v-pitch">0 st</span></div>
         <input type="range" class="pear" id="k-pitch" min="0" max="12" step="0.5" value="0">
         <div class="poles"><span>same kernel</span><span>±octave</span></div>
-        <div class="hint">randomize each grain's pitch — a shifted crackle reads as another crackle</div>
+        <div class="hint">randomize each grain's pitch</div>
       </div>
       <div class="knob">
         <div class="top"><span class="lab">Reverse</span><span class="val" id="v-rev">0%</span></div>
         <input type="range" class="plum" id="k-rev" min="0" max="100" step="1" value="0">
         <div class="poles"><span>forward</span><span>tumbled</span></div>
-        <div class="hint">chance a grain plays backward — doubles the palette for free</div>
+        <div class="hint">chance a grain plays backward</div>
       </div>
       <div class="knob">
         <div class="top"><span class="lab">Spread</span><span class="val" id="v-spread">35%</span></div>
         <input type="range" class="leaf" id="k-spread" min="0" max="100" step="1" value="35">
         <div class="poles"><span>mono · centred</span><span>wide · scattered</span></div>
-        <div class="hint">stereo scatter — pans each grain across the field</div>
+        <div class="hint">pans each grain across the field</div>
       </div>
     </div>
 
@@ -254,12 +274,12 @@ canvas.viz{display:block;width:100%;border:1px solid var(--line);border-radius:1
         <input type="range" id="k-level" min="-36" max="0" step="0.5" value="-14" disabled>
         <span class="val" id="v-level">−14.0 dB</span>
       </div>
-      <div class="lvl-note">0 dB is the hard ceiling — Horn of Plenty won't pour past full scale.</div>
+      <div class="lvl-note">0 dB ard ceiling</div>
     </div>
 
     <div class="render-row">
-      <button class="btn btn-go" id="render" disabled>Fill the horn</button>
-      <span class="status" id="status">gather a seed to begin</span>
+      <button class="btn btn-go" id="render" disabled>Stationarize</button>
+      <span class="status" id="status">input a file to begin</span>
     </div>
 
     <div class="reads">
@@ -274,21 +294,21 @@ canvas.viz{display:block;width:100%;border:1px solid var(--line);border-radius:1
     <h3>The yield</h3>
 
     <div class="panel">
-      <div class="head"><div class="ttl"><b>the seed</b> — what you gathered</div>
+      <div class="head"><div class="ttl"><b>seed</b> — raw file</div>
         <div class="meta" id="m-scrap"></div></div>
       <div class="frame"><canvas id="c-scrap" class="viz"></canvas>
         <div class="empty-note" id="n-scrap">—</div></div>
     </div>
 
     <div class="panel">
-      <div class="head"><div class="ttl"><b>the winnow</b> — every grain by weight, coloured by its grain</div>
+      <div class="head"><div class="ttl"><b>winnow</b> — grain distribution</div>
         <div class="meta" id="m-palette"></div></div>
       <div class="frame"><canvas id="c-palette" class="viz"></canvas>
         <div class="empty-note" id="n-palette">—</div></div>
     </div>
 
     <div class="panel">
-      <div class="head"><div class="ttl"><b>the pour</b> — even, endless, drift erased</div>
+      <div class="head"><div class="ttl"><b>yield</b> — stationarized output</div>
         <div class="meta" id="m-yard"></div></div>
       <div class="frame"><canvas id="c-yard" class="viz"></canvas>
         <div class="empty-note" id="n-yard">fill the horn to see the pour</div></div>
@@ -316,8 +336,8 @@ const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const AC=window.AudioContext||window.webkitAudioContext;
 const ctx=new AC();
 
-/* harvest ramp: fig -> pomegranate -> cherry -> persimmon -> gold -> pear -> leaf */
-const RAMP=[[0,[110,59,82]],[0.16,[163,50,43]],[0.34,[200,68,58]],[0.50,[210,98,45]],[0.68,[232,169,63]],[0.84,[198,194,76]],[1,[111,155,83]]];
+/* harvest ramp: fig -> blueberry -> pomegranate -> cherry -> persimmon -> gold -> pear -> leaf */
+const RAMP=[[0,[110,59,82]],[0.12,[82,104,148]],[0.25,[163,50,43]],[0.42,[200,68,58]],[0.56,[210,98,45]],[0.72,[232,169,63]],[0.88,[198,194,76]],[1,[111,155,83]]];
 function ramp(t){t=clamp(t,0,1);for(let i=0;i<RAMP.length-1;i++){const a=RAMP[i],b=RAMP[i+1];
   if(t<=b[0]){const f=(t-a[0])/(b[0]-a[0]||1);
     return[Math.round(a[1][0]+(b[1][0]-a[1][0])*f),Math.round(a[1][1]+(b[1][1]-a[1][1])*f),Math.round(a[1][2]+(b[1][2]-a[1][2])*f)];}}
