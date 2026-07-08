@@ -160,6 +160,49 @@ Spatiotemporal analog of the audio version — inject activity only into the sti
 
 ---
 
+## AUDIO + VIDEO members (the hinge)
+
+### Remanence — *magnetic print-through; the tape remembers forward* · ✅ **SHIPPED (prototype) → `hindcasts/remanence`**
+The suite's **first true audio+video member** — one reel engine, both media. A wound reel imprints
+itself: loud moments print a faint copy onto neighbouring wraps, heard as **pre-echo** (ghost before
+the hit) and post-echo. Remanence is that defect as an instrument, and its acausality is *forced by
+physics, not chosen*: wear is a **dose integrated over the material's whole life** (∝ amplitude ×
+play-count, deposited over storage), and print-through's pre-echo literally needs a future sample —
+a live effect can't integrate a path it hasn't finished. This is pre-verb / anticipatory-dust as a
+*real* defect, where the grains are the actual future signal placed by reel geometry.
+
+Engine: a **position-varying multi-tap delay with negative taps allowed** (audio) / the same reel
+composited over frames (video). Reel period T_N = 2π(r₀+Nd)/v drifts hub→rim, so echo spacing
+drifts across the clip; **Wind** = the reel's wind direction = pre/post = Prolepsis's stance switch,
+physically motivated. Superpowers now: **precognition + bidirectionality**; roadmap adds
+**global statistics** (wear/dropout placed by whole-clip occupancy/recurrence).
+
+Every control is A·V; only **Tilt** splits medium — temporal low-pass (audio) vs ghost box-blur
+(video, print's *spatial* LF bias). Presets **FAITHFUL → HAUNTING → REEL-FOLD → PRE-SWARM** walk the
+faithful↔hyperreal continuum on one engine (same trick as sounder's τ). WAV/WebM export, fullscreen
+drop, clean previewer. Full spec: `remanence/remanence.md`.
+
+> **Non-local reel-fold shipped:** true Archimedean-spiral geometry (k-th neighbour = same phase,
+> k wraps out — taps spread outward / bunch inward) + a **Fold** control coupling across the reel
+> mirror, so clip-distant / reel-adjacent moments cross-print. Closed-form (e^{s·W(n)}=1+s·n/O₀), both
+> media. Still deferred garnish: wow/flutter, HF self-erasure (climax dulls itself), map-driven dropout,
+> head-switch (the one *grid*, framerate-locked) — cranked, these are the **MELT** Sgueltch-crossover
+> zone. VHS Hi-Fi (audio FM-encoded via the video heads) is where the suite's audio↔video asymmetry
+> physically collapses — the reason this member is a/v at all.
+
+---
+
+## suite placement rule (Hindcasts ↔ Sgueltch)
+
+Corruption-forward + *specially organic* substrate (ooze / tissue / lesion / mycelium / marbling /
+Voronoi cell) ⇒ **Sgueltch**. Utility- or whole-file-analysis-forward, with glitch a side effect or
+present-but-not-specially-organic (Prolepsis) ⇒ **Hindcasts**. Hinge members live in one home and are
+kept as *kin* in the other: **CyberScotoma** is Sgueltch-home / Hindcasts-kin (biological lesion +
+non-grid macroblock refusal); **Remanence** is Hindcasts-home / Sgueltch-kin (whole-file acausal
+print-through; analog-magnetic, not biologically organic).
+
+---
+
 ## adjacencies (don't re-derive these later)
 
 - **CyberScotoma** is the bridge to Sgueltch: a biological visual-field lesion that becomes a precognitive video graft. It carries the shared control/source input into cross-clip donor tissue and keeps the datamosh artifact non-grid by refusing macroblock inheritance.
@@ -187,6 +230,7 @@ Spatiotemporal analog of the audio version — inject activity only into the sti
 - **`pythia`** — flagship. Paracognitive granular delay; the control/source dual input that's the shared interface for the whole suite.
 - **`sounder`** — the **distribution operator**: frequency-distribution × dB-distribution-per-region. **Multiband shipped** — per-band τ/curve/floor, linear-phase perfect-reconstruction split, regime-field across frequency. Time-occupancy depth chart + redrawable transfer curve per band; RMS-window-as-regime-slider (waveshape → compression → normalizing). Now growing toward a **racked mastering tool** (cell / host refactor next).
 - **`prolepsis`** — the anticipation member (video), via the feedback-field route. Wake / anticipation / symmetric stances; acausal scrubbing.
+- **`remanence`** — the **print-through reel**; the suite's first **audio+video** member. Whole-file acausal multi-tap with negative (pre-echo) taps; reel geometry drifts the echo hub→rim; Wind = pre/post time-arrow. Video = same reel over frames + Tilt-as-ghost-blur. FAITHFUL→PRE-SWARM continuum, WAV/WebM export. Hindcasts-home / Sgueltch-kin (see placement rule). Spec: `remanence/remanence.md`.
 - **`Horn of Plenty`** — specced, unbuilt. The **stationarizer / audio texture-synthesis** member: eats a non-stationary recording, emits a stationary substrate for downstream random-access resynthesis. Felt-not-weave (whiten the drift, keep the grain color); power-domain blue-noise matching-pursuit; fiber-length × whiteness handed to the user, seeded by the autocorrelation-length cut. Sits behind the sounder rack in priority.
 
 **Next moves (ordered by leverage):**
@@ -194,6 +238,7 @@ Spatiotemporal analog of the audio version — inject activity only into the sti
 2. **Histogram-waveshaper presets** — the automatic CDF-onto-target warps (uniform / Gaussian / arcsine / another-file's-histogram) as one-click modes inside `sounder` (now per-band), plus the cross-file version on Pythia's control/source input. Closes the audio↔image histogram loop.
 3. **Lloyd–Max quantizer** — load-bearing for the larger argument; the quantization thesis as a playable object. Optimal (equal-population) bins vs *inverted* (max-damage) bins.
 4. **Dense anticipatory optical flow** — the harder video build `prolepsis` gestures at: per-pixel flow fit to the whole clip, run backward. The one that's still genuinely unseen.
+5. **`remanence` → occupancy wear map** — whole-file-statistic wear placement (HF self-erasure, dropout), pulling the sounder depth-chart machinery into a video-capable member; then wow/flutter garnish (first rung to the MELT zone) and other media as coupling geometries (vinyl play-count, optical-film strip position). *(Non-local reel-fold — Archimedean-spiral geometry + the Fold cross-print control — is **shipped**, both media.)*
 
 ---
 

@@ -32,6 +32,14 @@
     font-display:swap;
   }
 
+  @font-face{
+    font-family:"MudClub Franklin";
+    src:url("../sgueltch/cyberscotoma/MudClub-FranklintheGoth.otf") format("opentype");
+    font-weight:400;
+    font-style:normal;
+    font-display:swap;
+  }
+
   .backwards-italic,
   em,
   .spine .before,
@@ -344,18 +352,34 @@
 }
 #cyberscotoma > *{position:relative;z-index:1}
 #cyberscotoma .tool-name{
-  font-family:'Averia Sans Libre','Space Grotesk',system-ui,sans-serif;
-  font-size:22px;
-  font-weight:700;
+  font-family:"MudClub Franklin",'Averia Sans Libre','Space Grotesk',system-ui,sans-serif;
+  font-size:28px;
+  font-weight:400;
   letter-spacing:0;
-  color:#edf2e5;
-  text-shadow:
-    -1.4px 0 0 rgba(121,173,234,.70),
-    1.6px 0 0 rgba(232,91,82,.62),
-    0 0 18px rgba(240,221,95,.18);
+  line-height:.96;
+  color:transparent;
 }
-#cyberscotoma .tool-name .cy{color:#f0dd5f}
-#cyberscotoma .tool-name .scot{color:#79adea}
+#cyberscotoma .cs-title-stack{
+  position:relative;
+  display:inline-block;
+  white-space:nowrap;
+  isolation:isolate;
+}
+#cyberscotoma .cs-title-measure{visibility:hidden}
+#cyberscotoma .cs-title-plate{
+  position:absolute;
+  left:0;
+  top:0;
+  pointer-events:none;
+  opacity:.86;
+  mix-blend-mode:screen;
+}
+@supports (mix-blend-mode:plus-lighter){
+  #cyberscotoma .cs-title-plate{mix-blend-mode:plus-lighter}
+}
+#cyberscotoma .cs-title-red{color:#e85b52;transform:translate(1.5px,1px)}
+#cyberscotoma .cs-title-yellow{color:#f0dd5f;transform:translate(-.5px,0)}
+#cyberscotoma .cs-title-blue{color:#79adea;transform:translate(-2px,-1px)}
 #cyberscotoma .tool-op{color:#e85b52}
 #cyberscotoma:hover{border-color:#f0dd5f}
 
@@ -394,6 +418,39 @@
 }
 #hornofplenty .tool-op{color:#c6c24c}
 #hornofplenty:hover{border-color:#e8a93f}
+
+/* Remanence - VHS/tape print-through, first audio+video member */
+#remanence{
+  --accent:#e83a86;
+  --wash-a:rgba(232,58,134,.090);
+  --wash-b:rgba(60,200,224,.055);
+  --wash-c:rgba(15,9,24,.94);
+  --glow-a:rgba(232,58,134,.15);
+  --glow-b:rgba(184,243,38,.08);
+  border-color:#5d3952;
+}
+#remanence::after{
+  content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:
+    linear-gradient(118deg, transparent 0 18%, rgba(232,51,46,.12) 18% 24%, rgba(244,195,32,.11) 24% 30%, rgba(60,160,60,.09) 30% 36%, rgba(42,99,200,.10) 36% 42%, rgba(207,63,154,.12) 42% 48%, transparent 48% 100%),
+    radial-gradient(ellipse 58% 44% at 86% 16%, rgba(60,200,224,.12), transparent 68%);
+  filter:blur(6px) saturate(125%);opacity:.82;
+}
+#remanence > *{position:relative;z-index:1}
+#remanence .tool-name{
+  font-family:var(--mono);
+  font-size:20px;
+  font-weight:700;
+  letter-spacing:.09em;
+  color:#f6ecc9;
+  text-transform:uppercase;
+  text-shadow:
+    -1.5px 0 0 rgba(60,200,224,.62),
+    1.5px 0 0 rgba(232,58,134,.70),
+    0 0 18px rgba(184,243,38,.12);
+}
+#remanence .tool-op{color:#b8f326}
+#remanence:hover{border-color:#e83a86}
   .tool::before{
     content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--accent,var(--lumen));opacity:.0;transition:opacity .2s;
   }
@@ -555,7 +612,7 @@ h1.wordmark::before{
     </div>
     <div class="build">
       <span class="chip">suite index</span>
-      <span>04 instruments · live</span>
+      <span>06 instruments · live</span>
 
     </div>
   </header>
@@ -705,7 +762,14 @@ h1.wordmark::before{
     <a class="tool" href="/sgueltch/cyberscotoma/" style="--accent:#f0dd5f" aria-label="Open CyberScotoma" id="cyberscotoma">
       <div class="tool-top">
         <div>
-          <div class="tool-name"><span class="cy">Cyber</span><span class="scot">Scotoma</span></div>
+          <div class="tool-name" aria-label="CyberScotoma">
+            <span class="cs-title-stack" aria-hidden="true">
+              <span class="cs-title-measure">CyberScotoma</span>
+              <span class="cs-title-plate cs-title-red">CyberScotoma</span>
+              <span class="cs-title-plate cs-title-yellow">CyberScotoma</span>
+              <span class="cs-title-plate cs-title-blue">CyberScotoma</span>
+            </span>
+          </div>
         </div>
         <div class="tool-op">graft<span class="medium">video</span></div>
       </div>
@@ -740,6 +804,27 @@ h1.wordmark::before{
           <span class="p" title="whole-signal optimization">⑤</span>
         </div>
         <span class="open">open <span class="arr">→</span></span>
+      </div>
+    </a>
+
+    <!-- remanence -->
+    <a class="tool" href="/hindcasts/remanence/" style="--accent:#e83a86" aria-label="Open Remanence" id="remanence">
+      <div class="tool-top">
+        <div>
+          <div class="tool-name">Remanence</div>
+        </div>
+        <div class="tool-op">print<span class="medium">audio + video</span></div>
+      </div>
+      <p class="tool-desc">
+        Magnetic print-through as an instrument. The whole clip is wound onto a reel, so future and past wraps ghost
+        into one another as pre-echo, post-echo, and drifting VHS bleed.
+      </p>
+      <div class="tool-foot">
+        <div class="powers" aria-label="acausal powers used">
+          <span class="p" title="precognition">&#9312;</span>
+          <span class="p" title="bidirectionality">&#9314;</span>
+        </div>
+        <span class="open">open <span class="arr">&rarr;</span></span>
       </div>
     </a>
 
