@@ -37,29 +37,98 @@ body{font-family:var(--sans);color:var(--ink);
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 
 /* ---------- LOGO INTRO ---------- */
-#intro{position:fixed;inset:0;z-index:200;background:#000;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:20px;cursor:pointer;overflow:hidden}
+#intro{position:fixed;inset:0;z-index:200;background:#090713;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:20px;cursor:pointer;overflow:hidden;isolation:isolate}
+#intro::before{content:"";position:absolute;inset:0;z-index:0;
+  background:
+    radial-gradient(circle at 62% 35%,rgba(255,255,255,.2) 0 2%,rgba(255,210,63,.18) 3% 9%,transparent 22%),
+    radial-gradient(circle at 30% 74%,rgba(60,200,224,.2),transparent 28%),
+    linear-gradient(180deg,#120a24 0%,#281442 45%,#0b0914 100%);
+  filter:saturate(1.12)}
+#intro::after{content:"";position:absolute;inset:-10%;z-index:5;pointer-events:none;opacity:.18;
+  background:
+    repeating-linear-gradient(0deg,rgba(255,255,255,.16) 0 1px,transparent 1px 6px),
+    radial-gradient(ellipse at center,transparent 0 58%,rgba(0,0,0,.72) 100%);
+  mix-blend-mode:soft-light}
 #intro.gone{opacity:0;transform:scale(1.04);pointer-events:none;transition:opacity .5s,transform .5s}
 #intro .rew{position:absolute;top:22px;left:24px;font-family:var(--pixel);font-size:26px;color:#22e3ff;
-  letter-spacing:.1em;text-shadow:0 0 8px #22e3ff}
-#intro .tc{position:absolute;top:22px;right:24px;font-family:var(--pixel);font-size:26px;color:#fff;letter-spacing:.08em}
-#intro .bars{position:absolute;top:0;left:0;right:0;height:10px;background:var(--stripe)}
-#intro .barsB{position:absolute;bottom:0;left:0;right:0;height:10px;background:var(--stripe)}
+  letter-spacing:.1em;text-shadow:0 0 8px #22e3ff;z-index:7}
+#intro .tc{position:absolute;top:22px;right:24px;font-family:var(--pixel);font-size:26px;color:#fff;letter-spacing:.08em;z-index:7}
+#intro .bars{position:absolute;top:0;left:0;right:0;height:10px;background:var(--stripe);z-index:8}
+#intro .barsB{position:absolute;bottom:0;left:0;right:0;height:10px;background:var(--stripe);z-index:8}
 #intro .logo{font-family:var(--disp);font-size:clamp(44px,13vw,150px);line-height:.82;color:#fff;
-  position:relative;font-weight:800;letter-spacing:0;animation:track 2.6s steps(60) infinite}
+  position:relative;font-weight:800;letter-spacing:0;animation:track 2.6s steps(60) infinite;z-index:7;
+  text-shadow:0 10px 34px rgba(0,0,0,.62),0 0 22px rgba(255,255,255,.18)}
 #intro .logo::before,#intro .logo::after{content:"REMANENCE";position:absolute;inset:0;mix-blend-mode:screen}
 #intro .logo::before{color:#ff2d7e;animation:sepl 1.1s infinite alternate}
 #intro .logo::after{color:#22e3ff;animation:sepr 1.3s infinite alternate}
 #intro .sub{font-family:var(--pixel);font-size:clamp(16px,3vw,26px);color:#b8f326;letter-spacing:.32em;
-  text-transform:uppercase;text-shadow:0 0 10px rgba(184,243,38,.5)}
-#intro .hint{position:absolute;bottom:28px;font-family:var(--pixel);font-size:20px;color:#8f95c9;letter-spacing:.2em}
+  text-transform:uppercase;text-shadow:0 0 10px rgba(184,243,38,.5);z-index:7}
+#intro .hint{position:absolute;bottom:28px;font-family:var(--pixel);font-size:20px;color:#c7cdfa;letter-spacing:.2em;z-index:7;
+  text-shadow:0 2px 10px rgba(0,0,0,.75)}
 #intro .roll{position:absolute;left:0;right:0;height:26%;top:-30%;
-  background:linear-gradient(180deg,transparent,rgba(255,255,255,.06),transparent);animation:roll 3.4s linear infinite}
+  background:linear-gradient(180deg,transparent,rgba(255,255,255,.06),transparent);animation:roll 3.4s linear infinite;z-index:6}
+.intro-art{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden}
+.intro-art::before{content:"";position:absolute;inset:8% 7%;border:1px solid rgba(255,255,255,.16);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.32),0 0 42px rgba(255,45,126,.12)}
+.intro-art::after{content:"";position:absolute;left:5vw;right:5vw;top:13vh;height:44vh;opacity:.22;
+  background:
+    linear-gradient(90deg,transparent 0 9%,rgba(255,255,255,.42) 9% 9.35%,transparent 9.35% 48%,rgba(255,255,255,.32) 48% 48.25%,transparent 48.25%),
+    repeating-linear-gradient(90deg,rgba(255,255,255,.16) 0 1px,transparent 1px 72px);
+  mix-blend-mode:screen}
+.sunburst{position:absolute;width:122vmax;height:122vmax;left:58%;top:31%;transform:translate(-50%,-50%) rotate(-12deg);
+  background:
+    repeating-conic-gradient(from -8deg,rgba(255,255,255,.32) 0deg 2.2deg,transparent 2.2deg 7.6deg),
+    radial-gradient(circle,rgba(255,236,185,.5) 0 3%,rgba(255,138,30,.2) 4% 12%,transparent 27%);
+  mask-image:radial-gradient(circle,rgba(0,0,0,.95) 0 14%,rgba(0,0,0,.35) 34%,transparent 62%);
+  opacity:.62;mix-blend-mode:screen;animation:burstDrift 9s ease-in-out infinite alternate}
+.sunblob{position:absolute;width:clamp(230px,34vw,520px);aspect-ratio:1;left:56%;top:30%;transform:translate(-50%,-50%) rotate(-9deg);
+  border-radius:55% 45% 61% 39% / 45% 58% 42% 55%;
+  background:
+    radial-gradient(circle at 32% 24%,#fff6d5 0 10%,transparent 11%),
+    radial-gradient(circle at 70% 72%,rgba(42,42,143,.88),transparent 36%),
+    var(--orb);
+  box-shadow:0 0 0 8px rgba(255,255,255,.08),0 0 50px rgba(255,45,126,.32),0 0 90px rgba(60,200,224,.18);
+  mix-blend-mode:screen;animation:blobBreathe 6.5s ease-in-out infinite alternate}
+.sunblob::before{content:"";position:absolute;inset:9%;border-radius:inherit;
+  background:repeating-linear-gradient(168deg,rgba(255,255,255,.18) 0 5px,transparent 5px 18px);
+  mix-blend-mode:overlay}
+.sunblob::after{content:"";position:absolute;inset:-20%;border-radius:inherit;
+  background:radial-gradient(circle,rgba(255,255,255,.34),transparent 48%);filter:blur(18px);z-index:-1}
+.horizon{position:absolute;left:-5%;right:-5%;bottom:-8%;width:110%;height:72%;filter:drop-shadow(0 -18px 28px rgba(255,255,255,.08))}
+.horizon .rib{stroke:rgba(255,255,255,.2);stroke-width:2;vector-effect:non-scaling-stroke}
+.horizon .r1{fill:#f6ecc9;opacity:.88}
+.horizon .r2{fill:#ffd23f;opacity:.9}
+.horizon .r3{fill:#ff8a1e;opacity:.9}
+.horizon .r4{fill:#ef2b3a;opacity:.9}
+.horizon .r5{fill:#d81f8c;opacity:.92}
+.horizon .r6{fill:#2a2a8f;opacity:.95}
+.horizon .glint{fill:none;stroke:rgba(255,255,255,.52);stroke-width:2.5;stroke-dasharray:160 56;vector-effect:non-scaling-stroke;
+  mix-blend-mode:screen;animation:ribbonGlint 5.5s linear infinite}
 @keyframes sepl{from{transform:translate(-3px,1px)}to{transform:translate(-6px,-2px)}}
 @keyframes sepr{from{transform:translate(3px,-1px)}to{transform:translate(7px,2px)}}
 @keyframes track{0%,92%,100%{clip-path:none;transform:none}93%{transform:translateY(-3px)}
   94%{clip-path:inset(30% 0 40% 0);transform:translateX(6px)}95%{clip-path:none;transform:none}}
 @keyframes roll{from{top:-30%}to{top:120%}}
+@keyframes blobBreathe{from{border-radius:55% 45% 61% 39% / 45% 58% 42% 55%;transform:translate(-50%,-50%) rotate(-9deg) scale(.98)}
+  to{border-radius:46% 54% 43% 57% / 58% 43% 57% 42%;transform:translate(-50%,-50%) rotate(6deg) scale(1.03)}}
+@keyframes burstDrift{from{transform:translate(-50%,-50%) rotate(-15deg) scale(.98)}
+  to{transform:translate(-50%,-50%) rotate(-5deg) scale(1.02)}}
+@keyframes ribbonGlint{from{stroke-dashoffset:0}to{stroke-dashoffset:-432}}
+@media(max-width:680px){
+  #intro{gap:14px}
+  #intro .rew,#intro .tc{top:18px;font-size:22px}
+  #intro .rew{left:16px}
+  #intro .tc{right:16px}
+  #intro .sub{letter-spacing:.22em}
+  #intro .hint{bottom:24px;font-size:18px}
+  .intro-art::before{inset:9% 5%}
+  .sunblob{width:clamp(220px,72vw,360px);left:58%;top:32%}
+  .horizon{height:66%;bottom:-6%}
+}
+@media(prefers-reduced-motion:reduce){
+  #intro .logo,#intro .logo::before,#intro .logo::after,#intro .roll,.sunblob,.sunburst,.horizon .glint{animation:none}
+}
 
 /* ---------- FULLSCREEN DROP ---------- */
 #fsdrop{position:fixed;inset:0;z-index:150;display:none;align-items:center;justify-content:center;
@@ -129,6 +198,10 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
 .presets button{font-family:var(--pixel);font-size:18px;color:var(--ink);background:#fff;
   border:1px solid var(--line);border-radius:8px;padding:2px 11px;cursor:pointer;transition:.15s;letter-spacing:.04em}
 .presets button:hover{border-color:var(--ink);background:var(--ink);color:var(--paper3)}
+.toggle{font-family:var(--pixel);font-size:16px;color:var(--ink);background:#fff;border:1px solid var(--line);
+  border-radius:8px;padding:2px 12px;cursor:pointer;letter-spacing:.06em;transition:.15s}
+.toggle:hover{border-color:var(--ink)}
+.toggle.on{background:var(--volt);border-color:var(--ink);color:var(--ink);box-shadow:0 0 0 2px rgba(184,243,38,.4)}
 
 /* stage / screens (nocturnal) */
 .stage{display:flex;flex-direction:column;gap:14px}
@@ -168,7 +241,21 @@ footer{margin-top:26px;font-family:var(--mono);font-size:10.5px;color:#d8c7f0;te
   <div class="bars"></div><div class="barsB"></div>
   <div class="rew">◀◀ BE KIND REWIND</div>
   <div class="tc" id="introTc">SP 0:00:00</div>
-  <div class="roll"></div>
+  <div class="roll"></div><!--
+  <div class="intro-art" aria-hidden="true">
+    <div class="sunburst"></div>
+    <div class="sunblob"></div>
+    <svg class="horizon" viewBox="0 0 1200 760" preserveAspectRatio="none" focusable="false">
+      <path class="rib r1" d="M-80 416 C100 376 214 388 360 354 C548 310 696 344 866 284 C1020 230 1120 212 1280 222 L1280 264 C1110 252 1016 278 875 330 C704 394 548 356 368 404 C206 447 88 426 -80 474 Z"/>
+      <path class="rib r2" d="M-80 474 C88 426 206 447 368 404 C548 356 704 394 875 330 C1016 278 1110 252 1280 264 L1280 330 C1104 310 1014 348 884 392 C705 454 536 412 374 464 C206 520 76 494 -80 548 Z"/>
+      <path class="rib r3" d="M-80 548 C76 494 206 520 374 464 C536 412 705 454 884 392 C1014 348 1104 310 1280 330 L1280 424 C1102 396 1014 452 892 494 C704 558 526 504 382 568 C218 640 64 602 -80 662 Z"/>
+      <path class="rib r4" d="M-80 662 C64 602 218 640 382 568 C526 504 704 558 892 494 C1014 452 1102 396 1280 424 L1280 552 C1100 514 1016 590 898 628 C702 692 530 624 390 704 C250 784 80 728 -80 784 Z"/>
+      <path class="rib r5" d="M-80 784 C80 728 250 784 390 704 C530 624 702 692 898 628 C1016 590 1100 514 1280 552 L1280 704 C1088 666 1012 762 900 804 C730 868 548 784 398 884 C262 974 92 900 -80 952 Z"/>
+      <path class="rib r6" d="M-80 952 C92 900 262 974 398 884 C548 784 730 868 900 804 C1012 762 1088 666 1280 704 L1280 920 L-80 920 Z"/>
+      <path class="glint" d="M-60 510 C120 452 238 480 380 436 C548 384 710 426 884 356 C1016 302 1116 284 1260 292"/>
+      <path class="glint" d="M-60 678 C92 622 224 652 390 580 C534 516 706 572 894 506 C1016 464 1100 412 1260 438"/>
+    </svg>
+  </div>-->
   <div class="logo">REMANENCE</div>
   <div class="sub">tape print-through effect</div>
   <div class="hint">▶ PLAY — click to enter</div>
@@ -220,6 +307,9 @@ footer{margin-top:26px;font-family:var(--mono);font-size:10.5px;color:#d8c7f0;te
         <div class="ctl"><div class="row"><label>Fold — cross-print</label><span class="val" id="vFold">0 <small>%</small></span></div>
           <input type="range" id="fold" min="0" max="100" value="0">
           <div class="arrowlab"><span>single spiral</span><span>ends cross-print</span></div></div>
+        <div class="ctl"><div class="row"><label>Loop — toroidal splice</label>
+          <button class="toggle" id="loop" aria-pressed="false">OPEN TAPE</button></div>
+          <div class="arrowlab"><span>tape has ends</span><span>ends spliced — echo wraps</span></div></div>
         <div class="ctl"><div class="row"><label>Wear — occupancy</label><span class="val" id="vWear">0 <small>%</small></span></div>
           <input type="range" id="wear" min="0" max="100" value="0">
           <div class="arrowlab"><span>clean oxide</span><span>HF erase + dropout</span></div></div>
@@ -244,6 +334,7 @@ footer{margin-top:26px;font-family:var(--mono);font-size:10.5px;color:#d8c7f0;te
           <button data-p="fold">REEL-FOLD</button>
           <button data-p="dub">DUB-LOSS</button>
           <button data-p="longfold">LONG-FOLD</button>
+          <button data-p="cartridge">CARTRIDGE</button>
           <button data-p="swarm">PRE-SWARM</button>
           <button data-p="melt">MELT</button>
         </div>
@@ -289,7 +380,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 const intro=document.getElementById('intro'), introTc=document.getElementById('introTc');
 let it=0; const itiv=setInterval(()=>{it++;introTc.textContent='SP 0:00:'+('0'+(it%60)).slice(-2);},1000);
 const killIntro=()=>{intro.classList.add('gone');clearInterval(itiv);setTimeout(()=>intro.remove(),600);};
-intro.addEventListener('click',killIntro); setTimeout(killIntro,3200);
+intro.addEventListener('click',killIntro); setTimeout(killIntro,4200);
 
 /* ---------- refs ---------- */
 const $=id=>document.getElementById(id);
@@ -303,7 +394,8 @@ let srcBuf=null, wetBuf=null, ac=null, node=null, playT0=0, playing=false, raf=0
 // video state
 let vEl=null, vFrames=null, vOut=null, vN=0, vW=0, vH=0, vFps=15, vTimer=0, vIdx=0;
 const VMAXW=360, VMAXFRAMES=240;   // downscale + cap for the prototype
-const P={print:0.6,wraps:6,wind:-0.45,wrap:0.060,grow:0.120,fold:0.0,wear:0.0,flow:0.0,track:0.0,fall:0.70,tilt:1800,dry:1.0};
+const P={print:0.6,wraps:6,wind:-0.45,wrap:0.060,grow:0.120,fold:0.0,wear:0.0,flow:0.0,track:0.0,fall:0.70,tilt:1800,dry:1.0,loop:0};
+let LOOP=0;   // toroidal splice: when set, out-of-range tap reads wrap modular across the reel seam
 
 /* ---------- controls ---------- */
 const fmt={
@@ -337,12 +429,19 @@ const presets={
   dub:     {print:78,wraps:10,wind:35,wrap:130,grow:210,fold:20,wear:52,flow:35,track:42,fall:74,tilt:700,dry:82},
   longfold:{print:105,wraps:18,wind:-55,wrap:210,grow:500,fold:90,wear:58,flow:42,track:24,fall:90,tilt:12000,dry:85},
   swarm:   {print:110,wraps:22,wind:-85,wrap:38,grow:180,fold:35,wear:36,flow:28,track:16,fall:88,tilt:9000,dry:95},
+  cartridge:{print:70,wraps:8,wind:10,wrap:90,grow:60,fold:0,wear:24,flow:30,track:14,fall:78,tilt:1400,dry:100,loop:1},
   melt:    {print:135,wraps:24,wind:-20,wrap:300,grow:500,fold:60,wear:92,flow:86,track:78,fall:96,tilt:350,dry:75},
 };
 document.querySelectorAll('.presets button').forEach(b=>b.addEventListener('click',()=>{
   const p=presets[b.dataset.p];
-  Object.keys(p).forEach(k=>{const inp=$(k);inp.value=p[k];inp.dispatchEvent(new Event('input'));});
+  Object.keys(p).forEach(k=>{ if(k==='loop')return; const inp=$(k);inp.value=p[k];inp.dispatchEvent(new Event('input'));});
+  setLoop(p.loop?1:0);   // presets without a loop key reset to open tape
 }));
+function setLoop(v){ P.loop=v?1:0; const btn=$('loop');
+  btn.setAttribute('aria-pressed',P.loop?'true':'false');
+  btn.textContent=P.loop?'CIRCLE LOOP':'OPEN TAPE';
+  btn.classList.toggle('on',!!P.loop); markStale(); }
+$('loop').addEventListener('click',()=>setLoop(P.loop?0:1));
 
 /* ---------- file intake (click + zone-drop + fullscreen-drop) ---------- */
 const drop=$('drop'), fileInp=$('file'), fsdrop=$('fsdrop');
@@ -505,7 +604,7 @@ function boxBlur3(buf,W,H,r){
   }
 }
 async function renderVideo(){
-  if(!vFrames) return; stopPlay();
+  if(!vFrames) return; stopPlay(); LOOP=P.loop;
   const depth=P.wraps, fall=P.fall, print=P.print, dry=P.dry, a=(1-P.wind)/2, b=(1+P.wind)/2;
   const wrap0=P.wrap*vFps, growF=P.grow*vFps, fold=P.fold;   // reel period in FRAMES
   const g=new Float32Array(depth+1); for(let k=1;k<=depth;k++) g[k]=Math.pow(fall,k-1);
@@ -519,7 +618,10 @@ async function renderVideo(){
   const wearMap=buildVideoWearMap(depth,fall,wrap0,growF,fold);
   const flowMap=buildFlowMap(vN,vFps,P.flow,wearMap,'video');
   vOut=new Array(vN); setStatus('winding the reel…'); $('render').disabled=true;
-  const frameAt=n=>{ n=Math.round(n+(flowMap?sampleAt(flowMap,n):0)); return (n>=0&&n<vN)?vFrames[n]:null; };
+  const frameAt=n=>{ n=Math.round(n+(flowMap?sampleAt(flowMap,n):0));
+    if(n>=0&&n<vN) return vFrames[n];
+    if(LOOP>0) return vFrames[((n%vN)+vN)%vN];   // circle loop — frame reads wrap across the splice
+    return null; };
   for(let n=0;n<vN;n++){
     const src=frameAt(n)||vFrames[n], o=new Uint8ClampedArray(px), gh=new Float32Array(gpx), wearFrame=wearMap?wearMap[n]*P.wear:0;
     const E=1+slope*n/wrap0, Ef=Etot/E, m=vN-n;
@@ -619,7 +721,12 @@ async function exportWebM(){
    out[n] = dry*x[n] + Print * LPtilt( Σ_k fall^(k-1) ( a·x[n+kT(n)] + b·x[n-kT(n)] ) )
    T(n)=(wrap+grow·progress) samples — reel period drifts hub→rim across the clip
    a=anticipation share, b=wake share, from wind (-1 pre .. +1 post)                       */
-function sampleAt(x,pos){ if(pos<0||pos>x.length-1) return 0; const i=pos|0,f=pos-i; return i>=x.length-1?x[x.length-1]:x[i]*(1-f)+x[i+1]*f; }
+function sampleAt(x,pos){ const N=x.length;
+  if(pos>=0&&pos<=N-1){ const i=pos|0,f=pos-i; return i>=N-1?x[N-1]:x[i]*(1-f)+x[i+1]*f; }
+  if(LOOP<=0) return 0;                              // open tape — silence past the ends
+  const wp=((pos%N)+N)%N, i=wp|0, f=wp-i, j=(i+1)%N; // circle loop — read wraps across the splice
+  return x[i]*(1-f)+x[j]*f;
+}
 function flowSample(x,pos,flowMap){ return sampleAt(x,pos+(flowMap?sampleAt(flowMap,pos):0)); }
 function buildAudioWearMap(channels,sr,N,depth,fall,wrap0,growS,fold,slope,lin,O0s,ek,Etot){
   if(P.wear<=0) return null;
@@ -655,7 +762,7 @@ function shedLoss(n,wear){
   return Math.min(0.92,0.22*Math.pow(wear,1.7)+0.78*scar*wear);
 }
 async function render(){
-  if(!srcBuf) return; stopPlay();
+  if(!srcBuf) return; stopPlay(); LOOP=P.loop;
   const sr=srcBuf.sampleRate, N=srcBuf.length, ch=srcBuf.numberOfChannels;
   const out=ac.createBuffer(ch,N,sr);
   const wrap0=P.wrap*sr, growS=P.grow*sr, depth=P.wraps, fall=P.fall, tilt=P.tilt, print=P.print, dry=P.dry;
@@ -791,12 +898,21 @@ function drawReel(){
   g.globalAlpha=1;
   g.fillStyle=cssv('--screen2');g.beginPath();g.arc(cx,cy,hub,0,7);g.fill();
   g.strokeStyle='#b8f326';g.lineWidth=2;g.beginPath();g.arc(cx,cy,hub,0,7);g.stroke();
+  if(P.loop){                                   // toroidal splice — closed reel ring + seam tick
+    const rMid=(hub+rimMax)/2;
+    g.strokeStyle=cssv('--volt')||'#b8f326'; g.globalAlpha=.9; g.lineWidth=2.5;
+    g.beginPath(); g.arc(cx,cy,rMid,0.16,Math.PI*2-0.16); g.stroke();
+    g.strokeStyle='#fff'; g.lineWidth=1.5; g.beginPath();
+    g.moveTo(cx+(rMid-8),cy); g.lineTo(cx+(rMid+8),cy); g.stroke();
+    g.globalAlpha=1;
+  }
   const a=(1-P.wind)/2;
   g.font='11px "Space Mono"'; g.fillStyle=cssv('--screenmute');
   g.fillText('pre '+Math.round(a*100)+'%',12,h-14);
   g.fillText('post '+Math.round((1-a)*100)+'%',w-84,h-14);
   const wearTxt='wear '+Math.round(P.wear*100)+'% / flow '+Math.round(P.flow*100)+'% / VHS '+Math.round(P.track*100)+'%';
-  const wrapLabel=w<460?wearTxt:'wraps '+P.wraps+' / hub '+((P.wrap*1000)|0)+'ms / '+wearTxt;
+  const geo=P.loop?'⟳ loop':'spiral';
+  const wrapLabel=w<460?geo+' / '+wearTxt:geo+' · wraps '+P.wraps+' / hub '+((P.wrap*1000)|0)+'ms / '+wearTxt;
   const badgeW=Math.min(w-24,g.measureText(wrapLabel).width+18);
   g.fillStyle='rgba(7,8,15,.78)';
   g.fillRect(10,h-52,badgeW,24);

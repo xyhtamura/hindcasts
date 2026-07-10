@@ -103,9 +103,10 @@ Every control affects **both** media. Only **Tilt** changes mechanism between th
 | **Tilt** | print LF bias | temporal low-pass | **ghost box-blur** |
 | **Dry** | dry blend | ✓ | ✓ |
 
-Presets walk the continuum: **FAITHFUL** (subtle real remanence) → **HAUNTING** → **REEL-FOLD**
-(overdriven, long drift) → **PRE-SWARM** (dense anticipation comb). No mode switch — faithful and
-hyperreal are the same engine at different ranges.
+Presets walk the continuum: **FAITHFUL** (subtle real remanence) → **HAUNTING** → **TAIL-OUT** →
+**ZERO-PHASE** → **REEL-FOLD** (overdriven, long drift) → **DUB-LOSS** → **LONG-FOLD** → **PRE-SWARM**
+(dense anticipation comb) → **MELT**. No mode switch — faithful and hyperreal are the same engine at
+different ranges.
 
 **MELT — the Sgueltch crossover (future zone, not a new home).** The far end of the continuum tips
 into Sgueltch territory, but *louder print-through ≠ melt* — a dense comb is still analog-nostalgic /
@@ -158,7 +159,9 @@ hinge status, opposite primary homes.
 ## status
 
 **Shipped (prototype):** print-through spine, audio + video, both from one reel. Reel knobs
-(Print / Wraps / Wind / Wrap / Growth / Fold / Wear / Flow / Tracking / Falloff / Tilt / Dry), FAITHFUL→PRE-SWARM presets, the
+(Print / Wraps / Wind / Wrap / Growth / Fold / Wear / Flow / Tracking / Falloff / Tilt / Dry), nine
+FAITHFUL→MELT presets (FAITHFUL / HAUNTING / TAIL-OUT / ZERO-PHASE / REEL-FOLD / DUB-LOSS / LONG-FOLD /
+PRE-SWARM / MELT), the
 sunset-orb + Luminoid-stripe VHS shell (fused day↔night, clean previewer), WAV export (audio),
 WebM export (video), fullscreen drag-drop.
 
@@ -175,7 +178,13 @@ locked to the shared VHS substrate.
 
 **Next moves:**
 1. **Modulation noise / hiss** — amplitude-riding floor, ideally driven by the same wear/transport map.
-2. **Other media as coupling geometries** — vinyl (play-count groove wear), optical film (spatial
+2. **Non-Archimedean reels** — impossible spirals no physical tape allows. Circle-loop (taps wrap
+   modular, `(n±kT) mod N` — clip end prints onto beginning, toroidal echo). Negative-grow collapse
+   (shrinking wraps hub→rim; offset hits zero at a singularity where all echoes converge on the
+   playhead, then flips pre/post past it). General reel law (replace the closed-form linear O(x) with
+   a tabulated/inverted W(n) from any user-drawn O(x) curve — logarithmic, hyperbolic, Fermat spirals,
+   sounder-style redrawable profile). Dequantizes the reel geometry itself.
+3. **Other media as coupling geometries** — vinyl (play-count groove wear), optical film (spatial
    strip position), etc. Each a different time↔material coupling, not an EQ preset.
 
 *spine: the tape remembers forward.*

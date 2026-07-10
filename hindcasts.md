@@ -185,10 +185,12 @@ drop, clean previewer. Full spec: `remanence/remanence.md`.
 > **Non-local reel-fold shipped:** true Archimedean-spiral geometry (k-th neighbour = same phase,
 > k wraps out — taps spread outward / bunch inward) + a **Fold** control coupling across the reel
 > mirror, so clip-distant / reel-adjacent moments cross-print. Closed-form (e^{s·W(n)}=1+s·n/O₀), both
-> media. Still deferred garnish: wow/flutter, HF self-erasure (climax dulls itself), map-driven dropout,
-> head-switch (the one *grid*, framerate-locked) — cranked, these are the **MELT** Sgueltch-crossover
-> zone. VHS Hi-Fi (audio FM-encoded via the video heads) is where the suite's audio↔video asymmetry
-> physically collapses — the reason this member is a/v at all.
+> media. **Shipped since:** wow/flutter (shared transport warp, both media), HF self-erasure (climax
+> dulls itself, occupancy-driven), map-driven dropout, head-switch (the one *grid*, framerate-locked +
+> whoosh). Cranked, these are the **MELT** Sgueltch-crossover zone — a preset now, not a future zone.
+> VHS Hi-Fi (audio FM-encoded via the video heads) is where the suite's audio↔video asymmetry
+> physically collapses — the reason this member is a/v at all. Next: modulation noise/hiss off the same
+> wear/transport map; other media as coupling geometries (vinyl groove wear, optical-film strip).
 
 ---
 
@@ -206,7 +208,7 @@ print-through; analog-magnetic, not biologically organic).
 ## adjacencies (don't re-derive these later)
 
 - **CyberScotoma** is the bridge to Sgueltch: a biological visual-field lesion that becomes a precognitive video graft. It carries the shared control/source input into cross-clip donor tissue and keeps the datamosh artifact non-grid by refusing macroblock inheritance.
-- **Pythia** is the flagship — paracognitive granular delay. The control/source dual input is the **shared interface for the whole suite**: one signal donates structure or statistics, the other is the body it gets done to.
+- **Pythia** is the flagship — paracognitive granular delay. Its control/source dual input is the **shared interface for the whole suite**: source is the body/dry signal; control is the sidechain or structure donor, with Phase-2 polarity (follow/off/duck), gate shape, lookahead, and optional monitor. Statistics-donor modes (histogram transfer) should reuse this input, not invent a third lane.
 - **ooid** is kin: a codec whose damage is organic *because it's globally fitted* (anisotropic Gaussian sediment). The anticipatory-flow and negative-space ideas share its logic — a Hindcast video member and an ooid corruption pass may be the same gesture seen from two sides.
 - **Quantization thesis / Concordia retry:** the audio↔video asymmetry is the cleanest available demonstration of the contingency argument — better than the SOFAR material because it's a controlled comparison, not a reading. The Pacific/oceanic frame is *in the name itself* (hindcast = wave-field reconstruction; ties to wave-propagation undergrad work).
 - **The rack is a shared *pattern*, not a shared host.** Each app gets its own isolated rack of its own cell-type — same shape (collapsible DAG; select a cell to reveal its internals), reinstantiated per app. The offline commitment makes it cheap: topological render, every intermediate stage cached and instantly scrubbable. Homogeneous-audio cross-app (Pythia→Sounder) is the near reach; a/v cross-app is parked.
@@ -227,7 +229,7 @@ print-through; analog-magnetic, not biologically organic).
 
 **Shipped:**
 - **`cyberscotoma`** - shipped at `https://xyhtamura.github.io/sgueltch/cyberscotoma/`. The scintillating-scotoma graft: non-grid Voronoi hold regions, drawn bloom, motion-field advect, acausal donor offset, cross-clip donor, cached offline render, WebM export.
-- **`pythia`** — flagship. Paracognitive granular delay; the control/source dual input that's the shared interface for the whole suite.
+- **`pythia`** — flagship. Paracognitive granular delay; **full delay rebuild shipped and verified** (all five roadmap phases, 2026-07-10): signed Time with ⥀/𓆙 loop semantics, Scatter (regular↔granular axis), feedback + damping, polarity sidechain (follow/off/duck + gate + lookahead) with Pneuma (Classic) preserving the old control-audible follow mode, BPM sync, pitch/pan spray + ping-pong, and a **deterministic sample-domain Bounce WAV** — byte-reproducible, bidirectional clip extension (pre-echo head / ring-out tail), true acausal peak ceiling. Carry-forwards in `pythia/pythia-roadmap.md` (Worker offload, user ring room, preset shelf).
 - **`sounder`** — the **distribution operator**: frequency-distribution × dB-distribution-per-region. **Multiband shipped** — per-band τ/curve/floor, linear-phase perfect-reconstruction split, regime-field across frequency. Time-occupancy depth chart + redrawable transfer curve per band; RMS-window-as-regime-slider (waveshape → compression → normalizing). Now growing toward a **racked mastering tool** (cell / host refactor next).
 - **`prolepsis`** — the anticipation member (video), via the feedback-field route. Wake / anticipation / symmetric stances; acausal scrubbing.
 - **`remanence`** — the **print-through reel**; the suite's first **audio+video** member. Whole-file acausal multi-tap with negative (pre-echo) taps; reel geometry drifts the echo hub→rim; Wind = pre/post time-arrow. Video = same reel over frames + Tilt-as-ghost-blur. FAITHFUL→PRE-SWARM continuum, WAV/WebM export. Hindcasts-home / Sgueltch-kin (see placement rule). Spec: `remanence/remanence.md`.
@@ -238,7 +240,7 @@ print-through; analog-magnetic, not biologically organic).
 2. **Histogram-waveshaper presets** — the automatic CDF-onto-target warps (uniform / Gaussian / arcsine / another-file's-histogram) as one-click modes inside `sounder` (now per-band), plus the cross-file version on Pythia's control/source input. Closes the audio↔image histogram loop.
 3. **Lloyd–Max quantizer** — load-bearing for the larger argument; the quantization thesis as a playable object. Optimal (equal-population) bins vs *inverted* (max-damage) bins.
 4. **Dense anticipatory optical flow** — the harder video build `prolepsis` gestures at: per-pixel flow fit to the whole clip, run backward. The one that's still genuinely unseen.
-5. **`remanence` → occupancy wear map** — whole-file-statistic wear placement (HF self-erasure, dropout), pulling the sounder depth-chart machinery into a video-capable member; then wow/flutter garnish (first rung to the MELT zone) and other media as coupling geometries (vinyl play-count, optical-film strip position). *(Non-local reel-fold — Archimedean-spiral geometry + the Fold cross-print control — is **shipped**, both media.)*
+5. **`remanence` → modulation noise/hiss + non-Archimedean reels** — amplitude-riding floor off the existing wear/transport map; then impossible reel geometries beyond the physical Archimedean spiral (circle-loop / negative-grow collapse / user-drawn reel law) as the next dequantization move; then other media as coupling geometries (vinyl play-count, optical-film strip position). *(Occupancy wear map, wow/flutter, head-switch, and non-local reel-fold are all **shipped**, both media.)*
 
 ---
 
