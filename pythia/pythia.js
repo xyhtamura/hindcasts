@@ -79,7 +79,7 @@ window.onload = () => {
     let sourceBuffer         = null;
     let externalSourceBuffer = null;
     let controlSourceNode    = null;
-    let sourceNode           = null;   // continuous source playback for the clean tap
+    let sourceNode           = null;   // source playback for the clean tap
     let analyserNode         = null;
     let controlRmsEnvelope   = [];
 
@@ -229,24 +229,13 @@ window.onload = () => {
     let controlFileName      = '';
     let externalSourceFileName = '';
 
-    // Shared viz timeline [vizT0, vizT1] in seconds. The original clip is [0, D];
-    // head = pre-echo room (negative time), tail = feedback ring-out estimate. The
-    // clip is drawn into a sub-range so head/tail extension zones are visible.
+    // Shared viz timeline [vizT0, vizT1] in seconds. The visual clips stay anchored:
+    // Time moves the AMP envelope and SRC read dots, not the viewport itself.
     let vizT0 = 0, vizT1 = 1;
     const computeVizWindow = () => {
         const D = controlBuffer ? controlBuffer.duration : 1;
-        let head = Math.max(0, -params.time);
-        let tail = Math.max(0, params.time);
-        if (params.feedback > 0.01) {
-            const f       = Math.min(0.95, params.feedback);
-            const repeats = Math.log(0.001) / Math.log(f);          // passes to -60 dB
-            const step    = Math.max(0.05, Math.abs(params.time));
-            const room    = Math.min(8, repeats * step);
-            if (params.time < 0) head += room;
-            else tail += room;
-        }
-        vizT0 = -head;
-        vizT1 = D + tail;
+        vizT0 = 0;
+        vizT1 = D;
     };
     const tToX = (t, w) => ((t - vizT0) / (vizT1 - vizT0)) * w;
     const xToT = (x, w) => vizT0 + (x / Math.max(1, w)) * (vizT1 - vizT0);
@@ -290,13 +279,21 @@ window.onload = () => {
         return controlRmsEnvelope[idx];
     };
 
+    const ampEnvelopeTime = (outputT) => outputT - params.time - params.sidechainLookahead;
+    const sidechainRawAtOutputTime = (outputT) => {
+        if (!controlBuffer) return 0;
+        const t = ampEnvelopeTime(outputT);
+        if (loopClip) return rawRmsAtTime(wrapSeconds(t, controlBuffer.duration));
+        if (t < 0 || t >= controlBuffer.duration) return 0;
+        return rawRmsAtTime(t);
+    };
+
     // ── Waveform cache ────────────────────────────────────────────────────────
     // Builds an offscreen canvas from buffer data. Canvas sizing is handled by
     // refreshWaveformCaches — this function only draws.
-    // fitClip = true draws the buffer into the shared-timeline clip sub-range and
-    // shades the head/tail extension zones with boundary markers. fitClip = false
-    // remains for any future full-width cache that intentionally owns its geometry.
-    const buildWaveformCache = (buffer, w, h, waveColor = 'rgba(88,178,168,0.5)', fitClip = true) => {
+    // fitClip = true draws the buffer into the shared-timeline clip sub-range.
+    // timeOffset shifts the waveform in output time: positive = later/right.
+    const buildWaveformCache = (buffer, w, h, waveColor = 'rgba(88,178,168,0.5)', fitClip = true, timeOffset = 0, wrapRead = false) => {
         const off = document.createElement('canvas');
         off.width  = w;
         off.height = h;
@@ -312,11 +309,6 @@ window.onload = () => {
         ctx.fillRect(0, 0, w, h);
         ctx.fillStyle = '#111209';
         ctx.fillRect(xStart, 0, cw, h);
-        if (fitClip) {
-            ctx.fillStyle = 'rgba(216,104,64,0.06)';   // faint ember on head/tail
-            if (xStart > 0) ctx.fillRect(0, 0, xStart, h);
-            if (xEnd < w)   ctx.fillRect(xEnd, 0, w - xEnd, h);
-        }
 
         // centre line
         ctx.strokeStyle = 'rgba(51,55,32,0.7)';
@@ -328,19 +320,35 @@ window.onload = () => {
 
         // waveform into the clip sub-range: min/max per pixel column
         const data = buffer.getChannelData(0);
-        const step = Math.max(1, Math.floor(data.length / cw));
+        const shifted = Math.abs(timeOffset) > 1e-9 || wrapRead;
+        const secondsPerPx = Dref / cw;
+        const step = shifted
+            ? Math.max(1, Math.ceil(secondsPerPx * buffer.sampleRate))
+            : Math.max(1, Math.floor(data.length / cw));
 
         ctx.strokeStyle = waveColor;
         ctx.lineWidth = 1;
         ctx.beginPath();
         for (let px = 0; px < cw; px++) {
             let min = 1, max = -1;
-            const base = Math.floor((px / cw) * data.length);
-            const end  = Math.min(base + step, data.length);
-            for (let i = base; i < end; i++) {
-                if (data[i] < min) min = data[i];
-                if (data[i] > max) max = data[i];
+            const visibleT = (px / cw) * Dref;
+            const base = shifted
+                ? Math.floor((visibleT - timeOffset) * buffer.sampleRate)
+                : Math.floor((px / cw) * data.length);
+            let found = false;
+            for (let k = 0; k < step; k++) {
+                let idx = base + k;
+                if (wrapRead && data.length > 0) {
+                    idx = ((idx % data.length) + data.length) % data.length;
+                } else if (idx < 0 || idx >= data.length) {
+                    continue;
+                }
+                const v = data[idx];
+                if (v < min) min = v;
+                if (v > max) max = v;
+                found = true;
             }
+            if (!found) continue;
             const x    = xStart + px + 0.5;
             const yTop = ((1 - max) / 2) * h;
             const yBot = ((1 - min) / 2) * h;
@@ -376,7 +384,15 @@ window.onload = () => {
             if (delayCanvas) {
                 delayCanvas.width  = w;
                 delayCanvas.height = h;
-                ampWaveformCache   = buildWaveformCache(controlBuffer, w, h, 'rgba(216,104,64,0.6)');
+                ampWaveformCache   = buildWaveformCache(
+                    controlBuffer,
+                    w,
+                    h,
+                    'rgba(216,104,64,0.6)',
+                    true,
+                    params.time + params.sidechainLookahead,
+                    loopClip
+                );
             }
         }
         if (sourceBuffer && sourceCanvas) {
@@ -386,6 +402,9 @@ window.onload = () => {
             sourceCanvas.height = h;
             sourceWaveformCache = buildWaveformCache(sourceBuffer, w, h, 'rgba(88,178,168,0.5)');
         }
+        renderControlCanvas();
+        renderDelayCanvas();
+        renderSourceCanvas();
     };
 
     // ── Per-frame canvas rendering ────────────────────────────────────────────
@@ -418,9 +437,8 @@ window.onload = () => {
         ctx.fill();
     };
 
-    // Sidechain-lookahead / amplitude canvas.
-    // This track shares the ctrl/src timeline. The waveform stays fixed; the ember
-    // readhead shows which control envelope point shapes the grain at playback time.
+    // Amplitude canvas: the control-derived envelope after Time displacement.
+    // Positive Time nudges AMP later; negative Time pulls it earlier.
     const renderDelayCanvas = () => {
         if (!ampWaveformCache || !delayCanvas || !controlBuffer) return;
         const w   = delayCanvas.width;
@@ -430,39 +448,21 @@ window.onload = () => {
         ctx.drawImage(ampWaveformCache, 0, 0);
 
         const t = currentTransportTime();
-        const readT = ((t - params.sidechainLookahead) % controlBuffer.duration
-                       + controlBuffer.duration) % controlBuffer.duration;
-        const x     = tToX(t, w);
-        const readX = tToX(readT, w);
+        const x = tToX(t, w);
 
-        // Current transport time, same coordinate as ctrl/src.
-        ctx.strokeStyle = 'rgba(194,220,50,0.32)';
+        // Current output time against the delayed AMP envelope.
+        ctx.strokeStyle = 'rgba(216,104,64,0.85)';
         ctx.lineWidth   = 1;
         ctx.beginPath();
         ctx.moveTo(x, 0);
         ctx.lineTo(x, h);
         ctx.stroke();
 
-        // Sidechain readhead: this is the envelope sample actually shaping grains.
-        ctx.strokeStyle = 'rgba(216,104,64,0.85)';
-        ctx.lineWidth   = 1;
-        ctx.beginPath();
-        ctx.moveTo(readX, 0);
-        ctx.lineTo(readX, h);
-        ctx.stroke();
-
-        ctx.strokeStyle = 'rgba(216,104,64,0.28)';
-        ctx.lineWidth   = 1;
-        ctx.beginPath();
-        ctx.moveTo(x, h - 7);
-        ctx.lineTo(readX, h - 7);
-        ctx.stroke();
-
         ctx.fillStyle = '#d86840';
         ctx.beginPath();
-        ctx.moveTo(readX - 4, 0);
-        ctx.lineTo(readX + 4, 0);
-        ctx.lineTo(readX,     6);
+        ctx.moveTo(x - 4, 0);
+        ctx.lineTo(x + 4, 0);
+        ctx.lineTo(x,     6);
         ctx.closePath();
         ctx.fill();
     };
@@ -494,7 +494,7 @@ window.onload = () => {
             const ampFactor = Math.min(1, Math.max(0, g.amplitude ?? currentAmplitude));
             const alpha  = (1 - age) * 0.9 * ampFactor;
             const radius = 2.5 + (1 - age) * 4.5;
-            // Map the source read offset into the shared-timeline clip sub-range
+            // Map the source read offset into the source clip span.
             const cs     = tToX(0, w);
             const ce     = tToX(controlBuffer ? controlBuffer.duration : sourceBuffer.duration, w);
             const x      = cs + (g.startOffset / sourceBuffer.duration) * (ce - cs);
@@ -645,6 +645,9 @@ window.onload = () => {
     loopRadios.forEach(r => r.addEventListener('change', (e) => {
         markPresetCustom();
         loopClip = (e.target.value === 'loop');
+        if (sourceNode) sourceNode.loop = loopClip;
+        for (const tap of preEchoPreviewNodes) tap.source.loop = loopClip;
+        if (vizEnabled) refreshWaveformCaches();
     }));
 
     sourceDryCheckbox.addEventListener('change', () => {
@@ -824,12 +827,8 @@ window.onload = () => {
             if (key === 'damping' || key === 'feedbackGrain') updateDamping();
             if (key === 'time') { updateBlend(); updateDelays(); updateFeedback(); }
             if ((key === 'time' || key === 'feedback') && isPlaying) rebuildPreEchoPreview();
-            // Time (head) and feedback (tail) reshape the shared viz timeline
-            if ((key === 'time' || key === 'feedback') && vizEnabled) refreshWaveformCaches();
-            // Preview the sidechain readhead immediately when it changes, even when paused.
-            if (key === 'sidechainLookahead' && vizEnabled && ampWaveformCache && !isPlaying) {
-                renderDelayCanvas();
-            }
+            // Time and sidechain lookahead shift the AMP envelope; the viewport stays fixed.
+            if ((key === 'time' || key === 'sidechainLookahead') && vizEnabled) refreshWaveformCaches();
         });
     });
 
@@ -910,9 +909,8 @@ window.onload = () => {
         // Grain reads the source at t − time, where t is the grain's own
         // scheduled playback time (not "now"). Positive time reads the past
         // (normal delay), negative reads the future (pre-echo).
-        // Sidechain Lookahead is NOT part of this — it only shifts which control
-        // amplitude shapes the grain. The amp canvas shows that sidechain readhead;
-        // the source grain dots stay tied to Time.
+        // Sidechain Lookahead is not part of source position; it only offsets the
+        // delayed AMP envelope that shapes the grain.
         const t = (when - startTime) % controlBuffer.duration;
         let readPos = t - params.time;
 
@@ -1005,13 +1003,9 @@ window.onload = () => {
         while (nextGrainTime < horizon) {
             const playbackT = (nextGrainTime - startTime) % controlBuffer.duration;
 
-            // Sidechain reads at t - sidechainLookahead in the control:
-            //   +L → reads L seconds into the past → output follows control with lag
-            //   -L → reads L seconds into the future → output anticipates control
-            //    0 → reads current control amplitude
-            const ampT = ((playbackT - params.sidechainLookahead) % controlBuffer.duration
-                          + controlBuffer.duration) % controlBuffer.duration;
-            const raw = rawRmsAtTime(ampT);
+            // AMP is the control envelope displaced by Time, with Sidechain Lookahead
+            // as an extra offset. This makes source=control the regular-delay case.
+            const raw = sidechainRawAtOutputTime(playbackT);
             currentAmplitude = raw * 4; // normalise RMS into the ~[0,1] envelope range
 
             if (gateEnabled) {
@@ -1316,8 +1310,7 @@ window.onload = () => {
     };
 
     const offlineSidechainRaw = (globalT) => {
-        const ampT = wrapTime(globalT - params.sidechainLookahead, controlBuffer.duration);
-        return rawRmsAtTime(ampT);
+        return sidechainRawAtOutputTime(globalT);
     };
 
     const grainWindowAt = (localT, duration) => {
@@ -1669,6 +1662,9 @@ window.onload = () => {
             selfSampleCheckbox.checked = s.selfSampling;
             selfSampleCheckbox.dispatchEvent(new Event('change'));
         }
+        if (sourceNode) sourceNode.loop = loopClip;
+        for (const tap of preEchoPreviewNodes) tap.source.loop = loopClip;
+        if (vizEnabled) refreshWaveformCaches();
     };
 
     const PRESET_BASE = {

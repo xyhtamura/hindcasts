@@ -65,16 +65,16 @@
 
         <div id="viz-panel" class="viz-panel">
             <div class="viz-track">
-                <span class="viz-label">ctrl</span>
-                <canvas id="control-canvas"></canvas>
+                <span class="viz-label" title="Control clip: the envelope donor and transport clock">ctrl</span>
+                <canvas id="control-canvas" aria-label="Control clip waveform"></canvas>
             </div>
             <div class="viz-track">
-                <span class="viz-label">amp</span>
-                <canvas id="delay-canvas"></canvas>
+                <span class="viz-label" title="AMP envelope: the control shape displaced by Time and Sidechain Lookahead">amp</span>
+                <canvas id="delay-canvas" aria-label="Delayed amplitude envelope waveform"></canvas>
             </div>
             <div class="viz-track">
-                <span class="viz-label">src</span>
-                <canvas id="source-canvas"></canvas>
+                <span class="viz-label" title="Source clip: the audio material read under the AMP envelope">src</span>
+                <canvas id="source-canvas" aria-label="Source clip waveform and grain reads"></canvas>
             </div>
         </div>
 
