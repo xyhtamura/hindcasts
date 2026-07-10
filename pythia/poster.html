@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pythia — Poster Title Card</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,300;1,9..144,700&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap');
+
+:root {
+  --bg-0:   #0b0c08;
+  --bg-1:   #111209;
+  --bg-2:   #191b10;
+  --line:   #22251a;
+  --line-hi:#333720;
+
+  --acid:   #c2dc32;
+  --ember:  #d86840;
+  --fog:    #58b2a8;
+
+  --cream:  #e2dfcb;
+  --dim:    #717558;
+  --dimmer: #474a37;
+
+  --r: 3px;
+  --mono: 'DM Mono', 'Courier New', monospace;
+  --serif: 'Fraunces', Georgia, 'Times New Roman', serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { min-height: 100%; }
+
+body {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: clamp(14px, 4vw, 48px);
+  background:
+    radial-gradient(circle at 16% 12%, rgba(88,178,168,0.09), transparent 30%),
+    radial-gradient(circle at 82% 72%, rgba(216,104,64,0.10), transparent 33%),
+    radial-gradient(circle at 50% 105%, rgba(194,220,50,0.045), transparent 42%),
+    var(--bg-0);
+  color: var(--cream);
+  font-family: var(--mono);
+  overflow-x: hidden;
+}
+
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  pointer-events: none;
+}
+
+body::before {
+  inset: 0;
+  background:
+    repeating-linear-gradient(90deg, rgba(194,220,50,0.024) 0 1px, transparent 1px 52px),
+    repeating-linear-gradient(0deg, rgba(88,178,168,0.018) 0 1px, transparent 1px 37px);
+  mask-image: radial-gradient(circle at 50% 45%, black 0 52%, transparent 86%);
+  opacity: 0.68;
+}
+
+body::after {
+  inset: -50%;
+  width: 200%;
+  height: 200%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.84' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='420' height='420' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.036;
+  mix-blend-mode: screen;
+  z-index: 99;
+  animation: grain 9s steps(1) infinite;
+}
+
+.poster {
+  width: min(96vw, 980px);
+  aspect-ratio: 4 / 5;
+  min-height: 620px;
+  max-height: 92vh;
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(to top, rgba(160,100,30,0.072) 0%, rgba(88,178,168,0.03) 28%, transparent 60%),
+    radial-gradient(circle at 48% 39%, rgba(194,220,50,0.07), transparent 10%),
+    radial-gradient(circle at 50% 48%, rgba(88,178,168,0.07), transparent 32%),
+    radial-gradient(circle at 78% 30%, rgba(216,104,64,0.08), transparent 24%),
+    var(--bg-1);
+  border: 1px solid var(--line-hi);
+  box-shadow:
+    0 0 0 1px rgba(11,12,8,0.9),
+    0 22px 88px rgba(0,0,0,0.42),
+    inset 0 0 120px rgba(0,0,0,0.32);
+}
+
+.poster::before {
+  content: "";
+  position: absolute;
+  inset: 18px;
+  border: 1px solid var(--line-hi);
+  border-radius: var(--r);
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 0 1px rgba(34,37,26,0.55),
+    inset 0 0 40px rgba(88,178,168,0.024);
+}
+
+.poster::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, transparent 0 49.85%, rgba(194,220,50,0.18) 49.85% 50%, transparent 50% 100%),
+    linear-gradient(0deg, transparent 0 49.9%, rgba(216,104,64,0.11) 49.9% 50.05%, transparent 50.05% 100%);
+  opacity: 0.68;
+  pointer-events: none;
+  animation: breathe 5s ease-in-out infinite;
+}
+
+.texture {
+  position: absolute;
+  inset: 0;
+  opacity: 0.36;
+  background:
+    repeating-radial-gradient(circle at 53% 36%, rgba(226,223,203,0.03) 0 1px, transparent 1px 9px),
+    repeating-linear-gradient(116deg, rgba(194,220,50,0.028) 0 1px, transparent 1px 7px),
+    radial-gradient(circle at 50% 40%, transparent 0 18%, rgba(11,12,8,0.48) 62%, rgba(11,12,8,0.85) 100%);
+  mix-blend-mode: overlay;
+}
+
+.border-code {
+  position: absolute;
+  z-index: 4;
+  color: var(--dimmer);
+  font-size: clamp(8px, 1.05vw, 11px);
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  font-weight: 300;
+  opacity: 0.92;
+}
+.border-code.tl { top: 32px; left: 34px; }
+.border-code.tr { top: 32px; right: 34px; color: var(--acid); border: 1px solid rgba(194,220,50,0.65); padding: 3px 8px; border-radius: 2px; }
+.border-code.bl { bottom: 33px; left: 34px; }
+.border-code.br { bottom: 33px; right: 34px; text-align: right; color: var(--fog); }
+
+.grid-plate {
+  position: absolute;
+  inset: 8.3% 7.6%;
+  z-index: 1;
+  background:
+    linear-gradient(90deg, rgba(51,55,32,0.42) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(34,37,26,0.8) 1px, transparent 1px);
+  background-size: 54px 54px, 54px 54px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  opacity: 0.7;
+}
+
+.grid-plate::before,
+.grid-plate::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, transparent, rgba(194,220,50,0.055), transparent),
+    linear-gradient(0deg, transparent, rgba(88,178,168,0.04), transparent);
+}
+.grid-plate::after {
+  background: radial-gradient(ellipse at center, transparent 0 38%, rgba(11,12,8,0.72) 72%);
+}
+
+.vapor-field {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+}
+.wisp {
+  position: absolute;
+  bottom: 10%;
+  border-radius: 50%;
+  filter: blur(17px);
+  background: radial-gradient(circle at 40% 60%, rgba(88,178,168,0.18), rgba(194,220,50,0.07) 52%, transparent 72%);
+  animation: drift linear infinite;
+  opacity: 0;
+}
+.wisp:nth-child(1) { width: 92px; height: 78px; left: 7%;  animation-duration: 18s; animation-delay: -4s; }
+.wisp:nth-child(2) { width: 140px; height: 52px; left: 20%; animation-duration: 24s; animation-delay: -12s; }
+.wisp:nth-child(3) { width: 70px; height: 120px; left: 38%; animation-duration: 17s; animation-delay: -8s; }
+.wisp:nth-child(4) { width: 180px; height: 100px; left: 51%; animation-duration: 28s; animation-delay: -18s; }
+.wisp:nth-child(5) { width: 94px; height: 130px; left: 72%; animation-duration: 21s; animation-delay: -3s; }
+.wisp:nth-child(6) { width: 68px; height: 82px; left: 88%; animation-duration: 15s; animation-delay: -10s; }
+
+.oracle {
+  position: absolute;
+  z-index: 3;
+  width: min(63%, 590px);
+  aspect-ratio: 1;
+  left: 50%;
+  top: 45%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(226,223,203,0.85) 0 0.55%, transparent 0.58%),
+    radial-gradient(circle at 50% 50%, transparent 0 18%, rgba(194,220,50,0.12) 18.3% 18.8%, transparent 19.1% 31.2%, rgba(216,104,64,0.11) 31.4% 31.9%, transparent 32.4%),
+    radial-gradient(circle at 50% 50%, rgba(88,178,168,0.09), transparent 54%),
+    repeating-conic-gradient(from 6deg, rgba(194,220,50,0.20) 0deg 0.7deg, transparent 0.7deg 7.4deg),
+    radial-gradient(circle at 50% 50%, transparent 0 53%, rgba(34,37,26,0.9) 53.2% 53.5%, transparent 53.8% 100%);
+  border: 1px solid rgba(51,55,32,0.95);
+  box-shadow:
+    inset 0 0 0 1px rgba(11,12,8,0.75),
+    inset 0 0 86px rgba(0,0,0,0.64),
+    0 0 60px rgba(88,178,168,0.08);
+}
+
+.oracle::before,
+.oracle::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.oracle::before {
+  inset: 10%;
+  border: 1px solid rgba(51,55,32,0.9);
+  background:
+    linear-gradient(90deg, transparent 0 49.7%, rgba(194,220,50,0.48) 49.7% 50.3%, transparent 50.3% 100%),
+    linear-gradient(0deg, transparent 0 49.8%, rgba(216,104,64,0.34) 49.8% 50.2%, transparent 50.2% 100%),
+    repeating-radial-gradient(circle, transparent 0 28px, rgba(34,37,26,0.8) 28px 29px);
+  filter: drop-shadow(0 0 7px rgba(194,220,50,0.32));
+}
+.oracle::after {
+  inset: 24%;
+  background:
+    radial-gradient(circle at 52% 48%, rgba(194,220,50,0.9) 0 1px, transparent 2px),
+    radial-gradient(circle at 34% 62%, rgba(216,104,64,0.72) 0 1px, transparent 2px),
+    radial-gradient(circle at 66% 35%, rgba(88,178,168,0.85) 0 1px, transparent 2px),
+    radial-gradient(circle at center, rgba(11,12,8,0.85) 0 14%, rgba(25,27,16,0.4) 45%, transparent 70%);
+  border: 1px solid rgba(194,220,50,0.38);
+  box-shadow: inset 0 0 34px rgba(194,220,50,0.05), 0 0 20px rgba(194,220,50,0.08);
+  animation: oraclePulse 8s ease-in-out infinite;
+}
+
+.oracle-lines {
+  position: absolute;
+  inset: 7%;
+  z-index: 4;
+  pointer-events: none;
+  opacity: 0.86;
+}
+.oracle-lines svg { width: 100%; height: 100%; overflow: visible; }
+.oracle-lines .fog-line { stroke: rgba(88,178,168,0.48); }
+.oracle-lines .ember-line { stroke: rgba(216,104,64,0.54); }
+.oracle-lines .acid-line { stroke: rgba(194,220,50,0.58); }
+.oracle-lines path { fill: none; stroke-width: 0.72; vector-effect: non-scaling-stroke; }
+.oracle-lines circle { fill: var(--bg-1); stroke-width: 1; }
+
+.wave-plate {
+  position: absolute;
+  z-index: 5;
+  left: 9.6%;
+  right: 9.6%;
+  top: 55.2%;
+  display: grid;
+  gap: 6px;
+}
+.track {
+  display: grid;
+  grid-template-columns: 34px 1fr 48px;
+  align-items: center;
+  gap: 8px;
+}
+.track .label,
+.track .value {
+  font-size: clamp(8px, 1vw, 10px);
+  color: var(--dimmer);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.track .label { text-align: right; }
+.track .value { text-align: left; font-variant-numeric: tabular-nums; }
+.lane {
+  height: clamp(44px, 7.4vw, 72px);
+  position: relative;
+  background: rgba(25,27,16,0.9);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  box-shadow: inset 0 0 28px rgba(0,0,0,0.28);
+}
+.lane::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(90deg, rgba(51,55,32,0.55) 0 1px, transparent 1px 42px),
+    linear-gradient(0deg, transparent 0 49%, rgba(51,55,32,0.62) 49% 51%, transparent 51% 100%);
+  opacity: 0.72;
+}
+.lane::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  background: var(--acid);
+  box-shadow: 0 0 10px rgba(194,220,50,0.72);
+  opacity: 0.86;
+}
+.lane svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.lane path {
+  fill: none;
+  stroke-width: 1.4;
+  vector-effect: non-scaling-stroke;
+}
+.lane.ctrl path,
+.lane.src path { stroke: rgba(88,178,168,0.62); }
+.lane.amp path { stroke: rgba(216,104,64,0.68); }
+.lane .dots { fill: rgba(194,220,50,0.75); }
+
+.title-block {
+  position: absolute;
+  z-index: 6;
+  left: clamp(32px, 8.3%, 82px);
+  right: clamp(32px, 8.3%, 82px);
+  bottom: 9.5%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 18px;
+  align-items: end;
+  border-top: 1px solid var(--line-hi);
+  padding-top: clamp(16px, 2.2vw, 26px);
+}
+h1 {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 700;
+  font-optical-sizing: auto;
+  color: var(--cream);
+  font-size: clamp(76px, 15vw, 172px);
+  line-height: 0.76;
+  letter-spacing: -0.075em;
+  text-shadow:
+    0 0 1px rgba(226,223,203,0.8),
+    8px 0 0 rgba(216,104,64,0.05),
+    -9px 0 0 rgba(88,178,168,0.035);
+}
+.subtitle {
+  max-width: 170px;
+  align-self: stretch;
+  display: grid;
+  align-content: space-between;
+  padding-left: 14px;
+  border-left: 2px solid var(--line-hi);
+  color: var(--dim);
+  font-size: clamp(9px, 1vw, 11px);
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+}
+.subtitle em { color: var(--fog); font-style: italic; }
+.subtitle b { color: var(--acid); font-weight: 400; }
+
+.module-stack {
+  position: absolute;
+  z-index: 6;
+  top: 15%;
+  right: clamp(28px, 7.2%, 72px);
+  width: min(23%, 190px);
+  display: grid;
+  gap: 10px;
+}
+.module {
+  border-left: 2px solid var(--line-hi);
+  padding-left: 11px;
+  color: var(--dim);
+  font-size: clamp(8px, 1vw, 10px);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.module span {
+  display: block;
+  color: var(--acid);
+  margin-bottom: 6px;
+}
+.slider {
+  position: relative;
+  height: 16px;
+  border-top: 1px solid var(--line-hi);
+}
+.slider::before {
+  content: "";
+  position: absolute;
+  top: -9px;
+  width: 2px;
+  height: 18px;
+  background: var(--acid);
+  box-shadow: 0 0 7px rgba(194,220,50,0.65);
+}
+.module:nth-child(1) .slider::before { left: 32%; }
+.module:nth-child(2) .slider::before { left: 63%; background: var(--ember); box-shadow: 0 0 7px rgba(216,104,64,0.56); }
+.module:nth-child(3) .slider::before { left: 48%; background: var(--fog); box-shadow: 0 0 7px rgba(88,178,168,0.48); }
+.module:nth-child(4) .slider::before { left: 76%; }
+
+.specimen-left {
+  position: absolute;
+  z-index: 6;
+  top: 16%;
+  left: clamp(28px, 7.2%, 72px);
+  width: min(20%, 160px);
+  display: grid;
+  gap: 8px;
+}
+.plate-label {
+  font-size: clamp(8px, 1vw, 10px);
+  letter-spacing: 0.13em;
+  color: var(--dimmer);
+  text-transform: uppercase;
+}
+.tickbar {
+  height: 5px;
+  border: 1px solid var(--line-hi);
+  background:
+    linear-gradient(90deg, var(--acid) 0 38%, transparent 38% 100%),
+    var(--bg-2);
+  box-shadow: 0 0 9px rgba(194,220,50,0.14);
+}
+.microtext {
+  color: var(--dim);
+  font-size: clamp(8px, 1vw, 10px);
+  line-height: 1.5;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+}
+.microtext i { color: var(--ember); font-style: normal; }
+.microtext b { color: var(--fog); font-weight: 400; }
+
+.node {
+  position: absolute;
+  z-index: 7;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--bg-1);
+  border: 1px solid var(--acid);
+  box-shadow: 0 0 11px rgba(194,220,50,0.52);
+}
+.node.n1 { left: 25%; top: 34%; }
+.node.n2 { left: 72%; top: 38%; border-color: var(--fog); box-shadow: 0 0 11px rgba(88,178,168,0.48); }
+.node.n3 { left: 43%; top: 24%; border-color: var(--ember); box-shadow: 0 0 11px rgba(216,104,64,0.48); }
+.node.n4 { left: 57%; top: 66%; }
+.node.n5 { left: 82%; top: 62%; border-color: var(--ember); box-shadow: 0 0 11px rgba(216,104,64,0.48); }
+
+.cut-line {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--line-hi);
+  opacity: 0.8;
+}
+.cut-line.a { top: 12%; }
+.cut-line.b { top: 77%; }
+.cut-line.c { top: 83%; background: var(--line); }
+
+@keyframes grain {
+  0%   { transform: translate(0, 0); }
+  12%  { transform: translate(-2%, -3%); }
+  27%  { transform: translate(3%, -1%); }
+  43%  { transform: translate(-1%, 2%); }
+  58%  { transform: translate(2%, 3%); }
+  74%  { transform: translate(-3%, 1%); }
+  89%  { transform: translate(1%, -2%); }
+}
+@keyframes drift {
+  0%   { transform: translateY(0) translateX(0) scaleX(1); opacity: 0; }
+  12%  { opacity: 0.85; }
+  48%  { transform: translateY(-34vh) translateX(11px) scaleX(1.18); opacity: 0.44; }
+  100% { transform: translateY(-78vh) translateX(-7px) scaleX(0.86); opacity: 0; }
+}
+@keyframes breathe {
+  0%, 100% { opacity: 0.46; filter: brightness(0.94); }
+  50%      { opacity: 0.78; filter: brightness(1.08); }
+}
+@keyframes oraclePulse {
+  0%, 100% { transform: scale(0.992); opacity: 0.78; }
+  50%      { transform: scale(1.012); opacity: 1; }
+}
+
+@media (max-width: 720px) {
+  .poster { min-height: 610px; aspect-ratio: 3 / 4.45; }
+  .module-stack { width: 31%; top: 14%; }
+  .specimen-left { width: 26%; }
+  .wave-plate { top: 56.8%; left: 7.5%; right: 7.5%; }
+  .track { grid-template-columns: 28px 1fr 36px; }
+  .title-block { grid-template-columns: 1fr; gap: 12px; bottom: 9%; }
+  .subtitle { max-width: 100%; border-left: 0; border-top: 1px solid var(--line); padding-left: 0; padding-top: 10px; grid-template-columns: 1fr 1fr; gap: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::after,
+  .wisp,
+  .poster::after,
+  .oracle::after { animation: none; }
+}
+</style>
+</head>
+<body>
+  <main class="poster" aria-label="Pythia poster title card">
+    <div class="texture" aria-hidden="true"></div>
+    <div class="grid-plate" aria-hidden="true"></div>
+    <div class="cut-line a" aria-hidden="true"></div>
+    <div class="cut-line b" aria-hidden="true"></div>
+    <div class="cut-line c" aria-hidden="true"></div>
+
+    <div class="border-code tl">paracognitive granular delay</div>
+    <div class="border-code tr">pneuma · granular</div>
+    <div class="border-code bl">inhale / scatter / speak</div>
+    <div class="border-code br">1024 · .50s · 150ms</div>
+
+    <div class="vapor-field" aria-hidden="true">
+      <div class="wisp"></div><div class="wisp"></div><div class="wisp"></div>
+      <div class="wisp"></div><div class="wisp"></div><div class="wisp"></div>
+    </div>
+
+    <section class="specimen-left" aria-hidden="true">
+      <div class="plate-label">control envelope</div>
+      <div class="tickbar"></div>
+      <p class="microtext">01 ctrl<br>02 src<br><i>ahead −2.00</i><br><b>oracle bus</b></p>
+    </section>
+
+    <section class="module-stack" aria-hidden="true">
+      <div class="module"><span>delay</span><div class="slider"></div></div>
+      <div class="module"><span>threshold</span><div class="slider"></div></div>
+      <div class="module"><span>density</span><div class="slider"></div></div>
+      <div class="module"><span>dry / wet</span><div class="slider"></div></div>
+    </section>
+
+    <div class="oracle" aria-hidden="true">
+      <div class="oracle-lines">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <path class="fog-line" d="M10 52 C22 34, 34 69, 48 48 S72 31, 91 52" />
+          <path class="ember-line" d="M13 59 C28 72, 37 38, 51 56 S73 73, 86 42" />
+          <path class="acid-line" d="M17 45 C29 48, 38 28, 50 47 S66 68, 83 48" />
+          <path class="fog-line" d="M50 10 C42 25, 59 33, 50 47 S36 70, 50 90" />
+          <path class="ember-line" d="M24 25 C34 37, 42 36, 50 50 S66 62, 76 75" />
+          <circle cx="50" cy="50" r="1.4" stroke="rgba(194,220,50,0.65)" />
+          <circle cx="26" cy="41" r="1" stroke="rgba(88,178,168,0.56)" />
+          <circle cx="73" cy="58" r="1" stroke="rgba(216,104,64,0.58)" />
+          <circle cx="53" cy="27" r=".8" stroke="rgba(194,220,50,0.58)" />
+        </svg>
+      </div>
+    </div>
+
+    <span class="node n1" aria-hidden="true"></span>
+    <span class="node n2" aria-hidden="true"></span>
+    <span class="node n3" aria-hidden="true"></span>
+    <span class="node n4" aria-hidden="true"></span>
+    <span class="node n5" aria-hidden="true"></span>
+
+    <section class="wave-plate" aria-hidden="true">
+      <div class="track">
+        <span class="label">ctrl</span>
+        <div class="lane ctrl">
+          <svg viewBox="0 0 1000 100" preserveAspectRatio="none"><path d="M0 53 C32 54 48 44 76 48 S136 60 166 49 S223 31 270 52 S327 76 382 49 S449 34 502 51 S560 69 612 50 S684 28 742 52 S820 77 876 48 S946 40 1000 52" /></svg>
+        </div>
+        <span class="value">0.85</span>
+      </div>
+      <div class="track">
+        <span class="label">amp</span>
+        <div class="lane amp">
+          <svg viewBox="0 0 1000 100" preserveAspectRatio="none"><path d="M0 50 C41 70 93 72 132 52 S195 24 246 48 S334 79 398 51 S494 19 558 48 S648 78 704 50 S788 31 838 50 S924 72 1000 47" /></svg>
+        </div>
+        <span class="value">−.50</span>
+      </div>
+      <div class="track">
+        <span class="label">src</span>
+        <div class="lane src">
+          <svg viewBox="0 0 1000 100" preserveAspectRatio="none">
+            <path d="M0 48 C50 45 70 62 111 52 S181 37 231 49 S298 69 337 50 S412 27 475 52 S554 69 612 48 S702 35 748 52 S837 71 884 50 S954 38 1000 52" />
+            <circle class="dots" cx="82" cy="48" r="2"/><circle class="dots" cx="276" cy="51" r="2"/><circle class="dots" cx="502" cy="49" r="2"/><circle class="dots" cx="731" cy="50" r="2"/><circle class="dots" cx="913" cy="50" r="2"/>
+          </svg>
+        </div>
+        <span class="value">wet</span>
+      </div>
+    </section>
+
+    <section class="title-block">
+      <h1>Pythia</h1>
+      <div class="subtitle">
+        <span><b>pneuma</b><br>granular oracle</span>
+        <span>speaks <em>ahead</em><br>of knowing</span>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

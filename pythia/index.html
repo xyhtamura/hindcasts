@@ -1,0 +1,322 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pythia</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+
+        <header>
+            <div class="vapor-field" aria-hidden="true">
+                <div class="wisp"></div>
+                <div class="wisp"></div>
+                <div class="wisp"></div>
+                <div class="wisp"></div>
+                <div class="wisp"></div>
+                <div class="wisp"></div>
+            </div>
+            <div class="title-row">
+                <h1><span class="no-liga">Pyth</span>ia</h1>
+                <span class="build-tag">anticipatory · granular</span>
+            </div>
+            <p class="tagline">whole-file <em>anticipatory delay</em>: clean pre-echo, granular scatter, sidechain ducking, stereo feedback, deterministic WAV bounce.</p>
+        </header>
+
+        <div class="io-panel">
+            <div class="input-group" id="control-input-group">
+                <h3><span class="idx">01</span>&nbsp;Control Signal</h3>
+                <p class="note">drives the effect â€” its amplitude envelope becomes the shape of what happens</p>
+                <input type="file" id="control-input" accept="audio/*">
+                <p class="drop-hint">or drop a file here</p>
+                <span class="loaded-file" id="control-file-display"></span>
+            </div>
+            <div class="input-group" id="source-input-group">
+                <h3><span class="idx">02</span>&nbsp;Source Signal</h3>
+                <p class="note">the material â€” scattered, granularized, redistributed in time</p>
+                <input type="file" id="source-input" accept="audio/*">
+                <p class="drop-hint">or drop a file here</p>
+                <span class="loaded-file" id="source-file-display"></span>
+            </div>
+        </div>
+
+        <div class="viz-controls-row">
+            <div class="viz-header">
+                <span class="section-label">Waveform</span>
+                <label class="viz-toggle-label">
+                    <input type="checkbox" id="viz-toggle" checked>
+                    <span>visualizer</span>
+                </label>
+            </div>
+            <label class="buffer-size-label">
+                <span class="section-label">analyser buffer</span>
+                <select id="buffer-size">
+                    <option value="256">256</option>
+                    <option value="512">512</option>
+                    <option value="1024" selected>1024</option>
+                    <option value="2048">2048</option>
+                    <option value="4096">4096</option>
+                </select>
+            </label>
+        </div>
+
+        <div id="viz-panel" class="viz-panel">
+            <div class="viz-track">
+                <span class="viz-label">ctrl</span>
+                <canvas id="control-canvas"></canvas>
+            </div>
+            <div class="viz-track">
+                <span class="viz-label">amp</span>
+                <canvas id="delay-canvas"></canvas>
+            </div>
+            <div class="viz-track">
+                <span class="viz-label">src</span>
+                <canvas id="source-canvas"></canvas>
+            </div>
+        </div>
+
+        <div class="option-group">
+            <input type="checkbox" id="self-sample-checkbox" checked>
+            <label for="self-sample-checkbox">
+                Use Control as Source
+                <span class="note-inline">&nbsp;â€” control and source become the same file</span>
+            </label>
+        </div>
+
+        <div class="option-group">
+            <input type="checkbox" id="source-dry-checkbox" checked>
+            <label for="source-dry-checkbox">
+                Source in Dry
+                <span class="note-inline">&nbsp;â€” the dry signal is the source (what a producer means by "dry")</span>
+            </label>
+        </div>
+        <div class="option-group">
+            <input type="checkbox" id="monitor-control-checkbox">
+            <label for="monitor-control-checkbox">
+                Monitor Control
+                <span class="note-inline">&nbsp;â€” also hear the sidechain signal itself</span>
+            </label>
+        </div>
+
+        <div class="mode-selector">
+            <span class="mode-label">clip &mdash;</span>
+            <div class="radio-group">
+                <input type="radio" id="loop-wrap" name="loopmode" value="loop" checked>
+                <label for="loop-wrap"><span class="glyph">&#x2940;</span> loop</label>
+            </div>
+            <div class="radio-group">
+                <input type="radio" id="loop-clamp" name="loopmode" value="unloop">
+                <label for="loop-clamp"><span class="glyph">&#x13199;</span> unloop</label>
+            </div>
+            <span class="mode-label mode-label--clip">sidechain &mdash;</span>
+            <div class="radio-group">
+                <input type="checkbox" id="gate-checkbox">
+                <label for="gate-checkbox">gate</label>
+            </div>
+            <span class="mode-label mode-label--clip">stereo &mdash;</span>
+            <div class="radio-group">
+                <input type="checkbox" id="ping-pong-checkbox">
+                <label for="ping-pong-checkbox">ping-pong</label>
+            </div>
+        </div>
+
+        <div class="state-toolbar">
+            <label class="preset-label">
+                <span class="section-label">preset</span>
+                <select id="preset-select">
+                    <option value="custom" selected>custom</option>
+                    <optgroup label="producer staples">
+                        <option value="slapback">Slapback</option>
+                        <option value="anticipatoryDelay">Anticipatory Delay</option>
+                        <option value="pingPongPneuma">Ping-Pong Pneuma</option>
+                        <option value="dubOuroboros">Dub Ouroboros</option>
+                        <option value="oracleChorus">Oracle Chorus</option>
+                    </optgroup>
+                    <optgroup label="granular character">
+                        <option value="stereoVapor">Stereo Vapor</option>
+                        <option value="shimmerVapor">Shimmer Vapor</option>
+                        <option value="disintegratingEcho">Disintegrating Echo</option>
+                        <option value="glassHalo">Glass Halo</option>
+                        <option value="tapeMirage">Tape Mirage</option>
+                    </optgroup>
+                    <optgroup label="precognitive">
+                        <option value="verbatimPreEcho">Verbatim Pre-Echo</option>
+                        <option value="anticipationBloom">Anticipation Bloom</option>
+                        <option value="preDuck">Pre-Duck</option>
+                        <option value="duckGateGaps">Duck-Gate Gaps</option>
+                        <option value="negativeShimmer">Negative Shimmer</option>
+                        <option value="reverseRoom">Reverse Room</option>
+                    </optgroup>
+                </select>
+            </label>
+            <label class="window-type-label">
+                <span class="section-label">grain window</span>
+                <select id="window-type">
+                    <option value="linear" selected>linear</option>
+                    <option value="hann">hann</option>
+                </select>
+            </label>
+            <div class="state-buttons">
+                <button id="save-state" type="button">Save State</button>
+                <label class="load-state-label" for="load-state">Load State</label>
+                <input type="file" id="load-state" accept="application/json" hidden>
+            </div>
+        </div>
+
+        <div class="controls-panel">
+
+            <div class="playback-controls">
+                <button id="play-button" disabled>Load Files to Start</button>
+                <button id="record-button" disabled>Bounce WAV</button>
+            </div>
+
+            <div class="params-section">
+
+                <div class="slider-group">
+                    <label for="polarity">Polarity <span class="hint">duck&nbsp;&harr;&nbsp;follow</span></label>
+                    <input type="range" id="polarity" min="-1" max="1" value="1" step="0.01">
+                    <span id="polarity-value" class="val">1.00</span>
+                </div>
+
+                <div class="slider-group" id="sidechain-lookahead-group">
+                    <label for="sidechain-lookahead">Sidechain Lookahead</label>
+                    <input type="range" id="sidechain-lookahead" min="-2" max="2" value="0" step="0.01">
+                    <span id="sidechain-lookahead-value" class="val">0.00<small>s</small></span>
+                </div>
+
+                <div class="slider-group" id="threshold-group">
+                    <label for="threshold">Gate Threshold</label>
+                    <input type="range" id="threshold" min="0" max="1" value="0.1" step="0.01">
+                    <span id="threshold-value" class="val">0.10</span>
+                </div>
+
+                <div class="slider-group">
+                    <label for="grain-size">Grain Size</label>
+                    <input type="range" id="grain-size" min="10" max="500" value="150" step="1">
+                    <span id="grain-size-value" class="val">150<small>ms</small></span>
+                </div>
+
+                <div class="slider-group">
+                    <label for="grain-density">Grain Density</label>
+                    <input type="range" id="grain-density" min="1" max="100" value="20" step="1">
+                    <span id="grain-density-value" class="val">20</span>
+                </div>
+
+                <div class="slider-group">
+                    <label for="scatter">Scatter <span class="hint">exact&nbsp;&rarr;&nbsp;whole clip</span></label>
+                    <input type="range" id="scatter" min="0" max="1" value="1" step="0.01">
+                    <span id="scatter-value" class="val">1.00</span>
+                </div>
+
+                <div class="slider-group">
+                    <label for="pitch">Pitch <span class="hint">semitones</span></label>
+                    <input type="range" id="pitch" min="-24" max="24" value="0" step="1">
+                    <span id="pitch-value" class="val">0</span>
+                </div>
+
+                <div class="slider-group">
+                    <label for="pitch-spray">Pitch Spray <span class="hint">&plusmn; semitones</span></label>
+                    <input type="range" id="pitch-spray" min="0" max="24" value="0" step="0.1">
+                    <span id="pitch-spray-value" class="val">0.0</span>
+                </div>
+
+                <div class="slider-group">
+                    <label for="pan-spray">Pan Spray <span class="hint">stereo width</span></label>
+                    <input type="range" id="pan-spray" min="0" max="1" value="0" step="0.01">
+                    <span id="pan-spray-value" class="val">0.00</span>
+                </div>
+
+                <div class="slider-group" id="time-group">
+                    <label for="time">Time</label>
+                    <input type="range" id="time" min="-5" max="5" value="0" step="0.01">
+                    <span id="time-value" class="val">0.00<small>s</small></span>
+                </div>
+
+                <div class="slider-group">
+                    <label for="bpm">BPM</label>
+                    <input type="range" id="bpm" min="40" max="240" value="120" step="1">
+                    <span id="bpm-value" class="val">120</span>
+                </div>
+
+                <div class="slider-group">
+                    <label for="time-sync">Time Sync</label>
+                    <select id="time-sync">
+                        <option value="free" selected>free seconds</option>
+                        <option value="1/1">1/1</option>
+                        <option value="1/2">1/2</option>
+                        <option value="1/4">1/4</option>
+                        <option value="1/8d">1/8 dotted</option>
+                        <option value="1/8">1/8</option>
+                        <option value="1/8t">1/8 triplet</option>
+                        <option value="1/16">1/16</option>
+                    </select>
+                    <span id="time-sync-value" class="val">free</span>
+                </div>
+
+                <div class="slider-group">
+                    <label for="mix">Dry / Wet</label>
+                    <input type="range" id="mix" min="0" max="1" value="0.7" step="0.01">
+                    <span id="mix-value" class="val">0.70</span>
+                </div>
+
+                <div class="slider-group">
+                    <label for="feedback">Feedback <span class="hint">regeneration</span></label>
+                    <input type="range" id="feedback" min="0" max="0.95" value="0" step="0.01">
+                    <span id="feedback-value" class="val">0.00</span>
+                </div>
+
+                <div class="slider-group">
+                    <label for="damping">Damping <span class="hint">darker&nbsp;repeats</span></label>
+                    <input type="range" id="damping" min="0" max="1" value="0" step="0.01">
+                    <span id="damping-value" class="val">0.00</span>
+                </div>
+
+                <div class="slider-group">
+                    <label for="feedback-grain">Feedback Grain <span class="hint">disintegration</span></label>
+                    <input type="range" id="feedback-grain" min="0" max="1" value="0" step="0.01">
+                    <span id="feedback-grain-value" class="val">0.00</span>
+                </div>
+
+                <div class="slider-group">
+                    <label for="density-jitter">Density Jitter</label>
+                    <input type="range" id="density-jitter" min="0" max="1" value="0" step="0.01">
+                    <span id="density-jitter-value" class="val">0.00</span>
+                </div>
+
+                <div class="slider-group">
+                    <label for="envelope-shape">Envelope Shape</label>
+                    <input type="range" id="envelope-shape" min="0.01" max="0.99" value="0.5" step="0.01">
+                    <span id="envelope-shape-value" class="val">0.50</span>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="visualization">
+            <h3>Control Level</h3>
+            <div class="meter-wrap">
+                <div class="meter-container">
+                    <div id="level-meter" class="meter-bar"></div>
+                </div>
+                <div class="meter-scale">
+                    <span>â€”</span>
+                    <span>25</span>
+                    <span>50</span>
+                    <span>75</span>
+                    <span>â€”</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="recordings-container" class="recordings-container">
+            <h3>Bounces</h3>
+            <ul id="recordings-list"></ul>
+        </div>
+
+    </div>
+    <script src="pythia.js"></script>
+</body>
+</html>
