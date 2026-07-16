@@ -1,0 +1,589 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PROTEUS — the morph that has read both scores</title>
+<style>
+  :root{
+    --sea:#0a1420; --sea2:#0f1e2e; --abyss:#06101a;
+    --foam:#e9f2ef; --foam-dim:#9db3ad;
+    --line:#1d3242; --line2:#284256;
+    --a:#5fd0c4; --b:#e0a24a; --iris:#b98cff; --warn:#e0665a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:
+    radial-gradient(1200px 600px at 70% -10%, #14283a 0%, var(--sea) 55%, var(--abyss) 100%);
+    color:var(--foam);font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif}
+  .wrap{max-width:1040px;margin:0 auto;padding:26px 22px 60px}
+  header h1{font:italic 600 40px/1 Georgia,"Times New Roman",serif;letter-spacing:.02em;margin:0}
+  header .sub{color:var(--foam-dim);font-style:italic;margin-top:6px;font-family:Georgia,serif}
+  header .tag{color:var(--iris);font-size:11px;letter-spacing:.18em;text-transform:uppercase;margin-top:10px}
+
+  .files{display:flex;gap:12px;margin:22px 0 14px;flex-wrap:wrap}
+  .drop{flex:1 1 240px;min-height:64px;border:1px dashed var(--line2);border-radius:10px;
+    padding:12px 14px;cursor:pointer;transition:.15s;background:rgba(255,255,255,.012);position:relative}
+  .drop:hover{border-color:var(--foam-dim)}
+  .drop.over{border-color:var(--iris);background:rgba(185,140,255,.06)}
+  .drop.loaded.A{border-color:var(--a)} .drop.loaded.B{border-color:var(--b)}
+  .drop .role{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--foam-dim)}
+  .drop .role.A{color:var(--a)} .drop .role.B{color:var(--b)}
+  .drop .name{margin-top:4px;font-size:13px;color:var(--foam);word-break:break-all}
+  .drop .meta{font-size:11px;color:var(--foam-dim);margin-top:2px}
+  input[type=file]{display:none}
+
+  .panel{background:rgba(6,16,26,.55);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:12px 0}
+  .panel .lbl{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--foam-dim);margin-bottom:6px;display:flex;justify-content:space-between}
+  canvas{display:block;width:100%;border-radius:8px;background:var(--abyss);touch-action:none}
+  #tl{height:190px;cursor:text} #curve{height:130px}
+  .hint{font-size:11px;color:var(--foam-dim);margin-top:6px}
+
+  .controls{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end;margin:16px 0 8px}
+  .ctl{display:flex;flex-direction:column;gap:5px}
+  .ctl label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--foam-dim)}
+  .ctl .val{color:var(--iris);font-variant-numeric:tabular-nums}
+  input[type=range]{width:200px;accent-color:var(--iris)}
+  select{background:var(--sea2);color:var(--foam);border:1px solid var(--line2);border-radius:7px;padding:6px 8px;font:inherit}
+  .tf{display:flex;justify-content:space-between;width:200px;font-size:10px;color:var(--foam-dim)}
+  .tf b{color:var(--foam)}
+
+  .buttons{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:8px}
+  button{background:var(--sea2);color:var(--foam);border:1px solid var(--line2);border-radius:8px;
+    padding:9px 16px;font:600 13px/1 inherit;cursor:pointer;transition:.12s}
+  button:hover:not(:disabled){border-color:var(--iris);color:#fff}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  button.primary{background:linear-gradient(180deg,#153444,#0e2434);border-color:var(--a)}
+  button.primary:hover:not(:disabled){border-color:var(--a);box-shadow:0 0 0 1px var(--a) inset}
+  .time{font-variant-numeric:tabular-nums;color:var(--foam-dim);font-size:13px;padding:0 6px;min-width:118px}
+  .spacer{flex:1}
+  #status{margin-top:14px;font-size:12px;color:var(--foam-dim);min-height:18px}
+  #status.err{color:var(--warn)} #status.ok{color:var(--a)}
+  .foot{margin-top:34px;font-size:11px;color:var(--foam-dim);font-style:italic;font-family:Georgia,serif;
+    border-top:1px solid var(--line);padding-top:14px}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Proteus</h1>
+    <div class="sub">the morph that has read both scores</div>
+    <div class="tag">Hindcasts · manual-align MVP</div>
+  </header>
+
+  <div class="files">
+    <label class="drop A" id="dropA">
+      <div class="role A">A — source / body</div>
+      <div class="name" id="nameA">drop or click to load audio</div>
+      <div class="meta" id="metaA"></div>
+      <input type="file" id="fileA" accept="audio/*">
+    </label>
+    <label class="drop B" id="dropB">
+      <div class="role B">B — donor</div>
+      <div class="name" id="nameB">drop or click to load audio</div>
+      <div class="meta" id="metaB"></div>
+      <input type="file" id="fileB" accept="audio/*">
+    </label>
+  </div>
+
+  <div class="panel">
+    <div class="lbl"><span>timeline — drag the B lane to position it · click/drag elsewhere to seek</span><span id="offLbl">B offset 0.00 s</span></div>
+    <canvas id="tl"></canvas>
+    <div class="hint">Output rides A's clock. Where B doesn't cover A, the morph rests on A. The amber lane is B — drag it to slide.</div>
+  </div>
+
+  <div class="panel">
+    <div class="lbl"><span>morph curve — drag points · click empty to add · double-click to remove</span><span>0 = A · 1 = B</span></div>
+    <canvas id="curve"></canvas>
+  </div>
+
+  <div class="controls">
+    <div class="ctl">
+      <label>Transport ↔ Fade <span class="val" id="tfVal">0.70</span></label>
+      <input type="range" id="tf" min="0" max="1" step="0.01" value="0.7">
+      <div class="tf"><b>Fade</b><span>mass moves ⇄ mass fades</span><b>Transport</b></div>
+    </div>
+    <div class="ctl">
+      <label>Edge Fade <span class="val" id="fadeVal">0.25s</span></label>
+      <input type="range" id="edgeFade" min="0" max="2" step="0.05" value="0.25">
+      <div class="tf"><b>0s</b><span>clip boundaries fade</span><b>2s</b></div>
+    </div>
+    <div class="ctl">
+      <label>Stereo</label>
+      <select id="stereo">
+        <option value="mono">morph in mono</option>
+        <option value="perch">morph per channel</option>
+      </select>
+    </div>
+    <div class="ctl">
+      <label>FFT size</label>
+      <select id="fftsize">
+        <option>1024</option><option selected>2048</option><option>4096</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="buttons">
+    <button class="primary" id="render" disabled>Render morph</button>
+    <button id="play" disabled>▶ Play</button>
+    <button id="stop" disabled>■ Stop</button>
+    <span class="time" id="time">0:00.0 / 0:00.0</span>
+    <span class="spacer"></span>
+    <button id="export" disabled>Export WAV</button>
+  </div>
+  <div id="status">Load an A and a B to begin.</div>
+
+  <div class="foot">hold the shapeshifter through every form, and he must tell you the future.</div>
+</div>
+
+<script>
+"use strict";
+const TAU=2*Math.PI;
+const COL={a:'#5fd0c4',b:'#e0a24a',iris:'#b98cff',grid:'#12222f',dim:'#4a6072',foam:'#e9f2ef'};
+
+//====================== DSP core =========================================
+function fft(re, im, inverse){
+  const n = re.length;
+  for(let i=1,j=0;i<n;i++){
+    let bit=n>>1;
+    for(;j&bit;bit>>=1) j^=bit;
+    j^=bit;
+    if(i<j){ const tr=re[i];re[i]=re[j];re[j]=tr; const ti=im[i];im[i]=im[j];im[j]=ti; }
+  }
+  for(let len=2;len<=n;len<<=1){
+    const ang=(inverse?2:-2)*Math.PI/len, wr=Math.cos(ang), wi=Math.sin(ang), half=len>>1;
+    for(let i=0;i<n;i+=len){
+      let cr=1, ci=0;
+      for(let k=0;k<half;k++){
+        const a=i+k, b=i+k+half;
+        const vr=re[b]*cr - im[b]*ci, vi=re[b]*ci + im[b]*cr;
+        re[b]=re[a]-vr; im[b]=im[a]-vi;
+        re[a]+=vr; im[a]+=vi;
+        const ncr=cr*wr - ci*wi; ci=cr*wi + ci*wr; cr=ncr;
+      }
+    }
+  }
+  if(inverse){ for(let i=0;i<n;i++){ re[i]/=n; im[i]/=n; } }
+}
+const princ=a=>a-TAU*Math.round(a/TAU);
+
+function stft(x, N, hop, win){
+  const F = Math.max(1, Math.floor((x.length - N)/hop) + 1);
+  const K = N/2 + 1;
+  const mag=[], phase=[];
+  const re=new Float64Array(N), im=new Float64Array(N);
+  for(let f=0; f<F; f++){
+    const off=f*hop;
+    for(let n=0;n<N;n++){ re[n]=x[off+n]*win[n]; im[n]=0; }
+    fft(re,im,false);
+    const m=new Float32Array(K), p=new Float32Array(K);
+    for(let k=0;k<K;k++){ m[k]=Math.hypot(re[k],im[k]); p[k]=Math.atan2(im[k],re[k]); }
+    mag.push(m); phase.push(p);
+  }
+  const adv=[];
+  for(let f=0;f<F;f++){
+    const a=new Float32Array(K);
+    for(let k=0;k<K;k++){
+      const omega=TAU*k/N*hop;
+      a[k]= f===0 ? omega : omega + princ(phase[f][k]-phase[f-1][k]-omega);
+    }
+    adv.push(a);
+  }
+  return {mag,phase,adv,F,K,N,hop};
+}
+
+function otMag(a,b,t,out){
+  const K=a.length;
+  out.fill(0);
+  let Ea=0,Eb=0;
+  for(let k=0;k<K;k++){ Ea+=a[k]; Eb+=b[k]; }
+  const Et=(1-t)*Ea + t*Eb;
+  if(Ea<=1e-12 && Eb<=1e-12) return out;
+  if(Eb<=1e-12){ const s=Et/Ea; for(let k=0;k<K;k++) out[k]=a[k]*s; return out; }
+  if(Ea<=1e-12){ const s=Et/Eb; for(let k=0;k<K;k++) out[k]=b[k]*s; return out; }
+  let i=0,j=0, ra=a[0]/Ea, rb=b[0]/Eb; const eps=1e-12;
+  while(i<K && j<K){
+    const m=Math.min(ra,rb);
+    out[Math.round((1-t)*i + t*j)] += m;
+    ra-=m; rb-=m;
+    if(ra<=eps){ i++; if(i<K) ra=a[i]/Ea; }
+    if(rb<=eps){ j++; if(j<K) rb=b[j]/Eb; }
+  }
+  for(let k=0;k<K;k++) out[k]*=Et;
+  return out;
+}
+
+function morphChannel(aData, bData, opts){
+  const {N,hop,win,curveAt,bOffsetSamples,tf,edgeFadeSamples} = opts;
+  const A=stft(aData,N,hop,win);
+  const B=stft(bData,N,hop,win);
+  const K=A.K, F=A.F;
+  const bOffFrames = bOffsetSamples/hop;
+  const outLen=(F-1)*hop + N;
+  const outAcc=new Float64Array(outLen), winAcc=new Float64Array(outLen);
+  const re=new Float64Array(N), im=new Float64Array(N);
+  const phaseOut=new Float32Array(K);
+  for(let k=0;k<K;k++) phaseOut[k]=A.phase[0][k];
+  const M=new Float32Array(K), Mt=new Float32Array(K);
+
+  for(let f=0; f<F; f++){
+    const x01 = F>1 ? f/(F-1) : 0;
+    const m = Math.min(1, Math.max(0, curveAt(x01)));
+    const bf = Math.round(f - bOffFrames);
+    const bIn = bf>=0 && bf<B.F;
+    const magA=A.mag[f], magB=bIn?B.mag[bf]:null;
+
+    let m_eff = m;
+    if(bIn && edgeFadeSamples > 0){
+      const maxFadeFrames = Math.min(Math.round(edgeFadeSamples / hop), Math.floor(B.F / 2));
+      if(maxFadeFrames > 0){
+        let fadeFactor = 1;
+        if(bf < maxFadeFrames){
+          fadeFactor = Math.sin((bf / maxFadeFrames) * Math.PI / 2);
+        } else if(B.F - 1 - bf < maxFadeFrames){
+          fadeFactor = Math.sin(((B.F - 1 - bf) / maxFadeFrames) * Math.PI / 2);
+        }
+        m_eff = m * fadeFactor;
+      }
+    }
+
+    if(magB){
+      otMag(magA,magB,m_eff,Mt);
+      const g=1-m_eff;
+      for(let k=0;k<K;k++){ const fade=g*magA[k]+m_eff*magB[k]; M[k]=(1-tf)*fade + tf*Mt[k]; }
+    } else {
+      for(let k=0;k<K;k++) M[k]=magA[k];
+    }
+
+    if(f>0){
+      const advA=A.adv[f], advB=bIn?B.adv[bf]:null;
+      for(let k=0;k<K;k++){
+        phaseOut[k] += advB ? (1-m_eff)*advA[k] + m_eff*advB[k] : advA[k];
+      }
+    }
+
+    for(let k=0;k<K;k++){ re[k]=M[k]*Math.cos(phaseOut[k]); im[k]=M[k]*Math.sin(phaseOut[k]); }
+    for(let k=1;k<K-1;k++){ re[N-k]=re[k]; im[N-k]=-im[k]; }
+    fft(re,im,true);
+    const off=f*hop;
+    for(let n=0;n<N;n++){ const w=win[n]; outAcc[off+n]+=re[n]*w; winAcc[off+n]+=w*w; }
+  }
+  // normalize by the constant interior overlap (COLA plateau), NOT per-sample winAcc:
+  // at the clip edges only one tapered window covers each sample, so winAcc->0 there and
+  // outAcc/winAcc would explode into an edge spike. Dividing by the plateau lets edges fade cleanly.
+  let C=0; for(let n=0;n<outLen;n++) if(winAcc[n]>C) C=winAcc[n];
+  if(C<=1e-12) C=1;
+  const out=new Float32Array(outLen);
+  for(let n=0;n<outLen;n++) out[n]=outAcc[n]/C;
+  return out;
+}
+
+function hann(N){ const w=new Float32Array(N); for(let n=0;n<N;n++) w[n]=0.5-0.5*Math.cos(TAU*n/N); return w; }
+function toMono(buf){
+  if(buf.numberOfChannels===1) return buf.getChannelData(0);
+  const L=buf.getChannelData(0), R=buf.getChannelData(1), o=new Float32Array(L.length);
+  for(let n=0;n<L.length;n++) o[n]=0.5*(L[n]+R[n]);
+  return o;
+}
+function bucketPeaks(data,res){
+  const mn=new Float32Array(res), mx=new Float32Array(res), step=data.length/res;
+  for(let i=0;i<res;i++){
+    let a=1,b=-1; const s0=Math.floor(i*step), s1=Math.max(s0+1,Math.floor((i+1)*step));
+    for(let n=s0;n<s1;n++){ const v=data[n]; if(v<a)a=v; if(v>b)b=v; }
+    mn[i]=a; mx[i]=b;
+  }
+  return {mn,mx,res};
+}
+
+//====================== app state ========================================
+const S={ ctx:null, A:null, B:null, peaksA:null, peaksB:null, bOffset:0,
+          out:null, src:null, gain:null, analyser:null,
+          playing:false, offset:0, startAt:0, raf:0,
+          curve:[{t:0,m:0},{t:1,m:1}] };
+const $=id=>document.getElementById(id);
+function status(msg,cls){ const s=$('status'); s.textContent=msg; s.className=cls||''; }
+function getCtx(){ if(!S.ctx) S.ctx=new (window.AudioContext||window.webkitAudioContext)(); return S.ctx; }
+
+async function loadFile(file, which){
+  const ctx=getCtx();
+  const buf=await ctx.decodeAudioData(await file.arrayBuffer());
+  S[which]=buf;
+  S['peaks'+which]=bucketPeaks(toMono(buf),2048);
+  const d=$('drop'+which); d.classList.add('loaded');
+  $('name'+which).textContent=file.name;
+  $('meta'+which).textContent=`${buf.duration.toFixed(2)} s · ${buf.numberOfChannels}ch · ${buf.sampleRate} Hz`;
+  if(which==='B') S.bOffset=0;
+  drawTL(); drawCurve();
+  $('render').disabled = !(S.A && S.B);
+  status(S.A&&S.B ? 'Ready. Position B, draw the curve, then Render.' : 'Load the other clip to begin.', S.A&&S.B?'ok':'');
+}
+
+//====================== timeline viz + B drag + seek ====================
+const tl=$('tl'), tlx=tl.getContext('2d');
+function tlSpan(){
+  const aLen=S.A?S.A.duration:1;
+  const bEnd=S.B? S.bOffset + S.B.duration : 0;
+  const bStart=S.B? Math.min(0,S.bOffset):0;
+  return {t0:Math.min(0,bStart), t1:Math.max(aLen,bEnd,1)};
+}
+function fitCanvas(c){ const r=c.getBoundingClientRect(), dpr=devicePixelRatio||1;
+  c.width=r.width*dpr; c.height=r.height*dpr; const cx=c.getContext('2d'); cx.setTransform(dpr,0,0,dpr,0,0); return r; }
+function drawPeaks(cx,pk,x,y,w,h,color){
+  if(!pk||w<=0) return;
+  cx.strokeStyle=color; cx.globalAlpha=.92; cx.beginPath();
+  for(let px=0;px<w;px++){
+    const i=Math.min(pk.res-1,Math.floor(px/w*pk.res));
+    cx.moveTo(x+px, y+h/2 - pk.mx[i]*h/2*.92);
+    cx.lineTo(x+px, y+h/2 - pk.mn[i]*h/2*.92);
+  }
+  cx.stroke(); cx.globalAlpha=1;
+}
+function outDur(){ return S.out? S.out.duration : 0; }
+function playheadTime(){ const ctx=getCtx(); return S.playing? Math.min(outDur(), S.offset+(ctx.currentTime-S.startAt)) : Math.min(outDur(), S.offset); }
+function drawTL(){
+  const r=fitCanvas(tl), w=r.width, h=r.height;
+  tlx.clearRect(0,0,w,h);
+  const {t0,t1}=tlSpan(), span=t1-t0, pxs=w/span;
+  const X=t=>(t-t0)*pxs;
+  const stepS=span>30?5:span>10?2:1;
+  tlx.strokeStyle=COL.grid; tlx.fillStyle=COL.dim; tlx.font='10px sans-serif';
+  for(let s=Math.ceil(t0/stepS)*stepS; s<=t1; s+=stepS){ const x=X(s); tlx.beginPath();tlx.moveTo(x,0);tlx.lineTo(x,h);tlx.stroke(); tlx.fillText(s+'s',x+3,h-4); }
+  const laneH=(h-30)/2;
+  tlx.fillStyle='rgba(95,208,196,.05)'; tlx.fillRect(X(0),6,S.A?S.A.duration*pxs:0,laneH);
+  if(S.A) drawPeaks(tlx,S.peaksA,X(0),8,S.A.duration*pxs,laneH-4,COL.a);
+  tlx.fillStyle=COL.a; tlx.font='11px sans-serif'; tlx.fillText('A',X(0)+4,20);
+  const by=6+laneH+6;
+  if(S.B){
+    tlx.fillStyle='rgba(224,162,74,.05)'; tlx.fillRect(X(S.bOffset),by,S.B.duration*pxs,laneH);
+    drawPeaks(tlx,S.peaksB,X(S.bOffset),by+2,S.B.duration*pxs,laneH-4,COL.b);
+    tlx.fillStyle=COL.b; tlx.fillText('B',X(S.bOffset)+4,by+14);
+  }
+  // playhead
+  if(S.out){
+    const px=X(playheadTime());
+    tlx.strokeStyle=COL.iris; tlx.lineWidth=2; tlx.beginPath(); tlx.moveTo(px,0); tlx.lineTo(px,h-16); tlx.stroke(); tlx.lineWidth=1;
+    tlx.fillStyle=COL.iris; tlx.beginPath(); tlx.moveTo(px-5,0); tlx.lineTo(px+5,0); tlx.lineTo(px,8); tlx.closePath(); tlx.fill();
+  }
+  tl._X=X; tl._t0=t0; tl._pxs=pxs; tl._by=by; tl._laneH=laneH;
+  $('offLbl').textContent='B offset '+S.bOffset.toFixed(2)+' s';
+}
+let dragB=null, scrub=null;
+function seekPix(clientX){
+  const r=tl.getBoundingClientRect();
+  const t=(tl._t0||0) + (clientX-r.left)/tl._pxs;
+  S.offset=Math.max(0,Math.min(outDur(),t));
+  drawTL(); updTime();
+}
+tl.addEventListener('pointerdown',e=>{
+  const r=tl.getBoundingClientRect(), y=e.clientY-r.top;
+  if(S.B && tl._by!=null && y>=tl._by && y<=tl._by+tl._laneH){
+    dragB={x0:e.clientX, off0:S.bOffset}; tl.setPointerCapture(e.pointerId); return;
+  }
+  if(S.out){ scrub={was:S.playing}; if(S.playing) pause(); tl.setPointerCapture(e.pointerId); seekPix(e.clientX); }
+});
+tl.addEventListener('pointermove',e=>{
+  if(dragB){ const dx=e.clientX-dragB.x0; S.bOffset=Math.max(-(S.B.duration*0.95), dragB.off0 + dx/tl._pxs); drawTL(); return; }
+  if(scrub) seekPix(e.clientX);
+});
+function endTL(){ dragB=null; if(scrub){ const w=scrub.was; scrub=null; if(w) play(); } }
+tl.addEventListener('pointerup',endTL);
+tl.addEventListener('pointercancel',endTL);
+
+//====================== morph curve editor ==============================
+const cv=$('curve'), cx=cv.getContext('2d');
+function curveAt(x01){
+  const p=S.curve;
+  if(x01<=p[0].t) return p[0].m;
+  if(x01>=p[p.length-1].t) return p[p.length-1].m;
+  for(let i=1;i<p.length;i++){ if(x01<=p[i].t){ const a=p[i-1],b=p[i],f=(x01-a.t)/(b.t-a.t||1); return a.m+(b.m-a.m)*f; } }
+  return p[p.length-1].m;
+}
+function drawCurve(){
+  const r=fitCanvas(cv), w=r.width, h=r.height, pad=8;
+  cx.clearRect(0,0,w,h);
+  cx.fillStyle='#0b1a26'; cx.fillRect(0,0,w,h);
+  cx.strokeStyle=COL.grid;
+  for(let i=0;i<=4;i++){ const y=pad+(h-2*pad)*i/4; cx.beginPath();cx.moveTo(0,y);cx.lineTo(w,y);cx.stroke(); }
+  const X=t=>pad+t*(w-2*pad), Y=m=>h-pad-m*(h-2*pad);
+  const g=cx.createLinearGradient(0,h,0,0); g.addColorStop(0,'rgba(95,208,196,.10)'); g.addColorStop(1,'rgba(224,162,74,.14)');
+  cx.beginPath(); cx.moveTo(X(0),h);
+  for(let px=0;px<=w;px+=3){ const t=Math.min(1,Math.max(0,(px-pad)/(w-2*pad))); cx.lineTo(px,Y(Math.min(1,Math.max(0,curveAt(t))))); }
+  cx.lineTo(X(1),h); cx.closePath(); cx.fillStyle=g; cx.fill();
+  cx.strokeStyle=COL.iris; cx.lineWidth=2; cx.beginPath();
+  S.curve.forEach((p,i)=>{ const x=X(p.t),y=Y(p.m); i?cx.lineTo(x,y):cx.moveTo(x,y); }); cx.stroke(); cx.lineWidth=1;
+  cx.fillStyle='#fff';
+  S.curve.forEach(p=>{ cx.beginPath(); cx.arc(X(p.t),Y(p.m),4,0,TAU); cx.fill(); });
+  cx.fillStyle=COL.a; cx.font='10px sans-serif'; cx.fillText('A (0)',6,h-6);
+  cx.fillStyle=COL.b; cx.fillText('B (1)',6,14);
+  cv._X=X; cv._Y=Y; cv._pad=pad;
+}
+function curveHit(e){
+  const r=cv.getBoundingClientRect(), mx=e.clientX-r.left, my=e.clientY-r.top;
+  let best=-1,bd=1e9;
+  S.curve.forEach((p,i)=>{ const d=Math.hypot(cv._X(p.t)-mx, cv._Y(p.m)-my); if(d<bd){bd=d;best=i;} });
+  return {i:best,d:bd,mx,my,r};
+}
+let dragP=null;
+cv.addEventListener('pointerdown',e=>{
+  const H=curveHit(e);
+  if(H.d<12){ dragP=H.i; }
+  else{
+    const w=H.r.width,h=H.r.height,pad=cv._pad;
+    const t=Math.min(1,Math.max(0,(H.mx-pad)/(w-2*pad))), m=Math.min(1,Math.max(0,(h-pad-H.my)/(h-2*pad)));
+    S.curve.push({t,m}); S.curve.sort((a,b)=>a.t-b.t); dragP=S.curve.findIndex(p=>p.t===t&&p.m===m);
+  }
+  cv.setPointerCapture(e.pointerId); drawCurve();
+});
+cv.addEventListener('pointermove',e=>{
+  if(dragP===null) return;
+  const r=cv.getBoundingClientRect(), w=r.width,h=r.height,pad=cv._pad;
+  const m=Math.min(1,Math.max(0,(h-pad-(e.clientY-r.top))/(h-2*pad)));
+  let t=Math.min(1,Math.max(0,((e.clientX-r.left)-pad)/(w-2*pad)));
+  if(dragP===0) t=0; else if(dragP===S.curve.length-1) t=1;
+  S.curve[dragP].t=t; S.curve[dragP].m=m;
+  const cur=S.curve[dragP]; S.curve.sort((a,b)=>a.t-b.t); dragP=S.curve.indexOf(cur);
+  drawCurve();
+});
+cv.addEventListener('pointerup',()=>dragP=null);
+cv.addEventListener('dblclick',e=>{
+  const H=curveHit(e);
+  if(H.d<12 && H.i>0 && H.i<S.curve.length-1){ S.curve.splice(H.i,1); drawCurve(); }
+});
+
+//====================== transport ========================================
+function ensureGraph(){
+  const ctx=getCtx();
+  if(!S.gain){ S.gain=ctx.createGain(); S.analyser=ctx.createAnalyser(); S.analyser.fftSize=1024;
+    S.gain.connect(S.analyser); S.analyser.connect(ctx.destination); }
+}
+function fmt(t){ t=Math.max(0,t); const m=Math.floor(t/60), s=t-m*60; return m+':'+(s<10?'0':'')+s.toFixed(1); }
+function updTime(){ $('time').textContent=fmt(playheadTime())+' / '+fmt(outDur()); }
+function updPlayBtn(){ $('play').textContent = S.playing?'❚❚ Pause':'▶ Play'; }
+function stopSource(){ if(S.src){ try{S.src.onended=null; S.src.stop();}catch(e){} S.src=null; } }
+async function play(){
+  if(!S.out) return;
+  ensureGraph();
+  const ctx=getCtx();
+  if(ctx.state==='suspended'){ try{ await ctx.resume(); }catch(e){} }
+  stopSource();
+  if(S.offset>=outDur()-1e-3) S.offset=0;
+  const src=ctx.createBufferSource(); src.buffer=S.out; src.connect(S.gain);
+  const startedFor=src;
+  src.onended=()=>{ if(S.src===startedFor){ S.playing=false; S.offset=outDur(); stopSource(); updPlayBtn(); drawTL(); updTime(); status('Done.','ok'); } };
+  src.start(0, Math.max(0,S.offset));
+  S.src=src; S.startAt=ctx.currentTime; S.playing=true;
+  updPlayBtn(); loopFrame(); status('Playing…','ok');
+}
+function pause(){
+  if(!S.playing) return;
+  S.offset=playheadTime(); S.playing=false; stopSource();
+  if(S.raf){ cancelAnimationFrame(S.raf); S.raf=0; }
+  updPlayBtn(); drawTL(); updTime(); status('Paused.','');
+}
+function stopAll(){
+  S.playing=false; stopSource();
+  if(S.raf){ cancelAnimationFrame(S.raf); S.raf=0; }
+  S.offset=0; updPlayBtn(); drawTL(); updTime(); status('Stopped.','');
+}
+function loopFrame(){ drawTL(); updTime(); if(S.playing){ S.raf=requestAnimationFrame(loopFrame); } }
+$('play').addEventListener('click',()=>{ S.playing? pause() : play(); });
+$('stop').addEventListener('click',stopAll);
+
+//====================== render ==========================================
+$('tf').addEventListener('input',e=>$('tfVal').textContent=(+e.target.value).toFixed(2));
+$('edgeFade').addEventListener('input',e=>$('fadeVal').textContent=(+e.target.value).toFixed(2)+'s');
+$('render').addEventListener('click',()=>{
+  if(!(S.A&&S.B)) return;
+  status('Rendering… (reading both to the end)','');
+  $('render').disabled=true;
+  setTimeout(doRender,30);
+});
+function doRender(){
+  try{
+    const t0=performance.now();
+    const N=+$('fftsize').value, hop=N/4, win=hann(N);
+    const rate=S.A.sampleRate;
+    const tf=+$('tf').value;
+    const edgeFadeSec=+$('edgeFade').value;
+    const edgeFadeSamples=Math.round(edgeFadeSec*rate);
+    const bOffSamp=Math.round(S.bOffset*rate);
+    const perch=$('stereo').value==='perch' && S.A.numberOfChannels>1 && S.B.numberOfChannels>1;
+    const opts={N,hop,win,curveAt,bOffsetSamples:bOffSamp,tf,edgeFadeSamples};
+    let chans;
+    if(perch){
+      chans=[ morphChannel(S.A.getChannelData(0),S.B.getChannelData(0),opts),
+              morphChannel(S.A.getChannelData(1),S.B.getChannelData(1),opts) ];
+    } else {
+      chans=[ morphChannel(toMono(S.A),toMono(S.B),opts) ];
+    }
+    let peak=0; chans.forEach(c=>{ for(let n=0;n<c.length;n++){ const a=Math.abs(c[n]); if(a>peak)peak=a; } });
+    const g = peak>1e-6 ? Math.min(1, 0.891/peak) : 1;
+    if(g<1) chans.forEach(c=>{ for(let n=0;n<c.length;n++) c[n]*=g; });
+
+    const ctx=getCtx(); ensureGraph();
+    stopSource(); S.playing=false; S.offset=0;
+    const buf=ctx.createBuffer(chans.length, chans[0].length, rate);
+    chans.forEach((c,i)=>buf.copyToChannel(c,i));
+    S.out=buf;
+    $('play').disabled=false; $('stop').disabled=false; $('export').disabled=false;
+    updPlayBtn(); drawTL(); updTime();
+    status(`Rendered ${buf.duration.toFixed(2)} s · ${chans.length}ch in ${((performance.now()-t0)/1000).toFixed(1)} s. Peak ${(20*Math.log10(peak||1e-9)).toFixed(1)} dBFS pre-norm. Press Play.`,'ok');
+  }catch(err){
+    status('Render failed: '+err.message,'err'); console.error(err);
+  }finally{ $('render').disabled=false; }
+}
+
+//====================== export ==========================================
+function encodeWAV(buf){
+  const ch=buf.numberOfChannels, len=buf.length, rate=buf.sampleRate;
+  const data=new DataView(new ArrayBuffer(44+len*ch*2));
+  const w=(o,s)=>{ for(let i=0;i<s.length;i++) data.setUint8(o+i,s.charCodeAt(i)); };
+  w(0,'RIFF'); data.setUint32(4,36+len*ch*2,true); w(8,'WAVE'); w(12,'fmt ');
+  data.setUint32(16,16,true); data.setUint16(20,1,true); data.setUint16(22,ch,true);
+  data.setUint32(24,rate,true); data.setUint32(28,rate*ch*2,true); data.setUint16(32,ch*2,true);
+  data.setUint16(34,16,true); w(36,'data'); data.setUint32(40,len*ch*2,true);
+  const chs=[]; for(let c=0;c<ch;c++) chs.push(buf.getChannelData(c));
+  let o=44;
+  for(let i=0;i<len;i++) for(let c=0;c<ch;c++){ let s=Math.max(-1,Math.min(1,chs[c][i])); data.setInt16(o,s<0?s*32768:s*32767,true); o+=2; }
+  return new Blob([data],{type:'audio/wav'});
+}
+$('export').addEventListener('click',()=>{
+  if(!S.out) return;
+  const url=URL.createObjectURL(encodeWAV(S.out));
+  const a=document.createElement('a'); a.href=url; a.download='proteus-morph.wav'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+});
+
+//====================== wiring ==========================================
+function wireDrop(which){
+  const d=$('drop'+which), inp=$('file'+which);
+  d.addEventListener('click',()=>inp.click());
+  inp.addEventListener('change',e=>{ if(e.target.files[0]) loadFile(e.target.files[0],which).catch(er=>status('Load failed: '+er.message,'err')); });
+  ['dragover','dragenter'].forEach(ev=>d.addEventListener(ev,e=>{e.preventDefault();d.classList.add('over');}));
+  ['dragleave','drop'].forEach(ev=>d.addEventListener(ev,e=>{e.preventDefault();d.classList.remove('over');}));
+  d.addEventListener('drop',e=>{ const f=e.dataTransfer.files[0]; if(f) loadFile(f,which).catch(er=>status('Load failed: '+er.message,'err')); });
+}
+wireDrop('A'); wireDrop('B');
+addEventListener('resize',()=>{drawTL();drawCurve();});
+drawTL(); drawCurve(); updTime();
+
+//====================== debug / self-test hooks =========================
+window.__proteus={ fft, otMag, morphChannel, stft, hann, bucketPeaks,
+  selftest(){
+    const N=2048, hop=N/4, win=hann(N), rate=44100, len=rate|0;
+    const a=new Float32Array(len), b=new Float32Array(len);
+    for(let n=0;n<len;n++){ a[n]=0.5*Math.sin(TAU*220*n/rate); b[n]=0.5*Math.sin(TAU*440*n/rate); }
+    const out=morphChannel(a,b,{N,hop,win,curveAt:x=>x,bOffsetSamples:0,tf:1});
+    let peak=0,ss=0,fin=true;
+    for(let n=0;n<out.length;n++){ const v=out[n]; if(!isFinite(v))fin=false; const av=Math.abs(v); if(av>peak)peak=av; ss+=v*v; }
+    const zcr=(x,s,e)=>{ let z=0; for(let n=s+1;n<e;n++) if((x[n-1]<0)!==(x[n]<0))z++; return z/((e-s)/rate)/2; };
+    return {outLen:out.length, finite:fin, peak:+peak.toFixed(3), rms:+Math.sqrt(ss/out.length).toFixed(3),
+            freqStart:Math.round(zcr(out,2000,6000)), freqEnd:Math.round(zcr(out,out.length-6000,out.length-2000))};
+  },
+  debugTones(){
+    const ctx=getCtx(), rate=ctx.sampleRate, len=(rate*1.5)|0;
+    const mk=f=>{ const bf=ctx.createBuffer(1,len,rate), d=bf.getChannelData(0); for(let n=0;n<len;n++) d[n]=0.4*Math.sin(TAU*f*n/rate); return bf; };
+    S.A=mk(220); S.B=mk(440); S.peaksA=bucketPeaks(toMono(S.A),2048); S.peaksB=bucketPeaks(toMono(S.B),2048);
+    $('render').disabled=false; drawTL(); drawCurve(); return 'tones loaded (A=220 B=440)';
+  },
+  render(){ doRender(); return $('status').textContent; },
+  async play(){ await play(); return {playing:S.playing, ctx:getCtx().state}; },
+  meter(){ if(!S.analyser) return {err:'no graph'}; const b=new Uint8Array(S.analyser.fftSize); S.analyser.getByteTimeDomainData(b);
+    let peak=0; for(let i=0;i<b.length;i++){ const v=Math.abs(b[i]-128); if(v>peak)peak=v; } return {peak, state:getCtx().state, playing:S.playing, t:+playheadTime().toFixed(2)}; }
+};
+</script>

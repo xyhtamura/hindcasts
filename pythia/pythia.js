@@ -11,6 +11,8 @@ window.onload = () => {
     const monitorCtrlCheckbox = document.getElementById('monitor-control-checkbox');
     const gateCheckbox       = document.getElementById('gate-checkbox');
     const pingPongCheckbox   = document.getElementById('ping-pong-checkbox');
+    const gapFitCheckbox     = document.getElementById('gap-fit-checkbox');
+    const gapFitStatus       = document.getElementById('gap-fit-status');
     const timeGroup          = document.getElementById('time-group');
     const loopRadios         = document.querySelectorAll('input[name="loopmode"]');
     const thresholdGroup     = document.getElementById('threshold-group');
@@ -48,6 +50,9 @@ window.onload = () => {
         mix:           document.getElementById('mix'),
         scatter:       document.getElementById('scatter'),
         feedback:      document.getElementById('feedback'),
+        maxRing:       document.getElementById('max-ring'),
+        gapSpill:      document.getElementById('gap-spill'),
+        maskingCredit: document.getElementById('masking-credit'),
         damping:       document.getElementById('damping'),
         feedbackGrain: document.getElementById('feedback-grain'),
         densityJitter: document.getElementById('density-jitter'),
@@ -67,6 +72,9 @@ window.onload = () => {
         mix:           document.getElementById('mix-value'),
         scatter:       document.getElementById('scatter-value'),
         feedback:      document.getElementById('feedback-value'),
+        maxRing:       document.getElementById('max-ring-value'),
+        gapSpill:      document.getElementById('gap-spill-value'),
+        maskingCredit: document.getElementById('masking-credit-value'),
         damping:       document.getElementById('damping-value'),
         feedbackGrain: document.getElementById('feedback-grain-value'),
         densityJitter: document.getElementById('density-jitter-value'),
@@ -76,12 +84,19 @@ window.onload = () => {
     // ── Web Audio ─────────────────────────────────────────────────────────────
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
     let controlBuffer        = null;
+
+    // ── Web Worker / file:// fallback ─────────────────────────────────────────
+    const isLocalFile = window.location.protocol === 'file:';
+    const bounceWorker = isLocalFile ? null : new Worker('pythia-worker.js');
     let sourceBuffer         = null;
     let externalSourceBuffer = null;
     let controlSourceNode    = null;
     let sourceNode           = null;   // source playback for the clean tap
     let analyserNode         = null;
     let controlRmsEnvelope   = [];
+    let sourceGapMap         = null;
+    let gapMapPromise        = null;
+    let sourceGapRevision    = 0;
 
     const dryGain   = audioContext.createGain();
     const wetGain   = audioContext.createGain();
@@ -177,7 +192,8 @@ window.onload = () => {
         sidechainLookahead: 0, threshold: 0.1, polarity: 1, grainSize: 150,
         grainDensity: 20, time: 0, bpm: 120, mix: 0.7, scatter: 1,
         pitch: 0, pitchSpray: 0, panSpray: 0,
-        feedback: 0, damping: 0, feedbackGrain: 0,
+        feedback: 0, maxRing: 8, gapSpill: -36, maskingCredit: 0.35,
+        damping: 0, feedbackGrain: 0,
         densityJitter: 0, envelopeShape: 0.5,
     };
     const params = { ...DEFAULT_PARAMS };
@@ -195,6 +211,7 @@ window.onload = () => {
     let applyingTimeSync = false;
     let applyingPreset = false;
     let pingPong       = false;
+    let gapFitEnabled  = false;
     let liveGrainIndex = 0;
     // Grain amplitude window: 'linear' = the classic attack/decay ramps (default,
     // preserves current sound); 'hann' = a true raised-cosine window (no click at
@@ -530,6 +547,83 @@ window.onload = () => {
     };
 
     // ── File loading + drag/drop ──────────────────────────────────────────────
+    // Gap Fit analyzes the audible source, not the sidechain. The canonical v1
+    // analyzer runs in a short-lived worker so long files do not pin the UI.
+    const updateGapFitUI = () => {
+        document.querySelectorAll('.gap-fit-param').forEach(el => {
+            el.style.opacity = gapFitEnabled ? '1' : '0.45';
+        });
+        if (!gapFitStatus) return;
+        if (!gapFitEnabled) gapFitStatus.textContent = 'off';
+        else if (!sourceBuffer) gapFitStatus.textContent = 'load source';
+        else if (!sourceGapMap) gapFitStatus.textContent = 'not mapped';
+        else gapFitStatus.textContent = `${sourceGapMap.events.length} events`;
+    };
+
+    const analyzeGapBuffer = (buffer) => {
+        const channels = Array.from(
+            { length: buffer.numberOfChannels },
+            (_, ch) => new Float32Array(buffer.getChannelData(ch))
+        );
+        const payload = { channels, sampleRate: buffer.sampleRate };
+        const analyzer = window.HindcastsGapMap && window.HindcastsGapMap.analyzeGapMap;
+        if (!analyzer) return Promise.reject(new Error('Gap-map analyzer is unavailable'));
+        const runOnMainThread = () => new Promise((resolve, reject) => setTimeout(() => {
+            try {
+                const fallbackChannels = Array.from(
+                    { length: buffer.numberOfChannels },
+                    (_, ch) => new Float32Array(buffer.getChannelData(ch))
+                );
+                resolve(analyzer({ channels: fallbackChannels, sampleRate: buffer.sampleRate }));
+            } catch (error) { reject(error); }
+        }, 0));
+
+        if (typeof Worker === 'function' && typeof Blob === 'function') {
+            return new Promise((resolve, reject) => {
+                const source = `"use strict";${analyzer.toString()};self.onmessage=e=>{try{self.postMessage({map:analyzeGapMap(e.data)});}catch(error){self.postMessage({error:error.message||String(error)});}};`;
+                const url = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
+                const worker = new Worker(url);
+                const finish = () => { worker.terminate(); URL.revokeObjectURL(url); };
+                worker.onmessage = e => {
+                    finish();
+                    if (e.data.error) reject(new Error(e.data.error));
+                    else resolve(e.data.map);
+                };
+                worker.onerror = e => { finish(); reject(new Error(e.message || 'Gap-map worker failed')); };
+                worker.postMessage(payload, channels.map(ch => ch.buffer));
+            }).catch(error => {
+                console.warn('Gap-map worker unavailable; analyzing on main thread.', error);
+                return runOnMainThread();
+            });
+        }
+        return runOnMainThread();
+    };
+
+    const ensureSourceGapMap = () => {
+        if (!gapFitEnabled || !sourceBuffer) return Promise.resolve(null);
+        if (sourceGapMap) return Promise.resolve(sourceGapMap);
+        if (gapMapPromise) return gapMapPromise;
+        const revision = sourceGapRevision;
+        const buffer = sourceBuffer;
+        if (gapFitStatus) gapFitStatus.textContent = 'mapping...';
+        gapMapPromise = analyzeGapBuffer(buffer).then(map => {
+            if (revision === sourceGapRevision && buffer === sourceBuffer) sourceGapMap = map;
+            return revision === sourceGapRevision ? sourceGapMap : ensureSourceGapMap();
+        }).finally(() => {
+            if (revision === sourceGapRevision) gapMapPromise = null;
+            updateGapFitUI();
+        });
+        return gapMapPromise;
+    };
+
+    const invalidateSourceGapMap = () => {
+        sourceGapRevision++;
+        sourceGapMap = null;
+        gapMapPromise = null;
+        updateGapFitUI();
+        if (gapFitEnabled && sourceBuffer) void ensureSourceGapMap().catch(console.error);
+    };
+
     const AUDIO_FILE_RE = /\.(wav|wave|mp3|m4a|aac|ogg|oga|flac|aif|aiff|webm)$/i;
     const isLikelyAudioFile = (file) => !!file && (
         (file.type && file.type.startsWith('audio/')) ||
@@ -551,6 +645,7 @@ window.onload = () => {
             if (isSelfSampling) {
                 sourceBuffer = controlBuffer;
                 sourceFileDisplay.textContent = controlFileName;
+                invalidateSourceGapMap();
             }
             controlWaveformCache = null;
             sourceWaveformCache  = null;
@@ -566,6 +661,7 @@ window.onload = () => {
             externalSourceBuffer = await loadAudioFile(file);
             externalSourceFileName = file.name;
             sourceBuffer        = externalSourceBuffer;
+            invalidateSourceGapMap();
             sourceWaveformCache = null;
             sourceFileDisplay.textContent = externalSourceFileName;
             refreshWaveformCaches();
@@ -676,12 +772,25 @@ window.onload = () => {
         });
     }
 
+    if (gapFitCheckbox) {
+        gapFitCheckbox.addEventListener('change', () => {
+            markPresetCustom();
+            gapFitEnabled = gapFitCheckbox.checked;
+            updateGapFitUI();
+            if (gapFitEnabled) void ensureSourceGapMap().catch(error => {
+                console.error('Gap Fit analysis error:', error);
+                if (gapFitStatus) gapFitStatus.textContent = 'map failed';
+            });
+        });
+    }
+
     const updateSelfSampling = () => {
         isSelfSampling = selfSampleCheckbox.checked;
         sourceInputGroup.style.opacity = isSelfSampling ? '0.5' : '1';
         sourceInput.disabled           = isSelfSampling;
         // Lookahead is always active — not gated to self-sampling
         sourceBuffer        = isSelfSampling ? controlBuffer : externalSourceBuffer;
+        invalidateSourceGapMap();
         sourceWaveformCache = null;
         sourceFileDisplay.textContent = isSelfSampling
             ? (controlFileName || '')
@@ -706,7 +815,8 @@ window.onload = () => {
     };
 
     const formatParamValue = (key, v) => {
-        if (key === 'grainSize' || key === 'grainDensity' || key === 'bpm' || key === 'pitch') return v.toFixed(0);
+        if (key === 'grainSize' || key === 'grainDensity' || key === 'bpm' || key === 'pitch' || key === 'gapSpill') return v.toFixed(0);
+        if (key === 'maxRing') return v.toFixed(1);
         if (key === 'pitchSpray') return v.toFixed(1);
         return v.toFixed(2);
     };
@@ -826,7 +936,7 @@ window.onload = () => {
             if (key === 'feedback') updateFeedback();
             if (key === 'damping' || key === 'feedbackGrain') updateDamping();
             if (key === 'time') { updateBlend(); updateDelays(); updateFeedback(); }
-            if ((key === 'time' || key === 'feedback') && isPlaying) rebuildPreEchoPreview();
+            if ((key === 'time' || key === 'feedback' || key === 'maxRing') && isPlaying) rebuildPreEchoPreview();
             // Time and sidechain lookahead shift the AMP envelope; the viewport stays fixed.
             if ((key === 'time' || key === 'sidechainLookahead') && vizEnabled) refreshWaveformCaches();
         });
@@ -1065,9 +1175,10 @@ window.onload = () => {
 
         const step = Math.max(0.03, Math.abs(params.time));
         const f = Math.min(0.95, Math.max(0, params.feedback));
-        const repeats = f > 0.001
-            ? Math.min(32, 1 + Math.ceil(Math.log(0.001) / Math.log(f)))
-            : 1;
+        const feedbackRepeats = f > 0.001
+            ? Math.min(32, Math.floor(params.maxRing / step), Math.ceil(Math.log(0.001) / Math.log(f)))
+            : 0;
+        const repeats = 1 + feedbackRepeats;
         let tapGain = 1;
 
         for (let i = 1; i <= repeats; i++) {
@@ -1231,316 +1342,6 @@ window.onload = () => {
     playButton.addEventListener('click', () => { if (!isPlaying) start(); else stop(); });
 
     // ── Offline bounce ────────────────────────────────────────────────────────
-    const BOUNCE_PEAK = 0.977;   // ≈ -0.2 dBFS true-peak ceiling
-
-    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-    const wrapTime = (t, d) => ((t % d) + d) % d;
-
-    const mulberry32 = (seed) => {
-        let a = seed >>> 0;
-        return () => {
-            a = (a + 0x6D2B79F5) >>> 0;
-            let t = a;
-            t = Math.imul(t ^ (t >>> 15), t | 1);
-            t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-        };
-    };
-
-    const bounceSeed = () => {
-        let h = 0x50595448; // "PYTH"
-        const keys = Object.keys(params).filter(k => k !== 'bpm').sort();
-        for (const k of keys) {
-            const s = `${k}:${params[k].toFixed(6)};`;
-            for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
-        }
-        h ^= gateEnabled ? 0x11111111 : 0;
-        h ^= loopClip ? 0x22222222 : 0;
-        h ^= windowType === 'hann' ? 0x33333333 : 0;
-        h ^= pingPong ? 0x44444444 : 0;
-        return h >>> 0;
-    };
-
-    const channelData = (buffer, ch) => buffer.getChannelData(Math.min(ch, buffer.numberOfChannels - 1));
-
-    const sampleAt = (buffer, ch, t, wrap = false) => {
-        const d = buffer.duration;
-        if (d <= 0) return 0;
-        let tt = t;
-        if (wrap) tt = wrapTime(tt, d);
-        else if (tt < 0 || tt >= d) return 0;
-
-        const data = channelData(buffer, ch);
-        const pos = tt * buffer.sampleRate;
-        const i0 = Math.floor(pos);
-        const i1 = Math.min(data.length - 1, i0 + 1);
-        const frac = pos - i0;
-        return data[i0] * (1 - frac) + data[i1] * frac;
-    };
-
-    const monoSampleAt = (buffer, t, wrap = false) => {
-        let sum = 0;
-        for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
-            sum += sampleAt(buffer, ch, t, wrap);
-        }
-        return sum / Math.max(1, buffer.numberOfChannels);
-    };
-
-    const bounceWindow = () => {
-        const D = controlBuffer.duration;
-        let head = Math.max(0, -params.time);
-        let tail = Math.max(0, params.time);
-
-        if (params.feedback > 0.01) {
-            const f = Math.min(0.95, params.feedback);
-            const repeats = Math.log(0.001) / Math.log(f);          // passes to -60 dB
-            const step = Math.max(0.03, Math.abs(params.time));
-            const room = Math.min(8, repeats * step);
-            if (params.time < 0) head += room;
-            else tail += room;
-        }
-
-        return {
-            start: -head,
-            end: D + tail,
-            head,
-            tail,
-            duration: D + head + tail,
-        };
-    };
-
-    const offlineSidechainRaw = (globalT) => {
-        return sidechainRawAtOutputTime(globalT);
-    };
-
-    const grainWindowAt = (localT, duration) => {
-        if (windowType === 'hann') {
-            return 0.5 * (1 - Math.cos((2 * Math.PI * localT) / Math.max(0.000001, duration)));
-        }
-        const attackTime = duration * params.envelopeShape;
-        if (localT <= attackTime) return attackTime <= 0 ? 1 : localT / attackTime;
-        return (duration - localT) / Math.max(0.000001, duration - attackTime);
-    };
-
-    const addOfflineGrain = (wet, opts) => {
-        const { channels, length, sampleRate, globalStart, globalT, amplitude, rand, grainIndex } = opts;
-        if (amplitude <= 0.001) return;
-
-        const grainDuration = params.grainSize / 1000;
-        let readPos = globalT - params.time;
-        if (loopClip) {
-            readPos = wrapTime(readPos, sourceBuffer.duration);
-        }
-
-        const pitchSemis = params.pitch + (rand() - 0.5) * 2 * params.pitchSpray;
-        const pitchRate = Math.pow(2, pitchSemis / 12);
-        const pan = panForGrain(rand, grainIndex);
-        const panGains = equalPowerPan(pan);
-        const readWindow = grainDuration * pitchRate;
-        const startOffset = scatteredGrainRead(rand, readPos, readWindow, sourceBuffer.duration).offset;
-        const first = Math.max(0, Math.floor((globalT - globalStart) * sampleRate));
-        const grainSamples = Math.max(1, Math.ceil(grainDuration * sampleRate));
-
-        for (let j = 0; j < grainSamples; j++) {
-            const outIdx = first + j;
-            if (outIdx < 0 || outIdx >= length) continue;
-            const localT = j / sampleRate;
-            const gain = amplitude * grainWindowAt(localT, grainDuration);
-            if (gain <= 0) continue;
-            const readT = startOffset + localT * pitchRate;
-            if (params.panSpray > 0 && channels >= 2) {
-                const v = monoSampleAt(sourceBuffer, readT, loopClip) * gain;
-                wet[0][outIdx] += v * panGains.left;
-                wet[1][outIdx] += v * panGains.right;
-            } else {
-                for (let ch = 0; ch < channels; ch++) {
-                    wet[ch][outIdx] += sampleAt(sourceBuffer, ch, readT, loopClip) * gain;
-                }
-            }
-        }
-    };
-
-    const renderWetFeedback = (wetBase, sampleRate) => {
-        const f = Math.min(0.95, Math.max(0, params.feedback));
-        if (f <= 0.001) return wetBase.map(ch => new Float32Array(ch));
-
-        const delaySamples = Math.max(1, Math.round(Math.max(0.03, Math.abs(params.time)) * sampleRate));
-        const texture = Math.max(0, Math.min(1, params.feedbackGrain));
-        const effectiveDamping = Math.max(params.damping, texture * 0.85);
-        const cutoff = 200 * Math.pow(100, 1 - effectiveDamping);
-        const alpha = 1 - Math.exp((-2 * Math.PI * cutoff) / sampleRate);
-        const out = wetBase.map(ch => new Float32Array(ch));
-        const feedbackChannel = (ch) => {
-            if (!pingPong || out.length < 2) return ch;
-            if (ch === 0) return 1;
-            if (ch === 1) return 0;
-            return ch;
-        };
-
-        const length = out[0].length;
-        const smearSamples = Math.round((params.grainSize / 1000) * sampleRate * 0.5 * texture);
-        const blockSamples = Math.max(8, Math.round((params.grainSize / 1000) * sampleRate * 0.25));
-        const offsets = new Int32Array(out.length);
-        const offsetRand = mulberry32((bounceSeed() ^ 0x6D697874) >>> 0); // "mixt"
-        const chooseOffsets = () => {
-            if (smearSamples <= 0) return;
-            for (let ch = 0; ch < offsets.length; ch++) {
-                offsets[ch] = Math.round((offsetRand() * 2 - 1) * smearSamples);
-            }
-        };
-        const delayedSample = (src, ch, exact, i) => {
-            if (exact < 0 || exact >= length) return 0;
-            const clean = out[src][exact];
-            if (smearSamples <= 0 || texture <= 0) return clean;
-            let shifted = exact + offsets[ch];
-            if (params.time < 0) shifted = Math.max(i + 1, Math.min(length - 1, shifted));
-            else shifted = Math.min(i - 1, Math.max(0, shifted));
-            return clean * (1 - texture) + out[src][shifted] * texture;
-        };
-
-        const lp = new Float32Array(out.length);
-        if (params.time < 0) {
-            for (let i = length - 1; i >= 0; i--) {
-                if (texture > 0 && ((length - 1 - i) % blockSamples) === 0) chooseOffsets();
-                for (let ch = 0; ch < out.length; ch++) {
-                    const src = feedbackChannel(ch);
-                    const delayed = delayedSample(src, ch, i + delaySamples, i);
-                    lp[ch] += alpha * (delayed - lp[ch]);
-                    out[ch][i] += f * lp[ch];
-                }
-            }
-        } else {
-            for (let i = 0; i < length; i++) {
-                if (texture > 0 && (i % blockSamples) === 0) chooseOffsets();
-                for (let ch = 0; ch < out.length; ch++) {
-                    const src = feedbackChannel(ch);
-                    const delayed = delayedSample(src, ch, i - delaySamples, i);
-                    lp[ch] += alpha * (delayed - lp[ch]);
-                    out[ch][i] += f * lp[ch];
-                }
-            }
-        }
-        return out;
-    };
-
-    const encodeFloatWav = (channelsData, sampleRate) => {
-        const channels = channelsData.length;
-        const length = channelsData[0].length;
-        const bytesPerSample = 4;
-        const blockAlign = channels * bytesPerSample;
-        const dataSize = length * blockAlign;
-        const buffer = new ArrayBuffer(44 + dataSize);
-        const view = new DataView(buffer);
-        let offset = 0;
-
-        const writeString = (s) => {
-            for (let i = 0; i < s.length; i++) view.setUint8(offset++, s.charCodeAt(i));
-        };
-
-        writeString('RIFF');
-        view.setUint32(offset, 36 + dataSize, true); offset += 4;
-        writeString('WAVE');
-        writeString('fmt ');
-        view.setUint32(offset, 16, true); offset += 4;
-        view.setUint16(offset, 3, true); offset += 2;                 // IEEE float
-        view.setUint16(offset, channels, true); offset += 2;
-        view.setUint32(offset, sampleRate, true); offset += 4;
-        view.setUint32(offset, sampleRate * blockAlign, true); offset += 4;
-        view.setUint16(offset, blockAlign, true); offset += 2;
-        view.setUint16(offset, bytesPerSample * 8, true); offset += 2;
-        writeString('data');
-        view.setUint32(offset, dataSize, true); offset += 4;
-
-        for (let i = 0; i < length; i++) {
-            for (let ch = 0; ch < channels; ch++) {
-                view.setFloat32(offset, channelsData[ch][i], true);
-                offset += 4;
-            }
-        }
-
-        return new Blob([buffer], { type: 'audio/wav' });
-    };
-
-    const renderBounce = () => {
-        const sampleRate = audioContext.sampleRate;
-        const channels = Math.max(2, sourceBuffer.numberOfChannels, controlBuffer.numberOfChannels);
-        const win = bounceWindow();
-        const length = Math.max(1, Math.ceil(win.duration * sampleRate));
-        const dry = Array.from({ length: channels }, () => new Float32Array(length));
-        const wetBase = Array.from({ length: channels }, () => new Float32Array(length));
-        const rand = mulberry32(bounceSeed());
-
-        const clean = Math.cos(params.scatter * 0.5 * Math.PI);
-        const gran = Math.sin(params.scatter * 0.5 * Math.PI);
-
-        for (let i = 0; i < length; i++) {
-            const globalT = win.start + i / sampleRate;
-            for (let ch = 0; ch < channels; ch++) {
-                if (sourceDry) dry[ch][i] += sampleAt(sourceBuffer, ch, globalT, false);
-                if (monitorControl) dry[ch][i] += sampleAt(controlBuffer, ch, globalT, false);
-                if (clean > 0.0001) {
-                    const readT = globalT - params.time;
-                    wetBase[ch][i] += sampleAt(sourceBuffer, ch, readT, loopClip) * clean;
-                }
-            }
-        }
-
-        let grainT = win.start;
-        let grainIndex = 0;
-        while (grainT < win.end) {
-            const raw = offlineSidechainRaw(grainT);
-            const env = raw * 4;
-            let amp = 0;
-            if (gateEnabled) {
-                const fire = params.polarity < 0 ? (raw <= params.threshold) : (raw > params.threshold);
-                amp = fire ? 1 : 0;
-            } else {
-                amp = sidechainAmplitude(env);
-            }
-            if (gran > 0.0001) {
-                addOfflineGrain(wetBase, {
-                    channels,
-                    length,
-                    sampleRate,
-                    globalStart: win.start,
-                    globalT: grainT,
-                    amplitude: amp * gran,
-                    rand,
-                    grainIndex,
-                });
-            }
-
-            const base = 1 / params.grainDensity;
-            const jitter = (rand() - 0.5) * base * params.densityJitter;
-            grainT += Math.max(0.001, base + jitter);
-            grainIndex++;
-        }
-
-        const wet = renderWetFeedback(wetBase, sampleRate);
-        const dryMix = Math.cos(params.mix * 0.5 * Math.PI);
-        const wetMix = Math.cos((1 - params.mix) * 0.5 * Math.PI);
-        const out = Array.from({ length: channels }, () => new Float32Array(length));
-        let peak = 0;
-
-        for (let ch = 0; ch < channels; ch++) {
-            for (let i = 0; i < length; i++) {
-                const v = dry[ch][i] * dryMix + wet[ch][i] * wetMix;
-                out[ch][i] = v;
-                const a = Math.abs(v);
-                if (a > peak) peak = a;
-            }
-        }
-
-        const scale = peak > BOUNCE_PEAK ? BOUNCE_PEAK / peak : 1;
-        if (scale < 1) {
-            for (const ch of out) {
-                for (let i = 0; i < ch.length; i++) ch[i] *= scale;
-            }
-        }
-
-        return { blob: encodeFloatWav(out, sampleRate), duration: win.duration, peak, scale };
-    };
-
     const bounceWav = async () => {
         if (isBouncing || !controlBuffer || !sourceBuffer) return;
         isBouncing = true;
@@ -1549,9 +1350,42 @@ window.onload = () => {
         recordButton.classList.add('recording');
 
         try {
-            await new Promise(resolve => setTimeout(resolve, 0));
-            const result = renderBounce();
-            const url = URL.createObjectURL(result.blob);
+
+        // Extract raw channel data from buffers
+        const controlChannels = [];
+        for (let ch = 0; ch < controlBuffer.numberOfChannels; ch++) {
+            controlChannels.push(controlBuffer.getChannelData(ch));
+        }
+
+        const sourceChannels = [];
+        for (let ch = 0; ch < sourceBuffer.numberOfChannels; ch++) {
+            sourceChannels.push(sourceBuffer.getChannelData(ch));
+        }
+
+        const gapMap = await ensureSourceGapMap();
+        const payload = {
+            controlChannels,
+            controlSampleRate: controlBuffer.sampleRate,
+            sourceChannels,
+            sourceSampleRate: sourceBuffer.sampleRate,
+            params: { ...params },
+            gateEnabled,
+            loopClip,
+            windowType,
+            pingPong,
+            sourceDry,
+            monitorControl,
+            gapFitEnabled,
+            gapMap,
+            controlRmsEnvelope: [...controlRmsEnvelope]
+        };
+
+        const handleBounceResult = (result) => {
+            if (result.error) {
+                throw new Error(result.error);
+            }
+            const blob = new Blob([result.wavBuffer], { type: 'audio/wav' });
+            const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = `pythia-bounce-${new Date().toISOString()}.wav`;
@@ -1559,10 +1393,34 @@ window.onload = () => {
             const li = document.createElement('li');
             li.appendChild(a);
             recordingsList.appendChild(li);
+        };
+
+            if (isLocalFile) {
+                // Synchronous fallback on main thread for file://
+                await new Promise(resolve => setTimeout(resolve, 50)); // let UI update Bouncing... status
+                const result = window.performBounceRender(payload);
+                handleBounceResult(result);
+            } else {
+                // Background execution via Web Worker
+                await new Promise((resolve, reject) => {
+                    bounceWorker.onmessage = (e) => {
+                        try {
+                            handleBounceResult(e.data);
+                            resolve();
+                        } catch (err) {
+                            reject(err);
+                        }
+                    };
+                    bounceWorker.onerror = (err) => {
+                        reject(new Error(err.message || "Worker error"));
+                    };
+                    bounceWorker.postMessage(payload);
+                });
+            }
         } catch (err) {
             console.error('Bounce error:', err);
             const li = document.createElement('li');
-            li.textContent = 'Bounce failed — see console';
+            li.textContent = `Bounce failed — ${err.message || err}`;
             recordingsList.appendChild(li);
         } finally {
             isBouncing = false;
@@ -1583,7 +1441,8 @@ window.onload = () => {
     // v4 (Phase 3 second slice): granulator pitch center + pitch spray.
     // v5 (Phase 3 third slice): Pan Spray + Ping-Pong feedback.
     // v6 (Phase 3 fourth slice): Feedback Grain/disintegration amount.
-    const STATE_VERSION = 6;
+    // v7 (Phase 5 first slice): Maximum Ring + optional shared-map Gap Fit policy.
+    const STATE_VERSION = 7;
 
     const serializeState = () => ({
         version:      STATE_VERSION,
@@ -1594,6 +1453,7 @@ window.onload = () => {
         monitorControl,
         timeSync,
         pingPong,
+        gapFitEnabled,
         windowType,
         params:       { ...params },
     });
@@ -1638,6 +1498,11 @@ window.onload = () => {
         if (pingPongCheckbox) pingPongCheckbox.checked = pingPong;
         updatePingPong();
 
+        gapFitEnabled = typeof s.gapFitEnabled === 'boolean' ? s.gapFitEnabled : false;
+        if (gapFitCheckbox) gapFitCheckbox.checked = gapFitEnabled;
+        updateGapFitUI();
+        if (gapFitEnabled) void ensureSourceGapMap().catch(console.error);
+
         // Legacy migration: pre-Phase-2 `mode: 'triggered'` was always follow-direction
         // gating; `mode: 'continuous'` was always follow. Polarity comes from params
         // above (or defaults to the slider's own value if the file predates polarity).
@@ -1675,6 +1540,7 @@ window.onload = () => {
         monitorControl: false,
         timeSync: 'free',
         pingPong: false,
+        gapFitEnabled: false,
         windowType: 'hann',
     };
     const makePreset = (overrides = {}) => ({
@@ -1799,4 +1665,5 @@ window.onload = () => {
     updateSelfSampling();
     updateTimeSyncUI();
     updatePingPong();
+    updateGapFitUI();
 };

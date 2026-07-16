@@ -612,7 +612,7 @@ h1.wordmark::before{
     </div>
     <div class="build">
       <span class="chip">suite index</span>
-      <span>06 instruments · live</span>
+      <span>07 instruments · live</span>
 
     </div>
   </header>
@@ -652,18 +652,26 @@ h1.wordmark::before{
   <!-- ── statement ────────────────────────────────────────────────── -->
   <section class="statement">
     <p class="lede">
-      A live effect is <em>causal</em>: its output at time <em>t</em> can depend only on samples at or before <em>t</em>.
-      For example, A live audio compressor waits for evidence a peak arrived, and only then can respond, always behind. This reliance on realtime is built into most audio effects (less so with video effects), when the digital medium does not always have to work this way. That single constraint is <em>causality</em> and it forces the threshold-and-attack dance and the running estimate, then the late action. 
+      A realtime effect is <em>causal</em>: its output at time <em>t</em> can depend only on samples at or before <em>t</em>.
+      A compressor must register a peak before it can reduce the gain; its running estimate and attack time follow from
+      processing a signal it has not yet received in full.
     </p>
     <p>
-      Hindcasts drops causality on purpose. These effects work with the full knowledge of the <b>static file</b>. This means effects can respond before, smooth backward, and fit their transfer curves to the
-      entire piece at once. 
+      Hindcasts removes that constraint by processing a <b>static file</b> as a complete span. An effect can respond
+      before an event, filter in both temporal directions, measure and revise across passes, or fit a transfer curve
+      to the file's full distribution.
     </p>
     <p>
-      This takes offline processing to its logical conclusion. Audio is often <em>causal-by-default</em>; image is <em>acausal-by-default</em>, and this enables audio processing to be able to feel like how image processing already works in digital space. Hindcasts rejects this inertia of hidden commitments to realtime.
+      Audio effects usually inherit realtime causality from monitoring, while image processing usually treats a saved
+      frame or sequence as an object available in full. Hindcasts applies that second temporal model to audio and makes
+      acausal operations in video expressive rather than corrective.
     </p>
     <p>
-      I come into Hindcasts with the same mindset I've had working with technology in the Philippines. Technology has been slow to arrive, and so has internet infrastructure. Lag in hardware and connectivity is a very real, everyday thing. Media processing that privileges realtime often locks out anyone for whom that technological speed is simply hard to reach. People here can get realtime processing more easily now than they used to. But thinking from that older position, even after the constraint eases, destabilizes norms that were never questioned much in the first place. This suite works from that place: what can we make, starting from this position, that's harder to imagine from the default one?
+      My approach comes from making digital work in the Philippines with uneven access to current hardware and reliable
+      bandwidth. When realtime processing exceeds the available machine or connection, offline rendering trades a fixed
+      hardware threshold for waiting. Better access does not erase what that constraint made legible: realtime is a design
+      commitment, not the definition of an effect. Hindcasts asks what becomes possible when waiting is treated as a
+      processing resource.
     </p>
 
     <!-- <div class="valence" role="group" aria-label="Valence per medium">
@@ -694,7 +702,7 @@ h1.wordmark::before{
   <section class="suite">
 
     <!-- pythia -->
-    <a class="tool" href="../pythia/" style="--accent:#c2dc32" aria-label="Open Pythia" id="pythia">
+    <a class="tool" href="/hindcasts/pythia/" style="--accent:#c2dc32" aria-label="Open Pythia" id="pythia">
       <div class="tool-top">
         <div>
           <div class="tool-name">Pythia</div>
@@ -702,8 +710,8 @@ h1.wordmark::before{
         <div class="tool-op">delay<span class="medium">audio</span></div>
       </div>
       <p class="tool-desc">
-        Paracognitive granular delay. A <b>control</b> signal breathes the future envelope; a <b>source</b> signal
-        becomes the body scattered through it.
+        A granular delay in which a <b>control</b> signal supplies a future amplitude envelope and a <b>source</b>
+        signal supplies the grains placed within it.
       </p>
       <div class="tool-foot">
         <div class="powers" aria-label="acausal powers used">
@@ -723,13 +731,35 @@ h1.wordmark::before{
         <div class="tool-op">dynamics<span class="medium">audio</span></div>
       </div>
       <p class="tool-desc">
-        An un-live compressor. It reads the whole file, charts how long the sound spends at each depth, and lets you
-        redraw the bottom. One RMS-window knob slides the regime continuously from waveshape to normalizing.
+        An offline dynamics processor that measures the file's amplitude distribution and maps it to a drawn transfer
+        curve. The RMS window moves continuously from sample-level waveshaping to whole-file normalization.
       </p>
       <div class="tool-foot">
         <div class="powers" aria-label="acausal powers used">
           <span class="p" title="global statistics">②</span>
           <span class="p" title="multi-pass">④</span>
+          <span class="p" title="whole-signal optimization">⑤</span>
+        </div>
+        <span class="open">open <span class="arr">→</span></span>
+      </div>
+    </a>
+
+    <!-- metachamber -->
+    <a class="tool" href="/hindcasts/metachamber/" style="--accent:#b4a8f3" aria-label="Open Metachamber" id="metachamber">
+      <div class="tool-top">
+        <div>
+          <div class="tool-name">Metachamber</div>
+        </div>
+        <div class="tool-op">reverb<span class="medium">audio</span></div>
+      </div>
+      <p class="tool-desc">
+        An offline reverb that maps each event's release-to-next-onset gap, then fits or ducks its tail to the available
+        span. The next event's level supplies masking credit, so inaudible spill need not be suppressed.
+      </p>
+      <div class="tool-foot">
+        <div class="powers" aria-label="acausal powers used">
+          <span class="p" title="precognition">①</span>
+          <span class="p" title="global statistics">②</span>
           <span class="p" title="whole-signal optimization">⑤</span>
         </div>
         <span class="open">open <span class="arr">→</span></span>
@@ -745,8 +775,8 @@ h1.wordmark::before{
         <div class="tool-op">smear<span class="medium">video</span></div>
       </div>
       <p class="tool-desc">
-        An acausal feedback field — framesmear unshackled. The time-arrow set free: trails that bloom ahead of an
-        event, symmetric zero-phase wakes, and scrubbing that's instant because every frame already read end-to-end.
+        A video feedback field computed across a complete clip. Future and past frames can feed the current frame,
+        producing trails before events and symmetric zero-phase wakes; rendered frames are cached for immediate scrubbing.
       </p>
       <div class="tool-foot">
         <div class="powers" aria-label="acausal powers used">
@@ -774,8 +804,8 @@ h1.wordmark::before{
         <div class="tool-op">graft<span class="medium">video</span></div>
       </div>
       <p class="tool-desc">
-        A scintillating-scotoma datamosh. Voronoi hold-regions stop refreshing, keep receiving the current motion
-        field, and seed from future or cross-clip donor frames: the aura as a non-grid, acausal image graft.
+        Voronoi hold regions stop refreshing their source pixels but continue to advect under the current motion field.
+        They can receive content from future frames or a second clip, producing a non-grid, acausal image graft.
       </p>
       <div class="tool-foot">
         <div class="powers" aria-label="acausal powers used">
@@ -794,8 +824,8 @@ h1.wordmark::before{
         <div class="tool-op">texture<span class="medium">audio</span></div>
       </div>
       <p class="tool-desc">
-        A stationarizer. It winnows a sound that runs out, sows the grains evenly, and pours an endless substrate
-        you can sample anywhere without hearing the loop.
+        A stationarizer that analyzes a finite sound, redistributes selected grains across time, and renders a statistically
+        even texture long enough to sample without an audible loop.
       </p>
       <div class="tool-foot">
         <div class="powers" aria-label="acausal powers used">
@@ -816,8 +846,8 @@ h1.wordmark::before{
         <div class="tool-op">print<span class="medium">audio + video</span></div>
       </div>
       <p class="tool-desc">
-        Magnetic print-through as an instrument. The whole clip is wound onto a reel, so future and past wraps ghost
-        into one another as pre-echo, post-echo, and drifting VHS bleed.
+        A model of magnetic print-through for audio and video. Mapping a complete clip onto a wound reel lets adjacent
+        wraps exchange amplitude or image content, producing pre-echo, post-echo, and drifting VHS bleed.
       </p>
       <div class="tool-foot">
         <div class="powers" aria-label="acausal powers used">
@@ -836,11 +866,11 @@ h1.wordmark::before{
     <span class="meta">guiding principles in digital space</span>
   </div>
   <section class="powers-grid">
-    <div class="pw"><span class="n">① </span><span class="t">Precognition</span><span class="d"> Respond before. Pre-ducking, pre-verb, the tail that precedes the hit.</span></div>
+    <div class="pw"><span class="n">① </span><span class="t">Precognition</span><span class="d"> Use later events to shape earlier output: pre-ducking, pre-reverb, or a tail that begins before its source.</span></div>
     <div class="pw"><span class="n">② </span><span class="t">Global statistics</span><span class="d"> Shape relative to the whole file's distribution, not a running estimate.</span></div>
-    <div class="pw"><span class="n">③ </span><span class="t">Bidirectionality</span><span class="d"> Smooth and filter symmetrically, not only forward. Zero-phase.</span></div>
-    <div class="pw"><span class="n">④ </span><span class="t">Multi-pass</span><span class="d"> Measure, then act, then measure again. Convergence no live system gets.</span></div>
-    <div class="pw"><span class="n">⑤ </span><span class="t">Whole-signal optimization</span><span class="d"> Pick the curve / quantizer / kernel optimal over the entire piece.</span></div>
+    <div class="pw"><span class="n">③ </span><span class="t">Bidirectionality</span><span class="d"> Apply smoothing or filtering in both temporal directions to obtain zero-phase response.</span></div>
+    <div class="pw"><span class="n">④ </span><span class="t">Multi-pass</span><span class="d"> Measure, process, and measure again until a whole-file criterion converges.</span></div>
+    <div class="pw"><span class="n">⑤ </span><span class="t">Whole-signal optimization</span><span class="d"> Choose a transfer curve, quantizer, or kernel by an objective evaluated over the entire file.</span></div>
   </section>
 
   <!-- 
