@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 const html = fs.readFileSync(new URL("./index.html", import.meta.url), "utf8");
-for (const id of ["gap-fit-checkbox", "max-ring", "gap-spill", "masking-credit", "gap-fit-status"]) {
+for (const id of ["gap-fit-checkbox", "max-ring", "gap-spill", "masking-credit", "gap-fit-status", "time-wake", "time-anticipation", "time-symmetric", "time-balance"]) {
   assert.match(html, new RegExp(`id=["']${id}["']`), `${id} control is wired into the page`);
 }
 assert.ok(
@@ -95,4 +95,27 @@ assert.ok(
   "negative Gap Fit uses the preceding gap"
 );
 
-console.log("Pythia Gap Fit tests passed");
+const symmetricBase = {
+  ...base,
+  gapFitEnabled: false,
+  temporalStance: "symmetric",
+  temporalBalance: 0.5,
+  params: { ...params, time: 0.1, timeBalance: 0.5 },
+};
+const symmetric = performBounceRender(symmetricBase);
+const symmetricAgain = performBounceRender(symmetricBase);
+assert.equal(symmetric.temporalStance, "symmetric");
+assert.ok(symmetric.start < 0, "symmetric delay allocates anticipatory head room");
+assert.ok(symmetric.start + symmetric.duration > length / sampleRate, "symmetric delay allocates wake tail room");
+assert.ok(Math.abs(sample(symmetric, 0.0)) > 0.5, "symmetric delay contains the clean anticipatory tap");
+assert.ok(Math.abs(sample(symmetric, 0.2)) > 0.5, "symmetric delay contains the clean wake tap");
+assert.deepEqual(new Uint8Array(symmetric.wavBuffer), new Uint8Array(symmetricAgain.wavBuffer), "symmetric bounce is byte-deterministic");
+
+const anticipationOnly = performBounceRender({ ...symmetricBase, temporalBalance: 0, params: { ...symmetricBase.params, timeBalance: 0 } });
+const wakeOnly = performBounceRender({ ...symmetricBase, temporalBalance: 1, params: { ...symmetricBase.params, timeBalance: 1 } });
+assert.ok(Math.abs(sample(anticipationOnly, 0.0)) > 0.9 && Math.abs(sample(anticipationOnly, 0.2)) < 1e-8, "balance hard-left isolates anticipation");
+assert.ok(Math.abs(sample(wakeOnly, 0.2)) > 0.9 && Math.abs(sample(wakeOnly, 0.0)) < 1e-8, "balance hard-right isolates wake");
+const symmetricFitted = performBounceRender({ ...symmetricBase, gapFitEnabled: true });
+assert.equal(symmetricFitted.gapFitEvents, gapMap.events.length, "symmetric Caesura solves both linked directions from one map");
+
+console.log("Pythia symmetric + Gap Fit tests passed");

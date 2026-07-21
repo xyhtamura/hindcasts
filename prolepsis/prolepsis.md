@@ -47,6 +47,32 @@ Pythia's dual input, absent here. Second clip donates the **transient curve**, t
 field**, or the **inscription mask**; first clip is the body. Clip A smears according to what's
 about to happen in clip B. CyberScotoma already proved cross-clip donorship reads in video.
 
+### 4. Audio control input — the Caesura bridge *(planned 2026-07-17; symmetry contract)*
+Sound determines blur, and it costs no new analyzer: the suite gap map
+(`../shared/gap-map.js`) is audio-native, so Prolepsis becomes its third consumer instead of
+growing one. Prolepsis already holds the time-arrow half of the suite **symmetry contract**
+(`../hindcasts.md`, symmetry section); this is how the Caesura half arrives. Two levels, built
+in order:
+
+- **Envelope mode** — an audio file (or the clip's own soundtrack) as control input; its
+  loudness envelope drives deposit/decay/blur. Continuous and signal-following — Pythia's
+  polarity-sidechain analog. Drops into the existing transient pre-pass slot, swapping the
+  frame-change curve for an audio-derived one (`depositScale` already takes exactly this
+  shape of input).
+- **Caesura mode** — the audio gap map budgets the field per event: precursor ramp sized to
+  the preceding gap, wake decay to the following one. Structural and event-wise — Pythia's
+  Gap Fit analog, and Metachamber's deferred "video cousin" arriving from the audio side.
+  Start with a single drive (event-scaled deposit); full directional budgets are the
+  Metachamber-grade version, added only if the single drive asks for them.
+  *(Decided 2026-07-17: single drive first.)*
+
+The envelope/structural split is itself part of the symmetry: Pythia codifies it as
+polarity-sidechain vs Caesura, and it transfers intact.
+
+Consequence: Prolepsis becomes the suite's second audio+video member (export must mux the
+audio back in — see engineering wins). Placement rule holds: utility-forward, Hindcasts-home.
+Self-soundtrack is the zero-config default; a separate audio file is the dual input proper.
+
 ---
 
 ## roadmap — new, thesis-extending
@@ -102,6 +128,9 @@ snapshot.
 Export currently drops audio entirely. Minimal: mux the original track back in. Maximal:
 pre-verb the audio so sound anticipates with image — would make prolepsis a second a/v hinge
 member alongside Remanence. Own decision (placement rule cares).
+→ *2026-07-17: the decision landed via roadmap #4 (audio control input) — sound drives the
+image rather than the image getting a pre-verbed track, and the a/v turn now has a mechanism
+(the shared gap map) instead of only a wish. The minimal mux remains the export prerequisite.*
 
 ---
 
@@ -128,4 +157,6 @@ Highest thesis-leverage per effort: **drawn-curve parameters** (esp. balance-as-
 **spatial regime field**. **Multiclip crossfades** builds directly on balance-as-curve — same
 mechanism, second clip. **Control/source input** keeps the suite's interface promise.
 **WebCodecs export** is the biggest practical-quality fix. **Dense flow** remains the prize but
-is the largest single build.
+is the largest single build. *(2026-07-17: the **audio control input**, #4, joins the suite-wide
+symmetry build-out — see `../hindcasts.md` next-move 0 — and slots ahead of the rest of this
+list while that push is active.)*

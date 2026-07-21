@@ -4,7 +4,7 @@ import fs from "node:fs";
 import { Worker } from "node:worker_threads";
 
 const html = fs.readFileSync(new URL("./index.html", import.meta.url), "utf8");
-assert.match(html, /<title>Metachamber — gap-aware reverb<\/title>/, "product title is renamed");
+assert.match(html, /<title>Metachamber — gap-aware acausal reverb<\/title>/, "product title names the acausal reverb");
 const h1Inner = html.match(/<h1>([\s\S]*?)<\/h1>/)?.[1];
 assert.equal(h1Inner?.replace(/<[^>]+>/g, ""), "Metachamber", "product heading reads Metachamber (display glyphs may be wrapped)");
 assert.match(html, /<h2>Caesura \/ [^<]+<\/h2>/, "Caesura remains the mechanic name");
@@ -119,11 +119,41 @@ let wetEnergy = 0;
 for (const sample of first.channels[0]) wetEnergy += sample * sample;
 assert.ok(wetEnergy > 1e-6, "FIT produces nonzero wet energy");
 
+const roomSamples = Math.ceil((baseParams.preDelay + baseParams.rtMax * 1.5) * sampleRate);
+events.slice(1).forEach(event => {
+  assert.ok(event.preTargetRT >= baseParams.rtMin && event.preTargetRT <= baseParams.rtMax, "reverse room fits the preceding gap");
+  assert.ok(event.preAvailableGap <= event.gapToPrevious, "pre-delay consumes the preceding gap budget");
+});
+const anticipationParams = { ...baseParams, temporal: "anticipation", temporalBalance: 0.5 };
+const anticipation = renderMetachamber({ sourceChannels: [mono], sampleRate, events, params: anticipationParams });
+assert.equal(anticipation.channels[0].length, length + roomSamples, "anticipation adds head room only");
+assert.equal(anticipation.meta.sourceOffsetSamples, roomSamples, "dry body is shifted behind the precursor room");
+assert.equal(anticipation.meta.checks.passed, anticipation.meta.checks.total, "anticipatory tails meet preceding-gap budgets");
+let precursorEnergy = 0;
+for (let i = 0; i < anticipation.meta.sourceOffsetSamples; i++) precursorEnergy += anticipation.channels[0][i] ** 2;
+assert.ok(precursorEnergy > 1e-8, "anticipation produces wet energy before the dry body");
+
+const symmetricParams = { ...baseParams, temporal: "symmetric", temporalBalance: 0.5 };
+const symmetric = renderMetachamber({ sourceChannels: [mono], sampleRate, events, params: symmetricParams });
+assert.equal(symmetric.channels[0].length, length + roomSamples * 2, "symmetric reverb adds equal head and tail rooms");
+assert.equal(symmetric.meta.sourceOffsetSamples, roomSamples);
+assert.equal(symmetric.meta.checks.total, (events.length - 1) * 2, "symmetric render verifies both temporal horizons");
+assert.equal(symmetric.meta.checks.passed, symmetric.meta.checks.total, "both horizons meet their budgets");
+let symmetricHead = 0, symmetricTail = 0;
+for (let i = 0; i < roomSamples; i++) symmetricHead += symmetric.channels[0][i] ** 2;
+for (let i = roomSamples + length; i < symmetric.channels[0].length; i++) symmetricTail += symmetric.channels[0][i] ** 2;
+assert.ok(symmetricHead > 1e-8 && symmetricTail > 1e-8, "symmetric reverb blooms before and after the source");
+const dryOnly = renderMetachamber({ sourceChannels: [mono], sampleRate, events, params: { ...symmetricParams, mix: 0 } });
+assert.equal(dryOnly.channels[0][roomSamples + Math.round(onsetTimes[0] * sampleRate)], mono[Math.round(onsetTimes[0] * sampleRate)], "dry source remains sample-aligned after head extension");
+
 const duckParams = { ...baseParams, stance: "duck" };
 const duckEvents = solveGapMap(map, duckParams);
 const duck = renderMetachamber({ sourceChannels: [mono], sampleRate, events: duckEvents, params: duckParams });
 assert.equal(duck.meta.nonFinite, 0);
 assert.equal(duck.meta.checks.passed, duck.meta.checks.total, "DUCK pins every constrained onset at or below its allowance");
+const symmetricDuck = renderMetachamber({ sourceChannels: [mono], sampleRate, events: duckEvents, params: { ...duckParams, temporal: "symmetric", temporalBalance: 0.5 } });
+assert.equal(symmetricDuck.meta.nonFinite, 0);
+assert.equal(symmetricDuck.meta.checks.passed, symmetricDuck.meta.checks.total, "DUCK protects both horizons in symmetric mode");
 
 const stereo = renderMetachamber({ sourceChannels: [mono, impulseTrain(-1)], sampleRate, events, params: baseParams });
 assert.equal(stereo.channels.length, 2);
@@ -206,7 +236,7 @@ assert.equal(workerRender.meta.checks.passed, workerRender.meta.checks.total);
 assert.ok(workerRender.channels[0] instanceof Float32Array && workerRender.channels[0].byteLength > 0, "worker returns transferred Float32 PCM");
 await engineWorker.terminate();
 
-for (const id of ["gap-canvas", "stance-fit", "stance-duck", "render", "play", "bounce", "export-map"]) {
+for (const id of ["gap-canvas", "stance-fit", "stance-duck", "time-wake", "time-anticipation", "time-symmetric", "balance", "render", "play", "bounce", "export-map"]) {
   assert.match(html, new RegExp(`id=["']${id}["']`), `UI includes #${id}`);
 }
 assert.match(html, /the MVP accepts mono or stereo/, "unsupported multichannel input is rejected explicitly");

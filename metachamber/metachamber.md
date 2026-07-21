@@ -1,6 +1,6 @@
 # METACHAMBER
 
-*a chamber shaped by the future — a tail that knows how much room it has · HINDCASTS / audio*
+*a chamber shaped by both horizons — wake, anticipation, and symmetric bloom · HINDCASTS / audio*
 
 **renamed from Caesura 2026-07-13.** Caesura is retained as the shared gap-aware mechanic used here and in Pythia.
 
@@ -8,7 +8,7 @@
 
 ## one line
 
-Reverb's original sin is that the tail cannot know how much room it has: **mud is a tail colliding with an event it couldn't see.** Metachamber reads the whole file first, measures every silence, and uses **Caesura** to fit each event's tail to the gap that actually follows it. The classical manual ritual — riding wet/damping automation down into the busy sections, opening it up for the exposed ones — made structural: a real effect instead of a mixdown chore.
+Reverb's original sin is that the tail cannot know how much room it has: **mud is a tail colliding with an event it couldn't see.** Metachamber reads the whole file first, measures every silence, and uses **Caesura** to fit each event's diffuse field to either adjacent gap. The same chamber can trail the event, gather into it from the past, or bloom symmetrically around it.
 
 ---
 
@@ -18,10 +18,11 @@ A live reverb is **one room for all events.** Its decay is chosen as a compromis
 
 Lookahead can't buy this. A limiter's lookahead is milliseconds; the gaps that govern a tail are **seconds** — a live reverb would need to see further ahead than any monitoring path can tolerate. The information genuinely does not exist at decision time. This is the suite's cleanest case of an *every-session insert* whose ideal form is structurally un-live.
 
-Two acausal facts the live version can never hold:
+Three acausal facts the live version can never hold:
 
 1. **The gap.** How long until the next event — the tail's actual budget.
 2. **The mask.** How loud that next event is. Spill only matters if it's *audible*: a tail running long under a louder next hit is free. The spill constraint is perceptual, not energetic, and it requires knowing the future event's level, not just its time.
+3. **The reverse room.** A diffuse field may be integrated backward so it resolves into an event. This is not a reversed bounce pasted in front: the FDN recursion itself runs from future to past, with its own preceding-gap budget.
 
 Superpowers drawn on: **precognition + whole-signal optimization + global statistics** (audibility floor, masking).
 
@@ -39,12 +40,23 @@ The analysis pass, separable from the reverb that consumes it:
 
 ---
 
-## stances (one engine, four uses)
+## two orthogonal stance axes
 
+These two axes are Metachamber's half of the suite **symmetry contract** (`../hindcasts.md`, symmetry section): Time Arrow, Balance, Caesura OFF/FIT/DUCK, Wet layer, one gap map.
+
+**Caesura policy:**
+
+- **OFF** — *planned 2026-07-17 (symmetry contract).* No gap awareness: the fixed room renders both horizons at its set decay, nothing fits and nothing rides. With the Wet layer switch this is the quick-and-dirty stack — wet pre-verb plus wet verb straight over the dry.
 - **FIT** — *the room resizes per event.* RT60 solved per event so the decay reaches the floor (or the Spill allowance under the next onset) exactly when the next event lands. Every hit gets its own room. The flagship stance; the one with no live approximation at all.
 - **DUCK** — *one fixed room, wet rides.* The classical automation ritual automated: wet/damping envelope derived from the gap map, pulled down ahead of each oncoming event — with **bidirectional (zero-phase) smoothing**, so the ride has no pumping and no attack lag in either direction.
-- **SWELL** — *pre-verb, budgeted.* The tail mirrored before the hit, its length fit to the *preceding* gap. Remanence's Wind applied to a room; absorbs the pre-verb one-liner with a budget it never had as a tape trick.
-- **HOLLOW** — *wet only where the dry is silent.* Reverb poured exclusively into the negative space; the tail becomes the figure, the events become the frame. Negative-space granulation's kin in the tail domain.
+
+**Time arrow:**
+
+- **WAKE** — causal FDN recursion; each chamber trails its event and uses the following-gap solution.
+- **ANTICIPATION** — backward FDN recursion; each precursor gathers into its event and uses a separate preceding-gap solution.
+- **SYMMETRIC** — both recursions, equal-power blended by Anticipation ↔ Wake balance. This is the default stance: a zero-phase room in time, with independently guarded horizons.
+
+**HOLLOW** remains deferred: wet only where the dry is silent, making the negative space the figure.
 
 ---
 
@@ -55,6 +67,8 @@ The analysis pass, separable from the reverb that consumes it:
 - **Room law** — a **drawn curve** gap → RT60 (inscription, not a knob — the TaboTa argument, fourth appearance), clamped to [RT-min, RT-max]. Identity line = FIT's natural solution; bending it is where the tool becomes expressive (short gaps get *longer* rooms = deliberate smear; long gaps get dry = starkness).
 - **Per-band sensing** (toggle) — gap map computed per band; the highs' budget separate from the lows'.
 - Base-room voicing: **pre-delay, damping/tone, wet/dry** — the ordinary reverb face, unchanged.
+- **Anticipation ↔ Wake** — equal-power balance between backward and forward fields when Time Arrow is SYMMETRIC.
+- **Wet layer** *(planned 2026-07-17, symmetry contract)* — mix-law switch: dry at unity, both directional wets at full (send-style layering) in place of the equal-power insert blend. The hotter sum is already covered offline by the whole-file peak guard. Open: whether Wet layer forces both directions to unity (overriding Balance) or Balance still weights the pair — leaning override.
 
 ---
 
@@ -66,7 +80,7 @@ The analysis pass, separable from the reverb that consumes it:
 
 Both: envelope smoothing is bidirectional/zero-phase throughout — no attack/release asymmetry anywhere in the control path.
 
-### MVP — shipped 2026-07-12
+### MVP — shipped 2026-07-12; bidirectional engine shipped 2026-07-17
 
 Built at `metachamber/index.html` in the suite's drop file → analyze → preview/A-B → **Bounce WAV** pattern. It imports only the local shared gap-map analyzer. The sample-domain FDN render is deterministic within the JS engine; preview and 32-bit float WAV use the same final PCM. Repeatable tests live in `test-metachamber.mjs` and `test-browser.mjs`.
 
@@ -77,22 +91,22 @@ Built at `metachamber/index.html` in the suite's drop file → analyze → previ
    - ~46 ms Hann/FFT window, ~10 ms hop, channel-energy RMS + 80 Hz–12 kHz spectral flux, centered local threshold, 75–80 ms onset/release holds.
    - Operational floor = clamped quiet-percentile statistic; releases are measured before silence gaps, rather than treating onset-to-onset time as free tail space.
    - Shared v1 JSON uses sample indices and explicit units: `{sampleRate, durationSamples, floorDbfs, analysis, events[]}` with `onsetSample`, `releaseSample`, `eventRmsPeakDbfs`, `nextOnsetSample`, `nextOnsetRmsDbfs`, `interOnsetSamples`, `silenceGapSamples`, `confidence`.
-3. **Budgets**: Spill is dB relative to the preceding event. Masking credit interpolates that relative allowance toward the next onset's level minus a conservative masking margin. Available decay time is `silenceGap − preDelay`; solve `RT60 = 60 · availableGap / requiredDropDb`, clamp to [RT-min, RT-max], and mark constraints below RT-min as infeasible rather than pretending the clamp met them.
-4. **Render — the corrected three-room trick**: deterministic, mutually coherent FDN rooms at RT-min / geometric-mid / RT-max. Each event is routed into its two bracketing rooms **before** diffusion; already-ringing tails remain in the room they were assigned. A wet-only post guard enforces summed-tail budgets at crowded cuts.
-5. **DUCK path**: one fixed RT-max room + wet-gain targets over incoming event spans, forward/backward one-pole smoothing, then symmetric onset pins where smoothing made a short dip too shallow.
-6. **Mix + export**: pre-delay, feedback-loop damping, equal-power wet/dry, one whole-file peak guard, exact-buffer preview, 32-bit float WAV out.
+3. **Directional budgets**: every event gets an after-gap RT and a before-gap RT. Spill and masking credit are solved against the event on the opposite side of each boundary. Available decay time is `silenceGap − preDelay`; solve `RT60 = 60 · availableGap / requiredDropDb`, clamp to [RT-min, RT-max], and mark each horizon independently when RT-min is infeasible.
+4. **Render — bidirectional three-room FDN**: deterministic, mutually coherent rooms at RT-min / geometric-mid / RT-max. WAKE iterates the feedback state forward; ANTICIPATION iterates the same recursion backward over genuine output head room. SYMMETRIC runs both and equal-power blends them. No file reversal or pasted pre-tail is involved.
+5. **Boundary guards / DUCK**: each direction gets its own zero-phase wet ride and post guard. Wake is measured immediately before the next onset; anticipation immediately after the preceding release. SYMMETRIC verifies both sets of boundaries.
+6. **Mix + export**: pre-delay becomes a dry/wet separation in the selected direction; head-extended dry is sample-aligned for A/B; equal-power wet/dry, whole-file peak guard, exact-buffer preview, 32-bit float WAV out.
 
-**UI (minimal):** waveform with the **gap map drawn on it** — event spans, each event's budget shown as a decaying wedge dying exactly at the next onset (the acausality made visible; this viz is half the tool's argument). Controls: Spill, Masking credit, RT-min/max, stance toggle (FIT/DUCK), pre-delay, damping, wet/dry.
+**UI:** waveform with the directional gap map drawn on it — wake wedges decay right, precursor wedges gather from the left, and symmetric shows both. Controls: Caesura policy (FIT/DUCK), Time Arrow (WAKE/ANTICIPATION/SYMMETRIC), Anticipation ↔ Wake balance, Spill, Masking credit, RT-min/max, pre-delay, damping, wet/dry.
 
-**Verified:** synthetic irregular impulse train → five onsets within one analysis hop; silence yields no fabricated event; FIT and DUCK both pass every wet-only pre-onset budget check; anti-phase stereo remains detectable and visible; all samples finite; room routing, anchor decay, mono/stereo, render-length, worker-transfer, and WAV payload contracts hold; two bounces are sample-identical and have the same SHA-256. `node metachamber/test-metachamber.mjs` passes. `test-browser.mjs` is a dependency-free Edge DevTools-pipe harness for the full decode → Blob-worker analysis → render → UI lifecycle.
+**Verified:** synthetic irregular impulse train → five onsets within one analysis hop; silence yields no fabricated event; FIT and DUCK pass their wet-only boundaries; ANTICIPATION produces nonzero head energy and passes preceding-gap budgets; SYMMETRIC produces both head and tail energy and verifies twice the boundaries; dry remains sample-aligned after head extension. Anti-phase stereo, finite samples, room routing, anchor decay, mono/stereo, render lengths, worker transfer, deterministic PCM, and WAV payload contracts hold. `node metachamber/test-metachamber.mjs` passes. `test-browser.mjs` covers the full decode → Blob-worker analysis → symmetric render → UI lifecycle.
 
-**Deferred past MVP:** SWELL (time-mirror the wet segment pre-render — cheap once per-event segmentation exists), HOLLOW, drawn room law, per-band gap sensing, per-event exact kernels (true FIT), synthetic/self/donor IR sources, and strict cross-browser byte identity.
+**Deferred past MVP:** HOLLOW, drawn room law, per-band gap sensing, per-event exact kernels (true FIT), synthetic/self/donor IR sources, and strict cross-browser byte identity.
 
 ---
 
 ## absorbs (from the further-members shelf)
 
-- **Pre-verb** → SWELL stance.
+- **Pre-verb** → ANTICIPATION time arrow; now a backward-recursive room with preceding-gap budget, not a mirrored wet segment.
 - **Future-sidechain** (applied to own wet) → DUCK stance.
 - **Self-convolution reverb** → candidate *kernel source* option (IR = the file's own autocorrelation); deferred, listed below.
 
@@ -100,11 +114,13 @@ Built at `metachamber/index.html` in the suite's drop file → analyze → previ
 
 ## deferred / open questions
 
+- **Control/source dual input** — the suite interface, absent here. Two candidate roles, weighted 2026-07-17: the favored one is the control's *envelope* as a zero-phase wet ride — the sidechained-reverb move made precognitive; the reverb shaped by another file's contour ("reverb, but taken from another file"), equally applicable to Pythia. The control donating its *gap map* (A's tails budgeted by B's silences — the cross-signal Future-sidechain) is judged **niche**: kept on the shelf, not queued. Deliberately outside the symmetry contract — it is not quick-and-dirty.
 - **Density axis inside Metachamber?** (slapback → multitap → cloud → diffuse as one slider.) Parked: Pythia owns discrete echoes; revisit only if gap-aware delay outgrows its Caesura feature. The suite boundary is engine kind, not gap-awareness.
 - **Kernel sources** — beyond the synthetic room: the file's own autocorrelation (absorbing self-convolution), or a second file's IR on the control/source input (the room as donor).
 - **Video cousin** — trail/wake length budgeted by gap-to-next-motion; Prolepsis kinship. Parked.
 - **Interaction with the rack** — Metachamber after Sounder in a chain gets a gap map measured on *processed* dynamics; order matters and the offline rack makes both orders auditioning-cheap.
 - **Color modes** — one orthogonal color axis (Neutral / Bright / Dark, à la VintageVerb's eras and FutureVerb's four colors), applied at IR-generation time. Cheap on the seeded-IR engine; not a full EQ. The Valhalla lesson: one color knob's worth of modes, never a tone section.
+- **BPM pre-delay sync** — the one sync import that survives scrutiny (2026-07-17): pre-delay as a note division, one selector. RT60-to-grid would regress FIT — tails already land on the actual next onset, which a grid only approximates.
 - **Hypergeometry / orthotope rooms** — multidimensional room mechanics are compelling special-effect color, but not intrinsically acausal. Defer until whole-file knowledge earns the feature: dimension or geometry chosen per event, fitted to the coming gap, or projected backward as a future chamber.
 
 ---
@@ -126,4 +142,4 @@ Built at `metachamber/index.html` in the suite's drop file → analyze → previ
 
 ---
 
-*spine: a tail that has measured every silence before the first note rings.*
+*spine: a room that remembers the wake and foresees the arrival.*

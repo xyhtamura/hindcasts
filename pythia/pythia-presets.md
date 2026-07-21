@@ -1,6 +1,6 @@
 # PYTHIA - preset specs
 
-Current spec for the active preset shelf. Each preset is a v6 state payload applied
+Current spec for the active preset shelf. Each preset is a v8 state payload applied
 through `applyState`. Params listed as **deltas from `DEFAULT_PARAMS`**; unlisted
 fields stay default.
 
@@ -10,7 +10,11 @@ fields stay default.
 - Presets never touch `selfSampling` or loaded files.
 - After any manual knob move, show the selector as `custom`.
 - Unless noted: `sourceDry: true`, `monitorControl: false`, `gateEnabled: false`,
-  `pingPong: false`, `loopClip: true`, `timeSync: 'free'`, `windowType: 'hann'`.
+  `pingPong: false`, `loopClip: true`, `timeSync: 'free'`, `temporalStance: 'wake'`,
+  `windowType: 'hann'`.
+- `Time` is a non-negative magnitude. Direction belongs to `temporalStance`:
+  `wake`, `anticipation`, or linked `symmetric`. Old negative-Time states migrate
+  to `anticipation` with the magnitude preserved.
 - `polarity: 0` unless the sidechain is the point of the preset.
 - Scatter is exact-to-whole-clip: `0` = exact clean/read position, `1` = the
   granulator can draw from the full source clip. With loop on, scatter wraps.
@@ -26,8 +30,12 @@ fields stay default.
 Clean tap only. The 50s vocal double.
 
 **Anticipatory Delay**
-`time -0.35, scatter 0, feedback 0.55, damping 0.15, mix 0.45` + `loopClip: false`
+`time 0.35, scatter 0, feedback 0.55, damping 0.15, mix 0.45` + `temporalStance: 'anticipation', loopClip: false`
 The spine patch: a clean delay folded before the event. Repeats begin quiet, grow louder as time approaches the original hit, then resolve into the dry sound.
+
+**Janus Delay**
+`time 0.35, timeBalance 0.5, scatter 0.08, feedback 0.48, damping 0.22, panSpray 0.35, mix 0.48` + `temporalStance: 'symmetric', loopClip: false`
+Linked pre/post echo: one displacement, one feedback law, both temporal faces. Balance moves equal-power from anticipation to wake.
 
 **Ping-Pong Pneuma**
 `timeSync '1/4', bpm 120, scatter 0.08, feedback 0.55, damping 0.35, panSpray 0.6, mix 0.45` + `pingPong: true`
@@ -66,11 +74,11 @@ Small timed repeats that wobble and darken with each pass.
 ## precognitive signatures
 
 **Verbatim Pre-Echo**
-`time -0.4, scatter 0, feedback 0.3, mix 0.4` + `loopClip: false`
+`time 0.4, scatter 0, feedback 0.3, mix 0.4` + `temporalStance: 'anticipation', loopClip: false`
 Clean repeats arriving before the hit. Bounce renders true clean pre-echo; live preview uses the negative-time tap bank.
 
 **Anticipation Bloom**
-`time -0.8, scatter 0.65, grainSize 180, grainDensity 35, pitchSpray 0.5, panSpray 0.7, feedback 0.5, mix 0.5` + `loopClip: false`
+`time 0.8, scatter 0.65, grainSize 180, grainDensity 35, pitchSpray 0.5, panSpray 0.7, feedback 0.5, mix 0.5` + `temporalStance: 'anticipation', loopClip: false`
 Grain cloud crescendoing into the event; feedback regenerates backward in the bounce.
 
 **Pre-Duck**
@@ -82,11 +90,11 @@ The mixing job: repeats clear out before the control arrives. Needs a distinct c
 Fires full-amplitude grains only in the control's silences; texture that fills the gaps.
 
 **Negative Shimmer**
-`time -0.6, scatter 0.55, grainSize 220, grainDensity 32, pitch 7, pitchSpray 0.4, panSpray 0.75, feedback 0.45, feedbackGrain 0.35, damping 0.45, mix 0.5` + `loopClip: false`
+`time 0.6, scatter 0.55, grainSize 220, grainDensity 32, pitch 7, pitchSpray 0.4, panSpray 0.75, feedback 0.45, feedbackGrain 0.35, damping 0.45, mix 0.5` + `temporalStance: 'anticipation', loopClip: false`
 Upward pre-echo bloom; a softer shimmer that arrives before the source.
 
 **Reverse Room**
-`time -1.2, scatter 0.35, grainSize 260, grainDensity 28, feedback 0.65, feedbackGrain 0.5, damping 0.5, panSpray 0.45, mix 0.55` + `loopClip: false`
+`time 1.2, scatter 0.35, grainSize 260, grainDensity 28, feedback 0.65, feedbackGrain 0.5, damping 0.5, panSpray 0.45, mix 0.55` + `temporalStance: 'anticipation', loopClip: false`
 Long anticipatory room smear, closer to a reverse-reverb gesture than a tap delay.
 
 ---

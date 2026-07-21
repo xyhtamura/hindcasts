@@ -21,9 +21,9 @@
             </div>
             <div class="title-row">
                 <h1><span class="no-liga">Pyth</span>ia</h1>
-                <span class="build-tag">anticipatory · granular</span>
+                <span class="build-tag">time-arrow · granular</span>
             </div>
-            <p class="tagline">whole-file <em>anticipatory delay</em>: clean pre-echo, granular scatter, sidechain ducking, stereo feedback, deterministic WAV bounce.</p>
+            <p class="tagline">whole-file <em>bidirectional delay</em>: wake, anticipation, symmetric echo, granular scatter, Caesura, deterministic WAV bounce.</p>
         </header>
 
         <div class="io-panel">
@@ -102,7 +102,20 @@
         </div>
 
         <div class="mode-selector">
-            <span class="mode-label">clip &mdash;</span>
+            <span class="mode-label">time &mdash;</span>
+            <div class="radio-group">
+                <input type="radio" id="time-wake" name="temporalmode" value="wake">
+                <label for="time-wake">wake</label>
+            </div>
+            <div class="radio-group">
+                <input type="radio" id="time-anticipation" name="temporalmode" value="anticipation">
+                <label for="time-anticipation">anticipation</label>
+            </div>
+            <div class="radio-group">
+                <input type="radio" id="time-symmetric" name="temporalmode" value="symmetric" checked>
+                <label for="time-symmetric">symmetric</label>
+            </div>
+            <span class="mode-label mode-label--clip">clip &mdash;</span>
             <div class="radio-group">
                 <input type="radio" id="loop-wrap" name="loopmode" value="loop" checked>
                 <label for="loop-wrap"><span class="glyph">&#x2940;</span> loop</label>
@@ -137,6 +150,7 @@
                     <optgroup label="producer staples">
                         <option value="slapback">Slapback</option>
                         <option value="anticipatoryDelay">Anticipatory Delay</option>
+                        <option value="janusDelay">Janus Delay</option>
                         <option value="pingPongPneuma">Ping-Pong Pneuma</option>
                         <option value="dubOuroboros">Dub Ouroboros</option>
                         <option value="oracleChorus">Oracle Chorus</option>
@@ -236,9 +250,15 @@
                 </div>
 
                 <div class="slider-group" id="time-group">
-                    <label for="time">Time</label>
-                    <input type="range" id="time" min="-5" max="5" value="0" step="0.01">
+                    <label for="time">Time <span class="hint">magnitude</span></label>
+                    <input type="range" id="time" min="0" max="5" value="0" step="0.01">
                     <span id="time-value" class="val">0.00<small>s</small></span>
+                </div>
+
+                <div class="slider-group" id="time-balance-group">
+                    <label for="time-balance">Anticipation ↔ Wake <span class="hint">symmetric</span></label>
+                    <input type="range" id="time-balance" min="0" max="1" value="0.5" step="0.01">
+                    <span id="time-balance-value" class="val">0.50</span>
                 </div>
 
                 <div class="slider-group">

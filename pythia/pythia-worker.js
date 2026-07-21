@@ -9,7 +9,7 @@ function performBounceRender(data) {
         controlSampleRate,
         sourceChannels,
         sourceSampleRate,
-        params,
+        params: inputParams,
         gateEnabled,
         loopClip,
         windowType,
@@ -18,8 +18,22 @@ function performBounceRender(data) {
         monitorControl,
         gapFitEnabled,
         gapMap,
-        controlRmsEnvelope
+        controlRmsEnvelope,
+        temporalStance: requestedTemporalStance,
+        temporalBalance: requestedTemporalBalance,
+        _returnPcm
     } = data;
+
+    const inferredStance = inputParams.time < 0 ? 'anticipation' : 'wake';
+    const temporalStance = ['wake', 'anticipation', 'symmetric'].includes(requestedTemporalStance)
+        ? requestedTemporalStance : inferredStance;
+    const temporalBalance = Math.max(0, Math.min(1, Number.isFinite(requestedTemporalBalance)
+        ? requestedTemporalBalance : Number.isFinite(inputParams.timeBalance) ? inputParams.timeBalance : 0.5));
+    const timeMagnitude = Math.abs(inputParams.time);
+    const params = {
+        ...inputParams,
+        time: temporalStance === 'anticipation' ? -timeMagnitude : timeMagnitude,
+    };
 
     // Reconstruct simplified buffer structures
     const controlBuffer = {
@@ -53,9 +67,10 @@ function performBounceRender(data) {
 
     const bounceSeed = (params, gateEnabled, loopClip, windowType, pingPong) => {
         let h = 0x50595448; // "PYTH"
-        const keys = Object.keys(params).filter(k => k !== 'bpm').sort();
+        const keys = Object.keys(params).filter(k => k !== 'bpm' && k !== 'timeBalance').sort();
         for (const k of keys) {
-            const s = `${k}:${params[k].toFixed(6)};`;
+            const value = k === 'time' ? Math.abs(params[k]) : params[k];
+            const s = `${k}:${value.toFixed(6)};`;
             for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
         }
         h ^= gateEnabled ? 0x11111111 : 0;
@@ -483,6 +498,77 @@ function performBounceRender(data) {
         return buffer; // Returns the raw ArrayBuffer, transferable
     };
 
+    // Linked symmetric mode renders two complete one-direction engines, then
+    // aligns them on one global timeline. This keeps feedback, scatter and
+    // Caesura provenance exact in each direction while sharing one control set.
+    if (temporalStance === 'symmetric' && timeMagnitude > 1e-9) {
+        const directionalData = {
+            ...data,
+            sourceDry: false,
+            monitorControl: false,
+            _returnPcm: true,
+        };
+        const anticipation = performBounceRender({
+            ...directionalData,
+            params: { ...inputParams, time: timeMagnitude, mix: 1 },
+            temporalStance: 'anticipation',
+        });
+        const wake = performBounceRender({
+            ...directionalData,
+            params: { ...inputParams, time: timeMagnitude, mix: 1 },
+            temporalStance: 'wake',
+        });
+        const start = Math.min(anticipation.start, wake.start);
+        const end = Math.max(anticipation.start + anticipation.duration, wake.start + wake.duration);
+        const sampleRate = controlSampleRate;
+        const channels = Math.max(2, sourceBuffer.numberOfChannels, controlBuffer.numberOfChannels);
+        const length = Math.max(1, Math.ceil((end - start) * sampleRate));
+        const wet = Array.from({ length: channels }, () => new Float32Array(length));
+        const antGain = Math.cos(temporalBalance * 0.5 * Math.PI);
+        const wakeGain = Math.sin(temporalBalance * 0.5 * Math.PI);
+        const addPass = (pass, gain) => {
+            const offset = Math.round((pass.start - start) * sampleRate);
+            for (let ch = 0; ch < channels; ch++) {
+                const input = pass.pcmChannels[Math.min(ch, pass.pcmChannels.length - 1)];
+                for (let i = 0; i < input.length && offset + i < length; i++) wet[ch][offset + i] += input[i] * gain;
+            }
+        };
+        addPass(anticipation, antGain);
+        addPass(wake, wakeGain);
+
+        const dryMix = Math.cos(params.mix * 0.5 * Math.PI);
+        const wetMix = Math.cos((1 - params.mix) * 0.5 * Math.PI);
+        const out = Array.from({ length: channels }, () => new Float32Array(length));
+        let peak = 0;
+        for (let i = 0; i < length; i++) {
+            const globalT = start + i / sampleRate;
+            for (let ch = 0; ch < channels; ch++) {
+                let dry = 0;
+                if (sourceDry) dry += sampleAt(sourceBuffer, ch, globalT, false);
+                if (monitorControl) dry += sampleAt(controlBuffer, ch, globalT, false);
+                const v = dry * dryMix + wet[ch][i] * wetMix;
+                out[ch][i] = v;
+                peak = Math.max(peak, Math.abs(v));
+            }
+        }
+        const BOUNCE_PEAK = 0.977;
+        const scale = peak > BOUNCE_PEAK ? BOUNCE_PEAK / peak : 1;
+        if (scale < 1) for (const channel of out) for (let i = 0; i < channel.length; i++) channel[i] *= scale;
+        if (_returnPcm) return { pcmChannels:out, start, duration:length / sampleRate, peak, scale, gapFitEvents:Math.max(anticipation.gapFitEvents, wake.gapFitEvents), temporalStance, temporalBalance };
+        return {
+            wavBuffer: encodeFloatWav(out, sampleRate),
+            start,
+            duration: length / sampleRate,
+            peak,
+            scale,
+            gapFitEvents: Math.max(anticipation.gapFitEvents, wake.gapFitEvents),
+            temporalStance,
+            temporalBalance,
+            head: -start,
+            tail: Math.max(0, end - controlBuffer.duration),
+        };
+    }
+
     // Render loop orchestration
     const sampleRate = controlSampleRate;
     const channels = Math.max(2, sourceBuffer.numberOfChannels, controlBuffer.numberOfChannels);
@@ -572,6 +658,16 @@ function performBounceRender(data) {
         }
     }
 
+    if (_returnPcm) return {
+        pcmChannels: out,
+        start: win.start,
+        duration: win.duration,
+        peak,
+        scale,
+        gapFitEvents: gapPolicy ? gapPolicy.events.length : 0,
+        temporalStance,
+        temporalBalance,
+    };
     const wavArrayBuffer = encodeFloatWav(out, sampleRate);
     return {
         wavBuffer: wavArrayBuffer,
@@ -580,6 +676,10 @@ function performBounceRender(data) {
         peak,
         scale,
         gapFitEvents: gapPolicy ? gapPolicy.events.length : 0,
+        temporalStance,
+        temporalBalance,
+        head: win.head,
+        tail: win.tail,
     };
 }
 

@@ -14,6 +14,8 @@ window.onload = () => {
     const gapFitCheckbox     = document.getElementById('gap-fit-checkbox');
     const gapFitStatus       = document.getElementById('gap-fit-status');
     const timeGroup          = document.getElementById('time-group');
+    const timeBalanceGroup   = document.getElementById('time-balance-group');
+    const temporalRadios     = document.querySelectorAll('input[name="temporalmode"]');
     const loopRadios         = document.querySelectorAll('input[name="loopmode"]');
     const thresholdGroup     = document.getElementById('threshold-group');
     const levelMeter         = document.getElementById('level-meter');
@@ -43,6 +45,7 @@ window.onload = () => {
         grainSize:     document.getElementById('grain-size'),
         grainDensity:  document.getElementById('grain-density'),
         time:          document.getElementById('time'),
+        timeBalance:   document.getElementById('time-balance'),
         bpm:           document.getElementById('bpm'),
         pitch:         document.getElementById('pitch'),
         pitchSpray:    document.getElementById('pitch-spray'),
@@ -65,6 +68,7 @@ window.onload = () => {
         grainSize:     document.getElementById('grain-size-value'),
         grainDensity:  document.getElementById('grain-density-value'),
         time:          document.getElementById('time-value'),
+        timeBalance:   document.getElementById('time-balance-value'),
         bpm:           document.getElementById('bpm-value'),
         pitch:         document.getElementById('pitch-value'),
         pitchSpray:    document.getElementById('pitch-spray-value'),
@@ -140,17 +144,21 @@ window.onload = () => {
 
     // ── Wet-path readers ──────────────────────────────────────────────────────
     // Two readers of the same delayed-source concept, blended by the Scatter axis:
-    //   • granGain     — the granulator bus (scattered grains)
+    //   • wake/ant grain buses — isolated scattered reads per time direction
     //   • cleanDelay → cleanTapGain — a pristine DelayNode tap (regular delay)
     // Scatter = 0 -> pure clean tap; Scatter = 1 -> full-clip granular reads.
-    const granGain     = audioContext.createGain();
+    const wakeGranGain = audioContext.createGain();
+    const antGranGain  = audioContext.createGain();
     const cleanTapGain = audioContext.createGain();
     const preEchoGain  = audioContext.createGain();
+    const causalWetBus = audioContext.createGain();
     const cleanDelay   = audioContext.createDelay(5);   // maxDelay matches Time range
     preEchoGain.gain.value = 0;
-    granGain.connect(wetGain);
+    wakeGranGain.connect(causalWetBus);
+    antGranGain.connect(wetGain);
     cleanDelay.connect(cleanTapGain);
-    cleanTapGain.connect(wetGain);
+    cleanTapGain.connect(causalWetBus);
+    causalWetBus.connect(wetGain);
     preEchoGain.connect(wetGain);
 
     // Feedback loop on the whole wet bus (regeneration). The cycle is legal because
@@ -163,7 +171,7 @@ window.onload = () => {
     dampingLPF.frequency.value = 20000;
     const feedbackGain = audioContext.createGain();
     feedbackGain.gain.value = 0;
-    wetGain.connect(fbDelay);
+    causalWetBus.connect(fbDelay);
     fbDelay.connect(dampingLPF);
     const fbDirectGain = audioContext.createGain();
     const fbSwapGain   = audioContext.createGain();
@@ -178,7 +186,7 @@ window.onload = () => {
     fbSplitter.connect(fbMerger, 0, 1);
     fbSplitter.connect(fbMerger, 1, 0);
     fbMerger.connect(feedbackGain);
-    feedbackGain.connect(wetGain);
+    feedbackGain.connect(causalWetBus);
 
     // ── Playback state ────────────────────────────────────────────────────────
     let isPlaying      = false;
@@ -190,7 +198,7 @@ window.onload = () => {
 
     const DEFAULT_PARAMS = {
         sidechainLookahead: 0, threshold: 0.1, polarity: 1, grainSize: 150,
-        grainDensity: 20, time: 0, bpm: 120, mix: 0.7, scatter: 1,
+        grainDensity: 20, time: 0, timeBalance: 0.5, bpm: 120, mix: 0.7, scatter: 1,
         pitch: 0, pitchSpray: 0, panSpray: 0,
         feedback: 0, maxRing: 8, gapSpill: -36, maskingCredit: 0.35,
         damping: 0, feedbackGrain: 0,
@@ -207,6 +215,7 @@ window.onload = () => {
     // Dry-bus routing flags (see dryBus above).
     let sourceDry      = true;
     let monitorControl = false;
+    let temporalStance = 'symmetric';
     let timeSync       = 'free';
     let applyingTimeSync = false;
     let applyingPreset = false;
@@ -217,6 +226,18 @@ window.onload = () => {
     // preserves current sound); 'hann' = a true raised-cosine window (no click at
     // short grain sizes). Hann ignores envelopeShape by construction.
     let windowType = 'linear';
+
+    const effectiveTimeDirections = () => {
+        const magnitude = Math.abs(params.time);
+        if (magnitude < 1e-9) return [{ name:'wake', time:0, gain:1 }];
+        if (temporalStance === 'wake') return [{ name:'wake', time:magnitude, gain:1 }];
+        if (temporalStance === 'anticipation') return [{ name:'anticipation', time:-magnitude, gain:1 }];
+        return [
+            { name:'anticipation', time:-magnitude, gain:Math.cos(params.timeBalance * 0.5 * Math.PI) },
+            { name:'wake', time:magnitude, gain:Math.sin(params.timeBalance * 0.5 * Math.PI) },
+        ];
+    };
+    const hasTimeDirection = name => effectiveTimeDirections().some(direction => direction.name === name && direction.gain > 1e-6);
 
     // ── Audio-clock scheduler ─────────────────────────────────────────────────
     // Grains are scheduled ahead against audioContext.currentTime rather than fired
@@ -296,10 +317,10 @@ window.onload = () => {
         return controlRmsEnvelope[idx];
     };
 
-    const ampEnvelopeTime = (outputT) => outputT - params.time - params.sidechainLookahead;
-    const sidechainRawAtOutputTime = (outputT) => {
+    const ampEnvelopeTime = (outputT, time=params.time) => outputT - time - params.sidechainLookahead;
+    const sidechainRawAtOutputTime = (outputT, time=params.time) => {
         if (!controlBuffer) return 0;
-        const t = ampEnvelopeTime(outputT);
+        const t = ampEnvelopeTime(outputT, time);
         if (loopClip) return rawRmsAtTime(wrapSeconds(t, controlBuffer.duration));
         if (t < 0 || t >= controlBuffer.duration) return 0;
         return rawRmsAtTime(t);
@@ -310,7 +331,7 @@ window.onload = () => {
     // refreshWaveformCaches — this function only draws.
     // fitClip = true draws the buffer into the shared-timeline clip sub-range.
     // timeOffset shifts the waveform in output time: positive = later/right.
-    const buildWaveformCache = (buffer, w, h, waveColor = 'rgba(88,178,168,0.5)', fitClip = true, timeOffset = 0, wrapRead = false) => {
+    const buildWaveformCache = (buffer, w, h, waveColor = 'rgba(88,178,168,0.5)', fitClip = true, timeOffset = 0, wrapRead = false, drawBackground = true) => {
         const off = document.createElement('canvas');
         off.width  = w;
         off.height = h;
@@ -322,13 +343,15 @@ window.onload = () => {
         const cw     = Math.max(1, xEnd - xStart);
 
         // Backgrounds: extension zones darker, clip region normal
-        ctx.fillStyle = '#0c0d06';
-        ctx.fillRect(0, 0, w, h);
-        ctx.fillStyle = '#111209';
-        ctx.fillRect(xStart, 0, cw, h);
+        if (drawBackground) {
+            ctx.fillStyle = '#0c0d06';
+            ctx.fillRect(0, 0, w, h);
+            ctx.fillStyle = '#111209';
+            ctx.fillRect(xStart, 0, cw, h);
+        }
 
         // centre line
-        ctx.strokeStyle = 'rgba(51,55,32,0.7)';
+        ctx.strokeStyle = drawBackground ? 'rgba(51,55,32,0.7)' : 'rgba(0,0,0,0)';
         ctx.lineWidth = 0.5;
         ctx.beginPath();
         ctx.moveTo(0, h / 2);
@@ -375,7 +398,7 @@ window.onload = () => {
         ctx.stroke();
 
         // clip boundary markers (where the original file starts and ends)
-        if (fitClip) {
+        if (fitClip && drawBackground) {
             ctx.strokeStyle = 'rgba(194,220,50,0.45)';
             ctx.lineWidth = 1;
             ctx.beginPath();
@@ -401,15 +424,18 @@ window.onload = () => {
             if (delayCanvas) {
                 delayCanvas.width  = w;
                 delayCanvas.height = h;
-                ampWaveformCache   = buildWaveformCache(
-                    controlBuffer,
-                    w,
-                    h,
-                    'rgba(216,104,64,0.6)',
-                    true,
-                    params.time + params.sidechainLookahead,
-                    loopClip
-                );
+                const directions = effectiveTimeDirections();
+                const first = directions[0];
+                ampWaveformCache = buildWaveformCache(controlBuffer, w, h,
+                    first.name === 'anticipation' ? 'rgba(88,178,168,0.62)' : 'rgba(216,104,64,0.62)',
+                    true, first.time + params.sidechainLookahead, loopClip);
+                if (directions.length > 1) {
+                    const second = directions[1];
+                    const overlay = buildWaveformCache(controlBuffer, w, h,
+                        second.name === 'anticipation' ? 'rgba(88,178,168,0.62)' : 'rgba(216,104,64,0.62)',
+                        true, second.time + params.sidechainLookahead, loopClip, false);
+                    ampWaveformCache.getContext('2d').drawImage(overlay, 0, 0);
+                }
             }
         }
         if (sourceBuffer && sourceCanvas) {
@@ -455,7 +481,7 @@ window.onload = () => {
     };
 
     // Amplitude canvas: the control-derived envelope after Time displacement.
-    // Positive Time nudges AMP later; negative Time pulls it earlier.
+    // WAKE nudges AMP later; ANTICIPATION pulls it earlier by the Time magnitude.
     const renderDelayCanvas = () => {
         if (!ampWaveformCache || !delayCanvas || !controlBuffer) return;
         const w   = delayCanvas.width;
@@ -875,6 +901,24 @@ window.onload = () => {
 
     const syncSeconds = () => (60 / params.bpm) * syncDivisions[timeSync];
 
+    const updateTemporalUI = () => {
+        temporalRadios.forEach(radio => { radio.checked = radio.value === temporalStance; });
+        if (timeBalanceGroup) timeBalanceGroup.style.opacity = temporalStance === 'symmetric' ? '1' : '0.42';
+        if (sliders.timeBalance) sliders.timeBalance.disabled = temporalStance !== 'symmetric';
+    };
+    const setTemporalStance = (stance, markCustom=true) => {
+        if (!['wake', 'anticipation', 'symmetric'].includes(stance)) return;
+        if (markCustom) markPresetCustom();
+        temporalStance = stance;
+        updateTemporalUI();
+        updateBlend();updateDelays();updateFeedback();
+        if (isPlaying) rebuildPreEchoPreview();
+        if (vizEnabled) refreshWaveformCaches();
+    };
+    temporalRadios.forEach(radio => radio.addEventListener('change', e => {
+        if (e.target.checked) setTemporalStance(e.target.value);
+    }));
+
     const updateTimeSyncUI = () => {
         if (timeSyncSelect) timeSyncSelect.value = timeSync;
         if (!timeSyncValue) return;
@@ -886,10 +930,9 @@ window.onload = () => {
             updateTimeSyncUI();
             return;
         }
-        const sign = params.time < 0 ? -1 : 1;
         const min = parseFloat(sliders.time.min);
         const max = parseFloat(sliders.time.max);
-        const next = Math.max(min, Math.min(max, sign * syncSeconds()));
+        const next = Math.max(min, Math.min(max, syncSeconds()));
 
         applyingTimeSync = true;
         params.time = next;
@@ -917,7 +960,8 @@ window.onload = () => {
     Object.keys(sliders).forEach(key => {
         sliders[key].addEventListener('input', (e) => {
             markPresetCustom();
-            const v = parseFloat(e.target.value);
+            let v = parseFloat(e.target.value);
+            if (key === 'time') v = Math.abs(v);
             params[key] = v;
             updateParamDisplay(key);
             if (key === 'time' && !applyingTimeSync && timeSync !== 'free') {
@@ -932,7 +976,8 @@ window.onload = () => {
                 dryGain.gain.value = Math.cos(v * 0.5 * Math.PI);
                 wetGain.gain.value = Math.cos((1 - v) * 0.5 * Math.PI);
             }
-            if (key === 'scatter')  updateBlend();
+            if (key === 'scatter' || key === 'timeBalance') updateBlend();
+            if (key === 'timeBalance') updateFeedback();
             if (key === 'feedback') updateFeedback();
             if (key === 'damping' || key === 'feedbackGrain') updateDamping();
             if (key === 'time') { updateBlend(); updateDelays(); updateFeedback(); }
@@ -969,27 +1014,33 @@ window.onload = () => {
 
     // ── Scatter axis (exact ↔ whole-clip granular) ────────────────────────────
     // Equal-power crossfade between the clean tap and the granulator bus.
-    // Positive Time uses DelayNode; negative Time uses the pre-echo preview tap bank.
+    // Wake uses DelayNode; anticipation uses the pre-echo preview tap bank.
+    // Symmetric keeps their buses isolated, then equal-power blends both.
     const updateBlend = () => {
         const clean = Math.cos(params.scatter * 0.5 * Math.PI);
         const gran  = granulatorLevel();
         const now = audioContext.currentTime;
-        cleanTapGain.gain.setTargetAtTime(params.time < 0 ? 0 : clean, now, 0.02);
-        preEchoGain.gain.setTargetAtTime(params.time < 0 ? clean : 0, now, 0.02);
-        granGain.gain.setTargetAtTime(gran, now, 0.02);
+        const directions = effectiveTimeDirections();
+        const wake = directions.find(direction => direction.name === 'wake');
+        const anticipation = directions.find(direction => direction.name === 'anticipation');
+        const wakeLevel = wake ? wake.gain : 0, antLevel = anticipation ? anticipation.gain : 0;
+        cleanTapGain.gain.setTargetAtTime(clean * wakeLevel, now, 0.02);
+        preEchoGain.gain.setTargetAtTime(clean * antLevel, now, 0.02);
+        wakeGranGain.gain.setTargetAtTime(gran * wakeLevel, now, 0.02);
+        antGranGain.gain.setTargetAtTime(gran * antLevel, now, 0.02);
     };
 
     const updateDelays = () => {
         const now = audioContext.currentTime;
         // Only non-negative delays are realisable on a live stream (clean tap).
-        cleanDelay.delayTime.setTargetAtTime(Math.max(0, params.time), now, 0.02);
+        cleanDelay.delayTime.setTargetAtTime(Math.max(0, Math.abs(params.time)), now, 0.02);
         // Positive-time feedback uses this causal loop; negative-time repeats are
         // rendered by the pre-echo preview tap bank above.
         fbDelay.delayTime.setTargetAtTime(Math.max(0.03, Math.abs(params.time)), now, 0.02);
     };
 
     const updateFeedback = () => {
-        const f = params.time < 0 ? 0 : Math.min(0.95, Math.max(0, params.feedback));
+        const f = hasTimeDirection('wake') ? Math.min(0.95, Math.max(0, params.feedback)) : 0;
         feedbackGain.gain.setTargetAtTime(f, audioContext.currentTime, 0.02);
     };
 
@@ -1009,7 +1060,7 @@ window.onload = () => {
         nextGrainInterval = Math.max(0.001, base + jitter);
     };
 
-    const triggerGrain = (amplitude, when) => {
+    const triggerGrain = (amplitude, when, directionTime=params.time) => {
         if (!sourceBuffer || amplitude <= 0.001) return;
         if (granulatorLevel() <= 0.0001) return;
 
@@ -1022,7 +1073,7 @@ window.onload = () => {
         // Sidechain Lookahead is not part of source position; it only offsets the
         // delayed AMP envelope that shapes the grain.
         const t = (when - startTime) % controlBuffer.duration;
-        let readPos = t - params.time;
+        let readPos = t - directionTime;
 
         if (loopClip) {
             // ⥀ ouroboros: wrap reads past either edge back into the clip
@@ -1049,6 +1100,7 @@ window.onload = () => {
                 jitter: scatterRead.delta,
                 jitterRange: scatterRead.range,
                 amplitude,
+                direction:directionTime < 0 ? 'anticipation' : 'wake',
                 firedAt: when,
                 duration: grainDuration,
             });
@@ -1078,9 +1130,9 @@ window.onload = () => {
 
         if (grainPan) {
             grainPan.pan.setValueAtTime(pan, when);
-            grain.connect(grainGain).connect(grainPan).connect(granGain);
+            grain.connect(grainGain).connect(grainPan).connect(directionTime < 0 ? antGranGain : wakeGranGain);
         } else {
-            grain.connect(grainGain).connect(granGain);
+            grain.connect(grainGain).connect(directionTime < 0 ? antGranGain : wakeGranGain);
         }
         grain.start(when, Math.max(0, startOffset));
         grain.stop(when + grainDuration);
@@ -1113,19 +1165,19 @@ window.onload = () => {
         while (nextGrainTime < horizon) {
             const playbackT = (nextGrainTime - startTime) % controlBuffer.duration;
 
-            // AMP is the control envelope displaced by Time, with Sidechain Lookahead
-            // as an extra offset. This makes source=control the regular-delay case.
-            const raw = sidechainRawAtOutputTime(playbackT);
-            currentAmplitude = raw * 4; // normalise RMS into the ~[0,1] envelope range
-
-            if (gateEnabled) {
-                // Gated: fire full-amplitude grains only when crossing the threshold.
-                // Direction flips with polarity's sign — duck-gate fires in the gaps.
-                const fire = params.polarity < 0 ? (raw <= params.threshold) : (raw > params.threshold);
-                if (fire) triggerGrain(1.0, nextGrainTime);
-            } else {
-                // Continuous: every grain fires, amplitude riding the sidechain curve.
-                triggerGrain(sidechainAmplitude(currentAmplitude), nextGrainTime);
+            currentAmplitude = 0;
+            for (const direction of effectiveTimeDirections()) {
+                // Each direction reads its own displaced AMP envelope. Directional
+                // equal-power gain lives on the isolated wet buses.
+                const raw = sidechainRawAtOutputTime(playbackT, direction.time);
+                const envelope = raw * 4;
+                currentAmplitude = Math.max(currentAmplitude, envelope);
+                if (gateEnabled) {
+                    const fire = params.polarity < 0 ? (raw <= params.threshold) : (raw > params.threshold);
+                    if (fire) triggerGrain(1.0, nextGrainTime, direction.time);
+                } else {
+                    triggerGrain(sidechainAmplitude(envelope), nextGrainTime, direction.time);
+                }
             }
 
             calculateNextGrainInterval();
@@ -1171,7 +1223,7 @@ window.onload = () => {
 
     const startPreEchoPreview = (when, offset) => {
         stopPreEchoPreview();
-        if (!sourceBuffer || params.time >= 0) return;
+        if (!sourceBuffer || !hasTimeDirection('anticipation')) return;
 
         const step = Math.max(0.03, Math.abs(params.time));
         const f = Math.min(0.95, Math.max(0, params.feedback));
@@ -1375,6 +1427,8 @@ window.onload = () => {
             pingPong,
             sourceDry,
             monitorControl,
+            temporalStance,
+            temporalBalance: params.timeBalance,
             gapFitEnabled,
             gapMap,
             controlRmsEnvelope: [...controlRmsEnvelope]
@@ -1442,7 +1496,8 @@ window.onload = () => {
     // v5 (Phase 3 third slice): Pan Spray + Ping-Pong feedback.
     // v6 (Phase 3 fourth slice): Feedback Grain/disintegration amount.
     // v7 (Phase 5 first slice): Maximum Ring + optional shared-map Gap Fit policy.
-    const STATE_VERSION = 7;
+    // v8: linked WAKE / ANTICIPATION / SYMMETRIC stance; Time becomes magnitude.
+    const STATE_VERSION = 8;
 
     const serializeState = () => ({
         version:      STATE_VERSION,
@@ -1451,6 +1506,7 @@ window.onload = () => {
         gateEnabled,
         sourceDry,
         monitorControl,
+        temporalStance,
         timeSync,
         pingPong,
         gapFitEnabled,
@@ -1474,6 +1530,11 @@ window.onload = () => {
             if (savedParams.sidechainLookahead === undefined && typeof savedParams.delay === 'number') {
                 savedParams.sidechainLookahead = savedParams.delay;
             }
+            const signedLegacyTime = Number.isFinite(savedParams.time) ? savedParams.time : 0;
+            temporalStance = ['wake', 'anticipation', 'symmetric'].includes(s.temporalStance)
+                ? s.temporalStance : signedLegacyTime < 0 ? 'anticipation' : 'wake';
+            savedParams.time = Math.abs(signedLegacyTime);
+            updateTemporalUI();
             const p = { ...DEFAULT_PARAMS, ...savedParams };
             Object.keys(sliders).forEach(key => {
                 if (typeof p[key] === 'number') {
@@ -1481,6 +1542,9 @@ window.onload = () => {
                     sliders[key].dispatchEvent(new Event('input'));
                 }
             });
+        } else if (['wake', 'anticipation', 'symmetric'].includes(s.temporalStance)) {
+            temporalStance = s.temporalStance;
+            updateTemporalUI();
         }
         if (typeof s.loopClip === 'boolean') {
             loopClip = s.loopClip;
@@ -1541,6 +1605,7 @@ window.onload = () => {
         timeSync: 'free',
         pingPong: false,
         gapFitEnabled: false,
+        temporalStance: 'wake',
         windowType: 'hann',
     };
     const makePreset = (overrides = {}) => ({
@@ -1554,7 +1619,13 @@ window.onload = () => {
         }),
         anticipatoryDelay: makePreset({
             loopClip: false,
-            params: { time: -0.35, scatter: 0, feedback: 0.55, damping: 0.15, mix: 0.45 },
+            temporalStance: 'anticipation',
+            params: { time: 0.35, scatter: 0, feedback: 0.55, damping: 0.15, mix: 0.45 },
+        }),
+        janusDelay: makePreset({
+            loopClip: false,
+            temporalStance: 'symmetric',
+            params: { time: 0.35, timeBalance: 0.5, scatter: 0.08, feedback: 0.48, damping: 0.22, panSpray: 0.35, mix: 0.48 },
         }),
         pingPongPneuma: makePreset({
             timeSync: '1/4',
@@ -1586,11 +1657,13 @@ window.onload = () => {
         }),
         verbatimPreEcho: makePreset({
             loopClip: false,
-            params: { time: -0.4, scatter: 0, feedback: 0.3, mix: 0.4 },
+            temporalStance: 'anticipation',
+            params: { time: 0.4, scatter: 0, feedback: 0.3, mix: 0.4 },
         }),
         anticipationBloom: makePreset({
             loopClip: false,
-            params: { time: -0.8, scatter: 0.65, grainSize: 180, grainDensity: 35, pitchSpray: 0.5, panSpray: 0.7, feedback: 0.5, mix: 0.5 },
+            temporalStance: 'anticipation',
+            params: { time: 0.8, scatter: 0.65, grainSize: 180, grainDensity: 35, pitchSpray: 0.5, panSpray: 0.7, feedback: 0.5, mix: 0.5 },
         }),
         preDuck: makePreset({
             timeSync: '1/8',
@@ -1602,11 +1675,13 @@ window.onload = () => {
         }),
         negativeShimmer: makePreset({
             loopClip: false,
-            params: { time: -0.6, scatter: 0.55, grainSize: 220, grainDensity: 32, pitch: 7, pitchSpray: 0.4, panSpray: 0.75, feedback: 0.45, feedbackGrain: 0.35, damping: 0.45, mix: 0.5 },
+            temporalStance: 'anticipation',
+            params: { time: 0.6, scatter: 0.55, grainSize: 220, grainDensity: 32, pitch: 7, pitchSpray: 0.4, panSpray: 0.75, feedback: 0.45, feedbackGrain: 0.35, damping: 0.45, mix: 0.5 },
         }),
         reverseRoom: makePreset({
             loopClip: false,
-            params: { time: -1.2, scatter: 0.35, grainSize: 260, grainDensity: 28, feedback: 0.65, feedbackGrain: 0.5, damping: 0.5, panSpray: 0.45, mix: 0.55 },
+            temporalStance: 'anticipation',
+            params: { time: 1.2, scatter: 0.35, grainSize: 260, grainDensity: 28, feedback: 0.65, feedbackGrain: 0.5, damping: 0.5, panSpray: 0.45, mix: 0.55 },
         }),
     };
     const applyPreset = (key) => {
@@ -1663,6 +1738,7 @@ window.onload = () => {
     // ── Init ──────────────────────────────────────────────────────────────────
     updateGateUI();
     updateSelfSampling();
+    updateTemporalUI();
     updateTimeSyncUI();
     updatePingPong();
     updateGapFitUI();
