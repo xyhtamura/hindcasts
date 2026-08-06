@@ -146,6 +146,18 @@ assert.ok(symmetricHead > 1e-8 && symmetricTail > 1e-8, "symmetric reverb blooms
 const dryOnly = renderMetachamber({ sourceChannels: [mono], sampleRate, events, params: { ...symmetricParams, mix: 0 } });
 assert.equal(dryOnly.channels[0][roomSamples + Math.round(onsetTimes[0] * sampleRate)], mono[Math.round(onsetTimes[0] * sampleRate)], "dry source remains sample-aligned after head extension");
 
+const offParams = { ...symmetricParams, stance: "off" };
+const symmetricOff = renderMetachamber({ sourceChannels: [mono], sampleRate, events, params: offParams });
+const symmetricOffWithoutMap = renderMetachamber({ sourceChannels: [mono], sampleRate, events: [], params: offParams });
+assert.equal(symmetricOff.meta.stance, "off");
+assert.equal(symmetricOff.meta.guards, 0, "OFF applies no boundary guard");
+assert.equal(symmetricOff.meta.checks.total, 0, "OFF performs no gap-budget checks");
+assert.deepEqual(symmetricOff.channels[0], symmetricOffWithoutMap.channels[0], "OFF fixed room is independent of the gap map");
+let offHead = 0, offTail = 0;
+for (let i = 0; i < roomSamples; i++) offHead += symmetricOff.channels[0][i] ** 2;
+for (let i = roomSamples + length; i < symmetricOff.channels[0].length; i++) offTail += symmetricOff.channels[0][i] ** 2;
+assert.ok(offHead > 1e-8 && offTail > 1e-8, "symmetric OFF blooms before and after without fitting or ducking");
+
 const duckParams = { ...baseParams, stance: "duck" };
 const duckEvents = solveGapMap(map, duckParams);
 const duck = renderMetachamber({ sourceChannels: [mono], sampleRate, events: duckEvents, params: duckParams });
@@ -236,7 +248,7 @@ assert.equal(workerRender.meta.checks.passed, workerRender.meta.checks.total);
 assert.ok(workerRender.channels[0] instanceof Float32Array && workerRender.channels[0].byteLength > 0, "worker returns transferred Float32 PCM");
 await engineWorker.terminate();
 
-for (const id of ["gap-canvas", "stance-fit", "stance-duck", "time-wake", "time-anticipation", "time-symmetric", "balance", "render", "play", "bounce", "export-map"]) {
+for (const id of ["gap-canvas", "stance-off", "stance-fit", "stance-duck", "time-wake", "time-anticipation", "time-symmetric", "balance", "render", "play", "bounce", "export-map"]) {
   assert.match(html, new RegExp(`id=["']${id}["']`), `UI includes #${id}`);
 }
 assert.match(html, /the MVP accepts mono or stereo/, "unsupported multichannel input is rejected explicitly");

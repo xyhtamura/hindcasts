@@ -134,10 +134,14 @@
                 <input type="checkbox" id="ping-pong-checkbox">
                 <label for="ping-pong-checkbox">ping-pong</label>
             </div>
-            <span class="mode-label mode-label--clip">ring &mdash;</span>
+            <span class="mode-label mode-label--clip">caesura &mdash;</span>
             <div class="radio-group">
-                <input type="checkbox" id="gap-fit-checkbox">
-                <label for="gap-fit-checkbox" title="gap-fit repeats to neighboring events">caesura</label>
+                <input type="radio" id="caesura-off" name="caesurapolicy" value="off" checked>
+                <label for="caesura-off" title="fixed feedback law; no gap fitting or wet ride">off</label>
+            </div>
+            <div class="radio-group">
+                <input type="radio" id="caesura-fit" name="caesurapolicy" value="fit">
+                <label for="caesura-fit" title="fit repeat trains to neighboring events">fit</label>
             </div>
             <span class="mode-label" id="gap-fit-status">off</span>
         </div>

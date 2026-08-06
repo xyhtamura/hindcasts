@@ -64,7 +64,7 @@
     .canvas-frame::after{content:"";position:absolute;pointer-events:none;inset:0;border-radius:inherit;background:linear-gradient(108deg,rgba(248,251,233,.035),transparent 22%,transparent 72%,rgba(180,168,243,.085));mix-blend-mode:screen}
     #gap-canvas{display:block;width:100%;height:310px;touch-action:none;cursor:crosshair}.empty-map{position:absolute;inset:0;display:grid;place-items:center;color:#77728f;font-family:var(--mono);font-size:9px;letter-spacing:.13em;text-transform:uppercase;pointer-events:none}
     .legend{display:flex;gap:17px;align-items:center;flex-wrap:wrap;margin-top:11px;color:var(--dim);font-size:8px}.legend i{display:inline-block;width:18px;height:2px;margin-right:6px;vertical-align:middle;background:var(--wave)}.legend .lg-cut{height:9px;width:2px;background:var(--lamp);box-shadow:0 0 5px rgba(248,251,233,.5)}.legend .lg-tail{height:7px;background:rgba(180,168,243,.68);border-radius:60% 30%}.legend .lg-duck{background:var(--wound)}.event-readout{margin-left:auto;color:var(--oat);text-align:right}
-    .controls-grid{display:grid;grid-template-columns:1.02fr 2fr;gap:24px}.stance-block{position:relative;padding-right:22px;border-right:1px solid var(--line-soft)}.event-kicker{color:var(--lamp);font-size:8px;margin-bottom:8px}.stance{display:grid;grid-template-columns:1fr 1fr;padding:3px;border:1px solid var(--line);border-radius:19px 8px 15px 10px;background:#0c0b1c}.stance button{border:0;border-radius:15px 6px 12px 8px;padding:12px 11px;color:var(--dim);font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.09em}.stance button.on{color:#17172a;background:linear-gradient(135deg,var(--lamp),#e8edc4 48%,var(--halo));font-weight:700;box-shadow:inset 0 1px rgba(255,255,255,.32),0 0 18px rgba(180,168,243,.18),0 3px 12px rgba(0,0,0,.35)}
+    .controls-grid{display:grid;grid-template-columns:1.02fr 2fr;gap:24px}.stance-block{position:relative;padding-right:22px;border-right:1px solid var(--line-soft)}.event-kicker{color:var(--lamp);font-size:8px;margin-bottom:8px}.stance{display:grid;grid-template-columns:repeat(3,1fr);padding:3px;border:1px solid var(--line);border-radius:19px 8px 15px 10px;background:#0c0b1c}.stance button{border:0;border-radius:15px 6px 12px 8px;padding:12px 11px;color:var(--dim);font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.09em}.stance button.on{color:#17172a;background:linear-gradient(135deg,var(--lamp),#e8edc4 48%,var(--halo));font-weight:700;box-shadow:inset 0 1px rgba(255,255,255,.32),0 0 18px rgba(180,168,243,.18),0 3px 12px rgba(0,0,0,.35)}
     .stance.time-arrow{grid-template-columns:repeat(3,1fr);margin-top:4px}.stance.time-arrow button{padding:10px 5px;font-size:8px;letter-spacing:.045em}
     .stance-note{min-height:55px;margin:12px 0 16px;color:var(--oat);font-family:var(--serif);font-size:14px;line-height:1.42}.time-kicker{margin-top:18px}.time-note{min-height:42px}.stats{display:grid;grid-template-columns:1fr 1fr;gap:7px}.stat{padding:10px;border:1px solid var(--line-soft);border-radius:13px 7px 15px 9px;background:rgba(7,10,7,.34)}.stat:nth-child(2n){border-radius:7px 14px 8px 16px}.stat-label{display:block;color:var(--faint);font-size:7px}.stat-value{display:block;margin-top:3px;color:var(--oat);font-family:var(--mono);font-size:12px}
     .knobs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 27px}.control{min-width:0}.control-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:7px}.control label{font-size:12px;color:var(--bone)}.value{color:var(--acid-hi);font-family:var(--mono);font-size:10px;white-space:nowrap}.hint{margin-top:5px;color:var(--faint);font-size:9px;line-height:1.3}
@@ -175,6 +175,7 @@
       <div class="stance-block">
         <div class="event-kicker">Caesura policy</div>
         <div class="stance" role="group" aria-label="Gap policy">
+          <button id="stance-off" aria-pressed="false">Off</button>
           <button class="on" id="stance-fit" aria-pressed="true">Fit</button>
           <button id="stance-duck" aria-pressed="false">Duck</button>
         </div>
@@ -343,7 +344,7 @@ function renderMetachamber(payload, report) {
     ? weightsFor(e.targetRT, e.availableGap == null ? p.rtMax : e.availableGap)
     : weightsFor(e.preTargetRT == null ? e.targetRT : e.preTargetRT, e.preAvailableGap == null ? p.rtMax : e.preAvailableGap)) : [[0, 0, 1]];
   const routeWeight = (room, sourceIndex, eventIndex, eventWeights) => {
-    if (p.stance === "duck") return room === 2 ? 1 : 0;
+    if (p.stance !== "fit") return room === 2 ? 1 : 0;
     const current = eventWeights[Math.max(0, Math.min(eventWeights.length - 1, eventIndex))];
     if (eventIndex + 1 >= eventWeights.length) return current[room];
     const nextBoundary = onsetSamples[eventIndex + 1];
@@ -380,7 +381,7 @@ function renderMetachamber(payload, report) {
   const renderDirection = (direction, directionNo) => {
     const wet = Array.from({ length: channels }, () => new Float32Array(length));
     const eventWeights = eventWeightsFor(direction);
-    const passes = p.stance === "duck" ? [2] : [0, 1, 2];
+    const passes = p.stance === "fit" ? [0, 1, 2] : [2];
     for (let passNo = 0; passNo < passes.length; passNo++) {
       const room = passes[passNo], rt = anchors[room];
       const rand = mulberry32(0xCAE50001);
@@ -437,6 +438,7 @@ function renderMetachamber(payload, report) {
     return Math.sqrt(ss / Math.max(1, count));
   };
   const constrainDirection = (wet, direction) => {
+    if (p.stance === "off") return { guards:0, passed:0, checked:0, maxOvershootDb:-Infinity };
     const envelope = new Float32Array(length); envelope.fill(1);
     if (p.stance === "duck") {
       for (let i = 1; i < events.length; i++) {
@@ -521,6 +523,7 @@ function renderMetachamber(payload, report) {
       guards,
       checks: { passed, total: checked, maxOvershootDb: checked ? maxOvershootDb : null },
       roomRT: anchors,
+      stance:p.stance,
       temporal,
       temporalBalance,
       sourceOffset:headSamples / sampleRate,
@@ -632,7 +635,7 @@ async function analyzeCurrent(){
   try{
     const map=await runEngine("analyze",{channels:analysisChannels,sampleRate:S.input.sampleRate},analysisChannels.map(x=>x.buffer),(phase,value)=>setStatus(phase+"…","",.08+.42*value));
     S.gapMap=map;solveCurrent();S.selected=0;updateStats();updateEventReadout();updateGates();drawMap();
-    if(map.events.length)setStatus(`Read ${map.events.length} event${map.events.length===1?"":"s"}. Adjust the allowances, then ${S.stance==="fit"?"fit the tails":"ride the wet"}.`,"ok",0);
+    if(map.events.length)setStatus(`Read ${map.events.length} event${map.events.length===1?"":"s"}. ${S.stance==="off"?"Render the fixed room across the chosen horizon.":S.stance==="fit"?"Adjust the allowances, then fit the tails.":"Adjust the allowances, then ride the wet."}`,"ok",0);
     else setStatus("No events rose above the operational floor. Try a file with audible material.","err",0);
   }catch(error){if(error.cancelled)return;console.error(error);setStatus("Gap-map analysis failed: "+error.message,"err",0);updateGates();}
   finally{if(S.busy===busy)S.busy=null;}
@@ -664,23 +667,24 @@ function setStance(stance){
   if(S.stance===stance)return;S.stance=stance;
   S.revision++;
   if(S.busy&&S.busy.kind==="render"){cancelJob();S.busy=null;setStatus("The stance changed during rendering. Render again with the new setting.","",0);}
-  $("stance-fit").classList.toggle("on",stance==="fit");$("stance-duck").classList.toggle("on",stance==="duck");
-  $("stance-fit").setAttribute("aria-pressed",stance==="fit");$("stance-duck").setAttribute("aria-pressed",stance==="duck");
-  $("stance-note").textContent=stance==="fit"?"Each event is routed into directional rooms fitted to the adjacent silences.":"The long room stays fixed; zero-phase wet rides protect each known boundary.";
+  ["off","fit","duck"].forEach(value=>{$("stance-"+value).classList.toggle("on",stance===value);$("stance-"+value).setAttribute("aria-pressed",stance===value);});
+  $("stance-note").textContent=stance==="off"?"The long room renders at its fixed law; no gap fitting and no wet ride.":stance==="fit"?"Each event is routed into directional rooms fitted to the adjacent silences.":"The long room stays fixed; zero-phase wet rides protect each known boundary.";
+  if(S.temporal==="symmetric")$("time-note").textContent=stance==="off"?"The fixed chamber blooms before and after the source without fitting or ducking.":"Each chamber blooms both before and after its event.";
+  $("spill").disabled=stance==="off";$("masking").disabled=stance==="off";$("rt-min").disabled=stance!=="fit";
   updateRenderLabel();
-  solveCurrent();invalidateRender();drawMap();
+  solveCurrent();invalidateRender();drawMap();updateEventReadout();
 }
-$("stance-fit").addEventListener("click",()=>setStance("fit"));$("stance-duck").addEventListener("click",()=>setStance("duck"));
+["off","fit","duck"].forEach(value=>$("stance-"+value).addEventListener("click",()=>setStance(value)));
 
 function updateRenderLabel(){
-  const action=S.stance==="fit"?"Fit":"Ride";
+  const action=S.stance==="off"?"Render":S.stance==="fit"?"Fit":"Ride";
   $("render").textContent=S.temporal==="wake"?`${action} the wake`:S.temporal==="anticipation"?`${action} the precursor`:`${action} both horizons`;
 }
 function setTemporal(temporal){
   if(S.temporal===temporal)return;S.temporal=temporal;S.revision++;
   if(S.busy&&S.busy.kind==="render"){cancelJob();S.busy=null;setStatus("The time arrow changed during rendering. Render again with the new setting.","",0);}
   ["wake","anticipation","symmetric"].forEach(value=>{$("time-"+value).classList.toggle("on",temporal===value);$("time-"+value).setAttribute("aria-pressed",temporal===value);});
-  $("time-note").textContent=temporal==="wake"?"Causal chambers trail each event.":temporal==="anticipation"?"Backward chambers gather into each arrival.":"Each fitted chamber blooms both before and after its event.";
+  $("time-note").textContent=temporal==="wake"?"Causal chambers trail each event.":temporal==="anticipation"?"Backward chambers gather into each arrival.":S.stance==="off"?"The fixed chamber blooms before and after the source without fitting or ducking.":"Each chamber blooms both before and after its event.";
   $("balance").disabled=temporal!=="symmetric";updateRenderLabel();solveCurrent();invalidateRender();drawMap();updateEventReadout();
 }
 ["wake","anticipation","symmetric"].forEach(value=>$("time-"+value).addEventListener("click",()=>setTemporal(value)));
@@ -694,6 +698,10 @@ function updateStats(){
 }
 function roomPlateHTML(e,index){
   const ant=S.temporal!=="wake",wake=S.temporal!=="anticipation";
+  if(S.stance==="off"){
+    const fixed=params().rtMax.toFixed(2),room=ant&&wake?`${fixed}s&larr; &rarr;${fixed}s`:ant?`&larr; ${fixed}s`:`${fixed}s &rarr;`;
+    return `<span class="room-plate" title="fixed chamber; gap map bypassed"><span class="cell k"><b>chamber</b>fixed</span><span class="cell k"><b>room</b>${room}</span><span class="cell"><b>caesura</b>off</span></span>`;
+  }
   const room=ant&&wake?`${e.preTargetRT.toFixed(2)}s← →${e.targetRT.toFixed(2)}s`:ant?`← ${e.preTargetRT.toFixed(2)}s`:`${e.targetRT.toFixed(2)}s →`;
   const gap=ant&&wake?`${fmtGap(e.gapToPrevious)} | ${fmtGap(e.gapToNext)}`:fmtGap(ant?e.gapToPrevious:e.gapToNext);
   const allow=ant&&wake?`${e.preAllowedRel.toFixed(1)} | ${e.allowedRel.toFixed(1)} dB`:`${(ant?e.preAllowedRel:e.allowedRel).toFixed(1)} dB`;
@@ -735,20 +743,20 @@ function drawMap(){
   cx.strokeStyle="rgba(103,217,209,.09)";cx.beginPath();cx.moveTo(0,mid+3);for(let x=0;x<=w;x+=18)cx.quadraticCurveTo(x+9,mid+5*Math.sin(x*.017),x+18,mid+3*Math.sin(x*.011));cx.stroke();
   if(S.events){
     for(let i=0;i<S.events.length;i++){
-      const e=S.events[i],on=X(origin+e.tOnset),rel=X(origin+e.tRelease),end=X(origin+(e.gapToNext==null?e.tRelease+e.targetRT:e.tOnset+(e.tRelease-e.tOnset)+e.gapToNext)),preStart=X(origin+(e.gapToPrevious==null?Math.max(0,e.tOnset-e.preTargetRT):e.tOnset-e.gapToPrevious));
+      const e=S.events[i],fixed=S.stance==="off",wakeRT=fixed?params().rtMax:e.targetRT,preRT=fixed?params().rtMax:e.preTargetRT,on=X(origin+e.tOnset),rel=X(origin+e.tRelease),end=X(origin+(fixed?e.tRelease+wakeRT:e.gapToNext==null?e.tRelease+wakeRT:e.tOnset+(e.tRelease-e.tOnset)+e.gapToNext)),preStart=X(origin+(fixed?e.tOnset-preRT:e.gapToPrevious==null?Math.max(0,e.tOnset-preRT):e.tOnset-e.gapToPrevious));
       const next=S.events[i+1]?X(origin+S.events[i+1].tOnset):w,cellEnd=Math.max(on+2,next),lean=warp(i,4),rise=warp(i+7,h*.018);
       if(i===S.selected){const glow=cx.createRadialGradient((on+cellEnd)*.5,mid,0,(on+cellEnd)*.5,mid,Math.max(35,(cellEnd-on)*.68));glow.addColorStop(0,"rgba(248,251,233,.1)");glow.addColorStop(.55,"rgba(180,168,243,.04)");glow.addColorStop(1,"rgba(0,0,0,0)");cx.fillStyle=glow;cx.fillRect(on,0,Math.max(2,cellEnd-on),h);}
       cx.beginPath();cx.moveTo(on,mid-h*.075+rise);cx.bezierCurveTo(on+(rel-on)*.2,mid-h*.25,rel-(rel-on)*.15,mid-h*.22,rel,mid-h*.11);cx.bezierCurveTo(rel-(rel-on)*.1,mid+h*.23,on+(rel-on)*.22,mid+h*.2,on,mid+h*.075+rise);cx.closePath();cx.fillStyle="rgba(103,217,209,.05)";cx.fill();
       const amp=clamp((e.peak-S.gapMap.floorDbfs)/Math.max(18,-S.gapMap.floorDbfs),.12,1),half=(h*.31)*amp;
-      const shoulder=Math.max(5,(end-rel)*.34),tipY=mid+warp(i+3,h*.022),alpha=.06+.15*(e.targetRT-params().rtMin)/Math.max(.01,params().rtMax-params().rtMin),tail=cx.createLinearGradient(rel,0,end,0);tail.addColorStop(0,`rgba(180,168,243,${Math.min(.3,alpha*1.35).toFixed(3)})`);tail.addColorStop(.64,`rgba(103,217,209,${alpha.toFixed(3)})`);tail.addColorStop(1,"rgba(248,251,233,.025)");
+      const shoulder=Math.max(5,(end-rel)*.34),tipY=mid+warp(i+3,h*.022),alpha=.06+.15*(wakeRT-params().rtMin)/Math.max(.01,params().rtMax-params().rtMin),tail=cx.createLinearGradient(rel,0,end,0);tail.addColorStop(0,`rgba(180,168,243,${Math.min(.3,alpha*1.35).toFixed(3)})`);tail.addColorStop(.64,`rgba(103,217,209,${alpha.toFixed(3)})`);tail.addColorStop(1,"rgba(248,251,233,.025)");
       if(S.temporal!=="anticipation"){cx.beginPath();cx.moveTo(rel,mid-half);cx.bezierCurveTo(rel+shoulder,mid-half*.88+rise,end-shoulder*.7,tipY-half*.13,end,tipY);cx.bezierCurveTo(end-shoulder*.55,tipY+half*.12,rel+shoulder*.8,mid+half*.92-rise,rel,mid+half);cx.bezierCurveTo(rel-3+lean,mid+half*.42,rel+4-lean,mid-half*.45,rel,mid-half);cx.closePath();cx.fillStyle=tail;cx.fill();cx.strokeStyle=i===S.selected?"rgba(248,251,233,.7)":"rgba(180,168,243,.4)";cx.beginPath();cx.moveTo(rel,mid-half);cx.bezierCurveTo(rel+shoulder,mid-half*.88+rise,end-shoulder*.7,tipY-half*.13,end,tipY);cx.bezierCurveTo(end-shoulder*.55,tipY+half*.12,rel+shoulder*.8,mid+half*.92-rise,rel,mid+half);cx.stroke();}
-      if(S.temporal!=="wake"){const preShoulder=Math.max(5,(on-preStart)*.34),preAlpha=.06+.15*(e.preTargetRT-params().rtMin)/Math.max(.01,params().rtMax-params().rtMin),preTail=cx.createLinearGradient(preStart,0,on,0);preTail.addColorStop(0,"rgba(248,251,233,.025)");preTail.addColorStop(.36,`rgba(103,217,209,${preAlpha.toFixed(3)})`);preTail.addColorStop(1,`rgba(180,168,243,${Math.min(.3,preAlpha*1.35).toFixed(3)})`);cx.beginPath();cx.moveTo(on,mid-half);cx.bezierCurveTo(on-preShoulder,mid-half*.88-rise,preStart+preShoulder*.7,tipY-half*.13,preStart,tipY);cx.bezierCurveTo(preStart+preShoulder*.55,tipY+half*.12,on-preShoulder*.8,mid+half*.92+rise,on,mid+half);cx.closePath();cx.fillStyle=preTail;cx.fill();cx.strokeStyle=i===S.selected?"rgba(248,251,233,.7)":"rgba(103,217,209,.42)";cx.stroke();}
+      if(S.temporal!=="wake"){const preShoulder=Math.max(5,(on-preStart)*.34),preAlpha=.06+.15*(preRT-params().rtMin)/Math.max(.01,params().rtMax-params().rtMin),preTail=cx.createLinearGradient(preStart,0,on,0);preTail.addColorStop(0,"rgba(248,251,233,.025)");preTail.addColorStop(.36,`rgba(103,217,209,${preAlpha.toFixed(3)})`);preTail.addColorStop(1,`rgba(180,168,243,${Math.min(.3,preAlpha*1.35).toFixed(3)})`);cx.beginPath();cx.moveTo(on,mid-half);cx.bezierCurveTo(on-preShoulder,mid-half*.88-rise,preStart+preShoulder*.7,tipY-half*.13,preStart,tipY);cx.bezierCurveTo(preStart+preShoulder*.55,tipY+half*.12,on-preShoulder*.8,mid+half*.92+rise,on,mid+half);cx.closePath();cx.fillStyle=preTail;cx.fill();cx.strokeStyle=i===S.selected?"rgba(248,251,233,.7)":"rgba(103,217,209,.42)";cx.stroke();}
       cx.strokeStyle=i===S.selected?"rgba(248,251,233,.9)":"rgba(223,231,174,.52)";cx.lineWidth=i===S.selected?1.7:1;cx.beginPath();cx.moveTo(on+lean,h*.08);cx.bezierCurveTo(on-5-lean,h*.29,on+7+lean,h*.7,on-lean,h*.92);cx.stroke();
       /* chamber cross-section: a corridor receding into the gap, depth = solved RT60 — the room resized before the event arrives (trap-red + irregular hatch when the constraint can't be met) */
       {
-        const pr=params(),antOnly=S.temporal==="anticipation",rtN=clamp(((antOnly?e.preTargetRT:e.targetRT)-pr.rtMin)/Math.max(.01,pr.rtMax-pr.rtMin),0,1);
+        const pr=params(),antOnly=S.temporal==="anticipation",rtN=clamp(((antOnly?preRT:wakeRT)-pr.rtMin)/Math.max(.01,pr.rtMax-pr.rtMin),0,1);
         const nearH=h*(.13+.2*rtN),farH=nearH*.4,x1=antOnly?Math.min(on-7,preStart):Math.max(on+7,end),j=warp(i,2.4),j2=warp(i+5,2);
-        const nT=mid-nearH+j,nB=mid+nearH+j,fT=mid-farH+j2,fB=mid+farH+j2,trap=antOnly?e.preInfeasible:e.infeasible,sel=i===S.selected,col=trap?"255,64,92":"180,168,243";
+        const nT=mid-nearH+j,nB=mid+nearH+j,fT=mid-farH+j2,fB=mid+farH+j2,trap=!fixed&&(antOnly?e.preInfeasible:e.infeasible),sel=i===S.selected,col=trap?"255,64,92":"180,168,243";
         cx.save();cx.lineWidth=sel?1.25:.85;
         cx.strokeStyle=`rgba(${col},${sel?.6:.3})`;cx.beginPath();cx.moveTo(x1,fT);cx.lineTo(x1,fB);cx.stroke();
         cx.strokeStyle=`rgba(${col},${sel?.42:.2})`;cx.beginPath();cx.moveTo(on,nT);cx.lineTo(x1,fT);cx.moveTo(on,nB);cx.lineTo(x1,fB);cx.moveTo(on,nT);cx.lineTo(on,nB);cx.stroke();
@@ -790,7 +798,7 @@ async function render(){
     const result=await runEngine("render",{sourceChannels,sampleRate:input.sampleRate,events:S.events,params:renderParams},transfer,(phase,value)=>setStatus(phase+"…","",.04+.9*value));
     if(revision!==S.revision||input!==S.input){setStatus("Discarded a stale render because the file or room changed.","",0);return;}
     S.output=result;const ctx=getContext(),buf=ctx.createBuffer(result.channels.length,result.channels[0].length,result.sampleRate),dry=ctx.createBuffer(result.channels.length,result.channels[0].length,result.sampleRate);result.channels.forEach((x,i)=>{buf.copyToChannel(x,i);dry.copyToChannel(S.input.getChannelData(i),i,result.meta.sourceOffsetSamples);});S.outputBuffer=buf;S.dryBuffer=dry;S.offset=0;S.monitor="wet";refreshAB();updateGates();drawMap();
-    const m=result.meta,secs=((performance.now()-t0)/1000).toFixed(1),check=m.checks.total?`${m.checks.passed}/${m.checks.total} cuts under budget`:"one open tail";
+    const m=result.meta,secs=((performance.now()-t0)/1000).toFixed(1),check=m.stance==="off"?"fixed room · gap map bypassed":m.checks.total?`${m.checks.passed}/${m.checks.total} cuts under budget`:"one open tail";
     const guard=m.guards?` · ${m.guards} zero-phase guard${m.guards===1?"":"s"}`:"";const norm=m.scale<.999?` · peak guard ${(20*Math.log10(m.scale)).toFixed(1)} dB`:"";
     setStatus(`Rendered ${m.duration.toFixed(2)} s in ${secs} s · ${check}${guard}${norm}. Preview is the exact bounce.`,"ok",1);
   }catch(error){if(!error.cancelled){console.error(error);setStatus("Render failed: "+error.message,"err",0);updateGates();}}

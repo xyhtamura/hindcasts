@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 const html = fs.readFileSync(new URL("./index.html", import.meta.url), "utf8");
-for (const id of ["gap-fit-checkbox", "max-ring", "gap-spill", "masking-credit", "gap-fit-status", "time-wake", "time-anticipation", "time-symmetric", "time-balance"]) {
+for (const id of ["caesura-off", "caesura-fit", "max-ring", "gap-spill", "masking-credit", "gap-fit-status", "time-wake", "time-anticipation", "time-symmetric", "time-balance"]) {
   assert.match(html, new RegExp(`id=["']${id}["']`), `${id} control is wired into the page`);
 }
 assert.ok(
@@ -50,10 +50,12 @@ const base = {
   controlRmsEnvelope: [], gapMap,
 };
 
-const ordinary = performBounceRender({ ...base, gapFitEnabled: false });
-const fitted = performBounceRender({ ...base, gapFitEnabled: true });
+const ordinary = performBounceRender({ ...base, caesuraPolicy: "off", gapFitEnabled: true });
+const fitted = performBounceRender({ ...base, caesuraPolicy: "fit", gapFitEnabled: false });
+assert.equal(ordinary.caesuraPolicy, "off", "explicit OFF overrides the legacy Gap Fit boolean");
+assert.equal(fitted.caesuraPolicy, "fit", "explicit FIT overrides the legacy Gap Fit boolean");
 assert.equal(fitted.gapFitEvents, 2, "Gap Fit consumes both map events");
-assert.equal(ordinary.gapFitEvents, 0, "ordinary feedback remains on the legacy renderer");
+assert.equal(ordinary.gapFitEvents, 0, "OFF keeps the fixed feedback law");
 
 const sample = (result, time, channel = 0) => {
   const channels = 2;
@@ -97,7 +99,7 @@ assert.ok(
 
 const symmetricBase = {
   ...base,
-  gapFitEnabled: false,
+  caesuraPolicy: "off",
   temporalStance: "symmetric",
   temporalBalance: 0.5,
   params: { ...params, time: 0.1, timeBalance: 0.5 },
@@ -105,6 +107,7 @@ const symmetricBase = {
 const symmetric = performBounceRender(symmetricBase);
 const symmetricAgain = performBounceRender(symmetricBase);
 assert.equal(symmetric.temporalStance, "symmetric");
+assert.equal(symmetric.caesuraPolicy, "off");
 assert.ok(symmetric.start < 0, "symmetric delay allocates anticipatory head room");
 assert.ok(symmetric.start + symmetric.duration > length / sampleRate, "symmetric delay allocates wake tail room");
 assert.ok(Math.abs(sample(symmetric, 0.0)) > 0.5, "symmetric delay contains the clean anticipatory tap");
@@ -115,7 +118,7 @@ const anticipationOnly = performBounceRender({ ...symmetricBase, temporalBalance
 const wakeOnly = performBounceRender({ ...symmetricBase, temporalBalance: 1, params: { ...symmetricBase.params, timeBalance: 1 } });
 assert.ok(Math.abs(sample(anticipationOnly, 0.0)) > 0.9 && Math.abs(sample(anticipationOnly, 0.2)) < 1e-8, "balance hard-left isolates anticipation");
 assert.ok(Math.abs(sample(wakeOnly, 0.2)) > 0.9 && Math.abs(sample(wakeOnly, 0.0)) < 1e-8, "balance hard-right isolates wake");
-const symmetricFitted = performBounceRender({ ...symmetricBase, gapFitEnabled: true });
+const symmetricFitted = performBounceRender({ ...symmetricBase, caesuraPolicy: "fit" });
 assert.equal(symmetricFitted.gapFitEvents, gapMap.events.length, "symmetric Caesura solves both linked directions from one map");
 
-console.log("Pythia symmetric + Gap Fit tests passed");
+console.log("Pythia symmetric + Caesura OFF/FIT tests passed");

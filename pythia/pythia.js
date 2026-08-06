@@ -11,7 +11,7 @@ window.onload = () => {
     const monitorCtrlCheckbox = document.getElementById('monitor-control-checkbox');
     const gateCheckbox       = document.getElementById('gate-checkbox');
     const pingPongCheckbox   = document.getElementById('ping-pong-checkbox');
-    const gapFitCheckbox     = document.getElementById('gap-fit-checkbox');
+    const caesuraRadios      = document.querySelectorAll('input[name="caesurapolicy"]');
     const gapFitStatus       = document.getElementById('gap-fit-status');
     const timeGroup          = document.getElementById('time-group');
     const timeBalanceGroup   = document.getElementById('time-balance-group');
@@ -220,7 +220,7 @@ window.onload = () => {
     let applyingTimeSync = false;
     let applyingPreset = false;
     let pingPong       = false;
-    let gapFitEnabled  = false;
+    let caesuraPolicy  = 'off';
     let liveGrainIndex = 0;
     // Grain amplitude window: 'linear' = the classic attack/decay ramps (default,
     // preserves current sound); 'hann' = a true raised-cosine window (no click at
@@ -576,6 +576,8 @@ window.onload = () => {
     // Gap Fit analyzes the audible source, not the sidechain. The canonical v1
     // analyzer runs in a short-lived worker so long files do not pin the UI.
     const updateGapFitUI = () => {
+        const gapFitEnabled = caesuraPolicy === 'fit';
+        caesuraRadios.forEach(radio => { radio.checked = radio.value === caesuraPolicy; });
         document.querySelectorAll('.gap-fit-param').forEach(el => {
             el.style.opacity = gapFitEnabled ? '1' : '0.45';
         });
@@ -626,7 +628,7 @@ window.onload = () => {
     };
 
     const ensureSourceGapMap = () => {
-        if (!gapFitEnabled || !sourceBuffer) return Promise.resolve(null);
+        if (caesuraPolicy !== 'fit' || !sourceBuffer) return Promise.resolve(null);
         if (sourceGapMap) return Promise.resolve(sourceGapMap);
         if (gapMapPromise) return gapMapPromise;
         const revision = sourceGapRevision;
@@ -647,7 +649,7 @@ window.onload = () => {
         sourceGapMap = null;
         gapMapPromise = null;
         updateGapFitUI();
-        if (gapFitEnabled && sourceBuffer) void ensureSourceGapMap().catch(console.error);
+        if (caesuraPolicy === 'fit' && sourceBuffer) void ensureSourceGapMap().catch(console.error);
     };
 
     const AUDIO_FILE_RE = /\.(wav|wave|mp3|m4a|aac|ogg|oga|flac|aif|aiff|webm)$/i;
@@ -798,17 +800,18 @@ window.onload = () => {
         });
     }
 
-    if (gapFitCheckbox) {
-        gapFitCheckbox.addEventListener('change', () => {
+    caesuraRadios.forEach(radio => {
+        radio.addEventListener('change', () => {
+            if (!radio.checked) return;
             markPresetCustom();
-            gapFitEnabled = gapFitCheckbox.checked;
+            caesuraPolicy = radio.value === 'fit' ? 'fit' : 'off';
             updateGapFitUI();
-            if (gapFitEnabled) void ensureSourceGapMap().catch(error => {
+            if (caesuraPolicy === 'fit') void ensureSourceGapMap().catch(error => {
                 console.error('Gap Fit analysis error:', error);
                 if (gapFitStatus) gapFitStatus.textContent = 'map failed';
             });
         });
-    }
+    });
 
     const updateSelfSampling = () => {
         isSelfSampling = selfSampleCheckbox.checked;
@@ -1429,7 +1432,8 @@ window.onload = () => {
             monitorControl,
             temporalStance,
             temporalBalance: params.timeBalance,
-            gapFitEnabled,
+            caesuraPolicy,
+            gapFitEnabled: caesuraPolicy === 'fit',
             gapMap,
             controlRmsEnvelope: [...controlRmsEnvelope]
         };
@@ -1497,7 +1501,8 @@ window.onload = () => {
     // v6 (Phase 3 fourth slice): Feedback Grain/disintegration amount.
     // v7 (Phase 5 first slice): Maximum Ring + optional shared-map Gap Fit policy.
     // v8: linked WAKE / ANTICIPATION / SYMMETRIC stance; Time becomes magnitude.
-    const STATE_VERSION = 8;
+    // v9: Caesura OFF / FIT becomes an explicit policy; keep gapFitEnabled for compatibility.
+    const STATE_VERSION = 9;
 
     const serializeState = () => ({
         version:      STATE_VERSION,
@@ -1509,7 +1514,8 @@ window.onload = () => {
         temporalStance,
         timeSync,
         pingPong,
-        gapFitEnabled,
+        caesuraPolicy,
+        gapFitEnabled: caesuraPolicy === 'fit',
         windowType,
         params:       { ...params },
     });
@@ -1562,10 +1568,10 @@ window.onload = () => {
         if (pingPongCheckbox) pingPongCheckbox.checked = pingPong;
         updatePingPong();
 
-        gapFitEnabled = typeof s.gapFitEnabled === 'boolean' ? s.gapFitEnabled : false;
-        if (gapFitCheckbox) gapFitCheckbox.checked = gapFitEnabled;
+        caesuraPolicy = ['off', 'fit'].includes(s.caesuraPolicy)
+            ? s.caesuraPolicy : s.gapFitEnabled === true ? 'fit' : 'off';
         updateGapFitUI();
-        if (gapFitEnabled) void ensureSourceGapMap().catch(console.error);
+        if (caesuraPolicy === 'fit') void ensureSourceGapMap().catch(console.error);
 
         // Legacy migration: pre-Phase-2 `mode: 'triggered'` was always follow-direction
         // gating; `mode: 'continuous'` was always follow. Polarity comes from params
@@ -1604,6 +1610,7 @@ window.onload = () => {
         monitorControl: false,
         timeSync: 'free',
         pingPong: false,
+        caesuraPolicy: 'off',
         gapFitEnabled: false,
         temporalStance: 'wake',
         windowType: 'hann',

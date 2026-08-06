@@ -17,6 +17,7 @@ function performBounceRender(data) {
         sourceDry,
         monitorControl,
         gapFitEnabled,
+        caesuraPolicy: requestedCaesuraPolicy,
         gapMap,
         controlRmsEnvelope,
         temporalStance: requestedTemporalStance,
@@ -29,6 +30,8 @@ function performBounceRender(data) {
         ? requestedTemporalStance : inferredStance;
     const temporalBalance = Math.max(0, Math.min(1, Number.isFinite(requestedTemporalBalance)
         ? requestedTemporalBalance : Number.isFinite(inputParams.timeBalance) ? inputParams.timeBalance : 0.5));
+    const caesuraPolicy = ['off', 'fit'].includes(requestedCaesuraPolicy)
+        ? requestedCaesuraPolicy : gapFitEnabled ? 'fit' : 'off';
     const timeMagnitude = Math.abs(inputParams.time);
     const params = {
         ...inputParams,
@@ -554,7 +557,7 @@ function performBounceRender(data) {
         const BOUNCE_PEAK = 0.977;
         const scale = peak > BOUNCE_PEAK ? BOUNCE_PEAK / peak : 1;
         if (scale < 1) for (const channel of out) for (let i = 0; i < channel.length; i++) channel[i] *= scale;
-        if (_returnPcm) return { pcmChannels:out, start, duration:length / sampleRate, peak, scale, gapFitEvents:Math.max(anticipation.gapFitEvents, wake.gapFitEvents), temporalStance, temporalBalance };
+        if (_returnPcm) return { pcmChannels:out, start, duration:length / sampleRate, peak, scale, gapFitEvents:Math.max(anticipation.gapFitEvents, wake.gapFitEvents), caesuraPolicy, temporalStance, temporalBalance };
         return {
             wavBuffer: encodeFloatWav(out, sampleRate),
             start,
@@ -562,6 +565,7 @@ function performBounceRender(data) {
             peak,
             scale,
             gapFitEvents: Math.max(anticipation.gapFitEvents, wake.gapFitEvents),
+            caesuraPolicy,
             temporalStance,
             temporalBalance,
             head: -start,
@@ -572,7 +576,7 @@ function performBounceRender(data) {
     // Render loop orchestration
     const sampleRate = controlSampleRate;
     const channels = Math.max(2, sourceBuffer.numberOfChannels, controlBuffer.numberOfChannels);
-    const gapPolicy = gapFitEnabled ? buildGapFitPolicy(gapMap, params, loopClip) : null;
+    const gapPolicy = caesuraPolicy === 'fit' ? buildGapFitPolicy(gapMap, params, loopClip) : null;
     const win = bounceWindow(controlBuffer, params, gapPolicy);
     const length = Math.max(1, Math.ceil(win.duration * sampleRate));
     const dry = Array.from({ length: channels }, () => new Float32Array(length));
@@ -665,6 +669,7 @@ function performBounceRender(data) {
         peak,
         scale,
         gapFitEvents: gapPolicy ? gapPolicy.events.length : 0,
+        caesuraPolicy,
         temporalStance,
         temporalBalance,
     };
@@ -676,6 +681,7 @@ function performBounceRender(data) {
         peak,
         scale,
         gapFitEvents: gapPolicy ? gapPolicy.events.length : 0,
+        caesuraPolicy,
         temporalStance,
         temporalBalance,
         head: win.head,

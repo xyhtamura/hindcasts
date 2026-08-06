@@ -1,6 +1,6 @@
 # PYTHIA - preset specs
 
-Current spec for the active preset shelf. Each preset is a v8 state payload applied
+Current spec for the active preset shelf. Each preset is a v9 state payload applied
 through `applyState`. Params listed as **deltas from `DEFAULT_PARAMS`**; unlisted
 fields stay default.
 
@@ -11,7 +11,7 @@ fields stay default.
 - After any manual knob move, show the selector as `custom`.
 - Unless noted: `sourceDry: true`, `monitorControl: false`, `gateEnabled: false`,
   `pingPong: false`, `loopClip: true`, `timeSync: 'free'`, `temporalStance: 'wake'`,
-  `windowType: 'hann'`.
+  `caesuraPolicy: 'off'`, `windowType: 'hann'`.
 - `Time` is a non-negative magnitude. Direction belongs to `temporalStance`:
   `wake`, `anticipation`, or linked `symmetric`. Old negative-Time states migrate
   to `anticipation` with the magnitude preserved.

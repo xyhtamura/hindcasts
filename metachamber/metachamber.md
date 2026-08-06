@@ -46,7 +46,7 @@ These two axes are Metachamber's half of the suite **symmetry contract** (`../hi
 
 **Caesura policy:**
 
-- **OFF** — *planned 2026-07-17 (symmetry contract).* No gap awareness: the fixed room renders both horizons at its set decay, nothing fits and nothing rides. With the Wet layer switch this is the quick-and-dirty stack — wet pre-verb plus wet verb straight over the dry.
+- **OFF** — *shipped 2026-07-24.* No gap awareness: the fixed RT-max room renders either horizon or both, nothing fits and nothing rides. In SYMMETRIC this is the direct pre-verb + verb gesture: the same unmodified chamber before and after the source.
 - **FIT** — *the room resizes per event.* RT60 solved per event so the decay reaches the floor (or the Spill allowance under the next onset) exactly when the next event lands. Every hit gets its own room. The flagship stance; the one with no live approximation at all.
 - **DUCK** — *one fixed room, wet rides.* The classical automation ritual automated: wet/damping envelope derived from the gap map, pulled down ahead of each oncoming event — with **bidirectional (zero-phase) smoothing**, so the ride has no pumping and no attack lag in either direction.
 
@@ -54,7 +54,7 @@ These two axes are Metachamber's half of the suite **symmetry contract** (`../hi
 
 - **WAKE** — causal FDN recursion; each chamber trails its event and uses the following-gap solution.
 - **ANTICIPATION** — backward FDN recursion; each precursor gathers into its event and uses a separate preceding-gap solution.
-- **SYMMETRIC** — both recursions, equal-power blended by Anticipation ↔ Wake balance. This is the default stance: a zero-phase room in time, with independently guarded horizons.
+- **SYMMETRIC** — both recursions, equal-power blended by Anticipation ↔ Wake balance. This is the default stance: a zero-phase room in time. FIT/DUCK apply their policy independently to both horizons; OFF leaves both fields unguarded.
 
 **HOLLOW** remains deferred: wet only where the dry is silent, making the negative space the figure.
 
@@ -74,13 +74,13 @@ These two axes are Metachamber's half of the suite **symmetry contract** (`../hi
 
 ## construction
 
-**MVP** — three fixed deterministic FDN rooms + event-side routing derived from the gap map. Ships DUCK fully and a coarse FIT: events enter the bracketing rooms before diffusion, so a ringing tail never changes room when the next event arrives. Cheap, robust, already past what automation-by-hand achieves (zero-phase envelopes, masking credit). Per-band sensing remains deferred.
+**MVP** — three fixed deterministic FDN rooms + event-side routing derived from the gap map. Ships OFF, DUCK, and a coarse FIT. OFF bypasses the map in DSP and sends the complete source through the RT-max room without boundary checks or gain rides. FIT routes events into bracketing rooms before diffusion; DUCK keeps the long room and applies zero-phase wet rides. Per-band sensing remains deferred.
 
 **Full** — **per-event tail rendering**: segment the dry into events, convolve *each event* with its own kernel (RT60 solved per event), sum the tails. Offline makes per-event convolution affordable; this is the acausal luxury no latency budget can buy, and the version where FIT is exact rather than approximated.
 
 Both: envelope smoothing is bidirectional/zero-phase throughout — no attack/release asymmetry anywhere in the control path.
 
-### MVP — shipped 2026-07-12; bidirectional engine shipped 2026-07-17
+### MVP — shipped 2026-07-12; bidirectional engine shipped 2026-07-17; OFF shipped 2026-07-24
 
 Built at `metachamber/index.html` in the suite's drop file → analyze → preview/A-B → **Bounce WAV** pattern. It imports only the local shared gap-map analyzer. The sample-domain FDN render is deterministic within the JS engine; preview and 32-bit float WAV use the same final PCM. Repeatable tests live in `test-metachamber.mjs` and `test-browser.mjs`.
 
@@ -93,12 +93,12 @@ Built at `metachamber/index.html` in the suite's drop file → analyze → previ
    - Shared v1 JSON uses sample indices and explicit units: `{sampleRate, durationSamples, floorDbfs, analysis, events[]}` with `onsetSample`, `releaseSample`, `eventRmsPeakDbfs`, `nextOnsetSample`, `nextOnsetRmsDbfs`, `interOnsetSamples`, `silenceGapSamples`, `confidence`.
 3. **Directional budgets**: every event gets an after-gap RT and a before-gap RT. Spill and masking credit are solved against the event on the opposite side of each boundary. Available decay time is `silenceGap − preDelay`; solve `RT60 = 60 · availableGap / requiredDropDb`, clamp to [RT-min, RT-max], and mark each horizon independently when RT-min is infeasible.
 4. **Render — bidirectional three-room FDN**: deterministic, mutually coherent rooms at RT-min / geometric-mid / RT-max. WAKE iterates the feedback state forward; ANTICIPATION iterates the same recursion backward over genuine output head room. SYMMETRIC runs both and equal-power blends them. No file reversal or pasted pre-tail is involved.
-5. **Boundary guards / DUCK**: each direction gets its own zero-phase wet ride and post guard. Wake is measured immediately before the next onset; anticipation immediately after the preceding release. SYMMETRIC verifies both sets of boundaries.
+5. **Policy**: FIT and DUCK apply direction-specific post guards; DUCK additionally applies its zero-phase wet ride. Wake is measured immediately before the next onset; anticipation immediately after the preceding release. SYMMETRIC verifies both sets of boundaries. OFF bypasses this stage entirely.
 6. **Mix + export**: pre-delay becomes a dry/wet separation in the selected direction; head-extended dry is sample-aligned for A/B; equal-power wet/dry, whole-file peak guard, exact-buffer preview, 32-bit float WAV out.
 
-**UI:** waveform with the directional gap map drawn on it — wake wedges decay right, precursor wedges gather from the left, and symmetric shows both. Controls: Caesura policy (FIT/DUCK), Time Arrow (WAKE/ANTICIPATION/SYMMETRIC), Anticipation ↔ Wake balance, Spill, Masking credit, RT-min/max, pre-delay, damping, wet/dry.
+**UI:** waveform with the directional gap map drawn on it — wake wedges decay right, precursor wedges gather from the left, and symmetric shows both. Controls: Caesura policy (OFF/FIT/DUCK), Time Arrow (WAKE/ANTICIPATION/SYMMETRIC), Anticipation ↔ Wake balance, Spill, Masking credit, RT-min/max, pre-delay, damping, wet/dry. OFF disables its irrelevant gap-policy controls and draws the fixed room at RT-max.
 
-**Verified:** synthetic irregular impulse train → five onsets within one analysis hop; silence yields no fabricated event; FIT and DUCK pass their wet-only boundaries; ANTICIPATION produces nonzero head energy and passes preceding-gap budgets; SYMMETRIC produces both head and tail energy and verifies twice the boundaries; dry remains sample-aligned after head extension. Anti-phase stereo, finite samples, room routing, anchor decay, mono/stereo, render lengths, worker transfer, deterministic PCM, and WAV payload contracts hold. `node metachamber/test-metachamber.mjs` passes. `test-browser.mjs` covers the full decode → Blob-worker analysis → symmetric render → UI lifecycle.
+**Verified:** synthetic irregular impulse train → five onsets within one analysis hop; silence yields no fabricated event; FIT and DUCK pass their wet-only boundaries; OFF is sample-identical with or without gap-map events, applies zero guards/checks, and in SYMMETRIC produces nonzero head and tail energy. ANTICIPATION produces nonzero head energy and passes preceding-gap budgets; SYMMETRIC FIT verifies both boundaries; dry remains sample-aligned after head extension. Anti-phase stereo, finite samples, room routing, anchor decay, mono/stereo, render lengths, worker transfer, deterministic PCM, and WAV payload contracts hold. `node metachamber/test-metachamber.mjs` passes. `test-browser.mjs` covers the full decode → Blob-worker analysis → symmetric render → UI lifecycle.
 
 **Deferred past MVP:** HOLLOW, drawn room law, per-band gap sensing, per-event exact kernels (true FIT), synthetic/self/donor IR sources, and strict cross-browser byte identity.
 

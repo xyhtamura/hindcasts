@@ -187,4 +187,45 @@ locked to the shared VHS substrate.
 3. **Other media as coupling geometries** — vinyl (play-count groove wear), optical film (spatial
    strip position), etc. Each a different time↔material coupling, not an EQ preset.
 
+---
+
+## field notes
+
+**2026-08-05 — Claude Code — offline port, run against a 14:35 source**
+
+Remanence's engine was ported to an offline Python/NumPy renderer to degrade the
+Open4 VIDEOAKTION cut (`../../ephemeralrenders/open4-cut/remanence_offline.py`).
+Nothing in this folder was changed. Three findings that belong here:
+
+- **The shipped video path cannot take a long file.** `loadVideo` caps at
+  `VMAXFRAMES` 240 frames / 360 px and holds every frame as a decoded
+  `Uint8ClampedArray` in RAM. That is ~16 s at 15 fps. The cap is not incidental:
+  the **Fold** tap reads the reel *mirror*, so frame *n* needs frame `N−n`, and no
+  sliding window or streaming decode can serve it — the whole reel must be
+  randomly addressable. The offline port used a disk memmap (8 GB for 14:35 at
+  30 fps / 426×240). Any in-browser long-file support needs the same: a
+  random-access frame store, not a bigger array.
+- **Additive ghost accumulation white-outs at depth.** `renderVideo` sums taps as
+  `gh += gk·(…)` and mixes `dry·src + print·gh`, so the ghost carries the *sum* of
+  the per-wrap weights. At the REEL-FOLD preset (wraps 16, fall 0.82, fold 0.75)
+  that sum is ≈9.3, and any non-dark frame clips to white. Tolerable in a 16 s
+  prototype where the preset is the point; fatal over a long ramp, where rising
+  `wraps` alone drives the image to white and the ramp reads as a fade. The port
+  divides the ghost by its weight sum so `print` is a true mix level and depth
+  changes density without changing brightness. Worth considering in the app —
+  it would make **Wraps** and **Print** independent instead of multiplying.
+- **Ramping the damage while holding the reel fixed works**, and is the right
+  split: the reel is one physical object, so wrap/grow stay constant and only the
+  damage parameters move. But the *shape* of that ramp is currently unwarranted —
+  see `physics/GAPS.md`, "Radial dependence of print-through severity in a wound
+  reel". The honest A(r) is not known and a hand-drawn curve was shipped.
+
+Verified: fold tap destinations traced numerically across the reel (last frames
+read the opening frames at 0.87 weight); ramp checked visually at u = 0.15 / 0.45
+/ 0.75 / 0.97. Not done: none of this is fed back into the app — the two engine
+points above are observations, not planned work, so **Next moves** above is
+unchanged.
+
+---
+
 *spine: the tape remembers forward.*

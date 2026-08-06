@@ -2,7 +2,7 @@
 
 *the flagship learns to echo — from paracognitive texture to a delay a producer would reach for*
 
-> **Status (2026-07-17): Phases 0–5 plus linked symmetric delay shipped and verified.** The delay engine, WAKE / ANTICIPATION / SYMMETRIC time-arrow stance, polarity sidechain, sync/pitch/pan/disintegration controls, deterministic Worker bounce, preset shelf, Maximum Ring, and shared-map Caesura mechanic are present. The live edge is the carry-forward list, the histogram-waveshaper cross-file stance, and Phase 6 (symmetry contract: Caesura DUCK + Wet layer, planned 2026-07-17).
+> **Status (2026-07-24): Phases 0–5 plus linked symmetric delay and explicit Caesura OFF/FIT shipped and verified.** The delay engine, WAKE / ANTICIPATION / SYMMETRIC time-arrow stance, polarity sidechain, sync/pitch/pan/disintegration controls, deterministic Worker bounce, preset shelf, Maximum Ring, and shared-map Caesura mechanic are present. The live edge is the carry-forward list, the histogram-waveshaper cross-file stance, and the remaining Phase 6 work (Caesura DUCK + Wet layer).
 
 ---
 
@@ -136,14 +136,14 @@ BPM + note-division sync (1/4, 1/8 dotted, triplets; free-ms fallback). Per-grai
 - **Pre-Chorus / Pre-Widen** — ANTICIPATION, subtle Pitch Spray + Pan Spray; anticipation cloud that blooms before the source.
 
 **Phase 4 — the bounce.** ✅ Pulled forward before Phase 3. Verified.
-The old MediaRecorder capture button is now **Bounce WAV**: a deterministic 32-bit float WAV render from loaded buffers and state. Directional renders extend head or tail; SYMMETRIC aligns both complete passes, equal-power blends them, then applies one acausal peak ceiling at ≈ −0.2 dBFS. Dry extension rooms remain silent and sample-aligned. Grains use a state-derived seeded PRNG; opposite directions share seed geometry. State v8 stores stance + Time magnitude while migrating old signed-Time saves.
+The old MediaRecorder capture button is now **Bounce WAV**: a deterministic 32-bit float WAV render from loaded buffers and state. Directional renders extend head or tail; SYMMETRIC aligns both complete passes, equal-power blends them, then applies one acausal peak ceiling at ≈ −0.2 dBFS. Dry extension rooms remain silent and sample-aligned. Grains use a state-derived seeded PRNG; opposite directions share seed geometry. State v9 stores stance + Time magnitude + explicit Caesura policy while migrating old signed-Time and `gapFitEnabled` saves.
 
 *Design note*: this is a **pure sample-domain render**, not the `OfflineAudioContext` the roadmap originally named — the deviation is an upgrade: `OfflineAudioContext` could not provide byte-determinism (Web Audio nodes have no seedable RNG path) or ANTICIPATION's backward-recursive feedback.
 
 *Verified (2026-07-10, decoded WAV analysis on a 1 s test clip)*: positive Time +0.5 → duration exactly 1.50 s with delayed-copy energy in the tail (RMS 0.30); negative Time −0.5 → pre-echo energy in the head *before* the dry enters (RMS 0.18), dry silent in extensions. **Byte-determinism**: two bounces with pitch spray 6, pan spray 0.7, density jitter 0.5 all active → identical SHA-256. **Acausal ceiling**: feedback 0.95 at full wet → decoded peak exactly 0.977 (−0.2 dBFS), and the 8 s ring-cap confirmed by output duration 9.40 s (= 1 + 0.4 + 8).
 
 *Phase-4 carry-forwards*:
-- **Worker offload** — ✅ Shipped 2026-07-11. Reorganized rendering logic into a standalone file [pythia-worker.js](file:///f:/xyhtamura/hindcasts/pythia/pythia-worker.js). Uses a background Web Worker when served over HTTP/HTTPS to prevent UI lockup, and falls back to synchronous main-thread execution under the `file://` protocol to ensure full local filesystem compatibility.
+- **Worker offload** — ✅ Shipped 2026-07-11. Reorganized rendering logic into a standalone file [pythia-worker.js](file:///f:/xyh/hindcasts/pythia/pythia-worker.js). Uses a background Web Worker when served over HTTP/HTTPS to prevent UI lockup, and falls back to synchronous main-thread execution under the `file://` protocol to ensure full local filesystem compatibility.
 - ✅ **Maximum Ring** shipped 2026-07-13. The former 8 s constant is now a 0–12 s stateful control; 8 s remains the compatibility default.
 - Preview ↔ bounce is a documented **approximation relationship**, not bit-matching (live: causal limiter, no head extension, damping-as-disintegration). By design, not drift.
 
@@ -158,12 +158,12 @@ Delay mud is the same disease as reverb mud: repeats colliding with an event the
 - **Not the polarity sidechain.** Duck polarity shapes the wet by the control's *envelope* (continuous, signal-following); gap-aware is *structural* — event-wise decisions from whole-file analysis, active even with the sidechain off. Implementation-wise they compose: gap budget writes a per-event feedback-gain/decay schedule, polarity still multiplies on top.
 - **Maximum still means maximum.** The effective train is bounded by the natural −60 dB decay, **Maximum Ring**, and the event's gap-derived budget. Gap Fit never lengthens a train.
 - **Where it lives.** Bounce is authoritative. It renders whole feedback passes with source-event provenance, a per-event effective feedback coefficient, damping, feedback-grain texture, and ping-pong intact. Negative live preview honors Maximum Ring in its tap count; the realtime path does not yet reproduce event-wise Gap Fit, consistent with the existing preview↔bounce approximation contract.
-- **State/UI.** Caesura is an explicit toggle, not merely a preset. `Spill` and `Masking Credit` are subordinate controls; the internal `gapFitEnabled` v7 field keeps save compatibility. Existing states and presets migrate with Caesura off and the old 8 s room.
+- **State/UI.** Caesura is an explicit OFF / FIT policy, not merely a preset. OFF keeps the fixed feedback law in both directions; FIT enables the gap map and its repeat budgets. `Spill` and `Masking Credit` are subordinate to FIT. State v9 stores `caesuraPolicy` while retaining and migrating the internal `gapFitEnabled` field for compatibility; existing states and presets remain OFF by default.
 
 Adjacency guard extension: **Pythia does not grow its own gap analysis.** Metachamber and Pythia both load the canonical shared analyzer and apply the Caesura mechanic with different policies; Pythia derives only its repeat policy. Spill/masking/RT policy remains intentionally absent from the shared v1 wire shape. If the map's schema changes, this phase, Metachamber's spec/tests, and `DEPENDENCIES.md` move together.
 
 **Phase 6 — symmetry contract build-out (planned 2026-07-17).**
-The suite contract (`../hindcasts.md`, symmetry section) fixes the shared surface: Time Arrow, Balance, Caesura OFF/FIT/DUCK, Wet layer, one gap map. Pythia holds everything except DUCK and the Wet layer.
+The suite contract (`../hindcasts.md`, symmetry section) fixes the shared surface: Time Arrow, Balance, Caesura OFF/FIT/DUCK, Wet layer, one gap map. Pythia now exposes OFF/FIT explicitly and still lacks DUCK and the Wet layer.
 
 - **Caesura DUCK** — the gap-map zero-phase wet ride, Metachamber's second policy ported to the echo train: fixed feedback law, wet gain pulled down ahead of each oncoming event. Structural, not the polarity sidechain — the same boundary Phase 5 draws: the ride comes from whole-file event analysis and is active with the sidechain off; polarity still multiplies on top.
 - **Decision, made here: the ride may dip mid-repeat.** The repeat-quantized kill rule ("never cuts through a repeat") stays a FIT property. DUCK is a gain ride, not a kill — it automates the hand-ridden send, and hand-ridden sends dip through repeats. If the continuous ride reads as wrong on rhythmic material, the fallback is a delay-specific DUCK variant: ride control points quantized to repeat boundaries, each successive repeat's gain lowered gradually — even the fallback is a ride, only repeat-quantized, never a cut. Ship continuous first; final call by ear after hearing it (agreed 2026-07-17).
