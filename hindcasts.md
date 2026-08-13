@@ -230,7 +230,7 @@ Pythia, Metachamber, and Prolepsis share the WAKE / ANTICIPATION / SYMMETRIC gra
 
 **The anti-scope guard is part of the contract.** Symmetry is the quick-and-dirty effect: one engine, linked parameters, one balance knob. Independently voiced halves — a pre-verb of a different quality than the verb, the two mixed precisely — belong to the rack. A control joins the contract only if it stays linked across both directions; anything per-direction is rack territory.
 
-Status (2026-07-24):
+Status (2026-08-13):
 
 | contract item | Pythia | Metachamber | Prolepsis |
 |---|---|---|---|
@@ -238,9 +238,11 @@ Status (2026-07-24):
 | Balance | ✅ | ✅ | ✅ |
 | Caesura OFF | ✅ explicit policy | ✅ fixed room | — |
 | Caesura FIT | ✅ repeat budget | ✅ per-event RT | ☐ via audio input |
-| Caesura DUCK | ☐ planned | ✅ | — |
+| Caesura DUCK | ✅ wet ride | ✅ | — |
 | Wet layer | ☐ planned | ☐ planned | ☐ with wet/dry |
 | gap-map substrate | ✅ | ✅ | ☐ planned consumer |
+
+**The Caesura matrix is closed for the two audio members** *(2026-08-13)*. Both now run all three policies off one map, and the two DUCKs agree on the part that is contract — the budget, the direction, the zero-phase ride, the wet-only scope — while differing where the medium differs: Metachamber's ride is a smoothed rectangle over reverb-length spans, Pythia's is a raised cosine built to reach full depth at delay timescales. What remains contract-open is the Wet layer in both, and Prolepsis joining through the audio control input.
 
 Prolepsis holds the time-arrow half natively; the Caesura half arrives through the **audio control input** (`prolepsis/prolepsis.md` roadmap #4): the gap map is audio-native, so sound-determines-blur makes Prolepsis a third Caesura consumer rather than a new analyzer — and makes it the suite's second audio+video member (placement unchanged: utility-forward, Hindcasts-home).
 
@@ -305,7 +307,7 @@ Sounder and Pythia are the suite's most canonical replies because they answer *i
 
 **Shipped:**
 - **`cyberscotoma`** - shipped at `https://xyhtamura.github.io/sgueltch/cyberscotoma/`. The scintillating-scotoma graft: non-grid Voronoi hold regions, drawn bloom, motion-field advect, acausal donor offset, cross-clip donor, cached offline render, WebM export.
-- **`pythia`** — flagship. Paracognitive granular delay; **full rebuild + linked symmetry shipped and verified**: Time magnitude with WAKE / ANTICIPATION / SYMMETRIC stance, Anticipation ↔ Wake balance, ⥀/𓆙 clip semantics, Scatter, directional feedback + damping, polarity sidechain, explicit Caesura OFF/FIT, BPM sync, pitch/pan spray + ping-pong, and deterministic Worker Bounce WAV. Symmetric bounce aligns exact forward/backward engines, extends both head and tail, and applies one acausal peak ceiling; v9 migration preserves old signed-Time and `gapFitEnabled` states.
+- **`pythia`** — flagship. Paracognitive granular delay; **full rebuild + linked symmetry shipped and verified**: Time magnitude with WAKE / ANTICIPATION / SYMMETRIC stance, Anticipation ↔ Wake balance, ⥀/𓆙 clip semantics, Scatter, directional feedback + damping, polarity sidechain, the full Caesura OFF/FIT/DUCK policy, BPM sync, pitch/pan spray + ping-pong, and deterministic Worker Bounce WAV. Symmetric bounce aligns exact forward/backward engines, extends both head and tail, and applies one acausal peak ceiling; v9 migration preserves old signed-Time and `gapFitEnabled` states.
 - **`sounder`** — the **distribution operator**: frequency-distribution × dB-distribution-per-region. **Multiband shipped** — per-band τ/curve/floor, linear-phase perfect-reconstruction split, regime-field across frequency. Time-occupancy depth chart + redrawable transfer curve per band; RMS-window-as-regime-slider (waveshape → compression → normalizing). Now growing toward a **racked mastering tool** (cell / host refactor next).
 - **`prolepsis`** — the anticipation member (video), via the feedback-field route. Wake / anticipation / symmetric stances; acausal scrubbing.
 - **`remanence`** — the **print-through reel**; the suite's first **audio+video** member. Whole-file acausal multi-tap with negative (pre-echo) taps; reel geometry drifts the echo hub→rim; Wind = pre/post time-arrow. Video = same reel over frames + Tilt-as-ghost-blur. FAITHFUL→PRE-SWARM continuum, WAV/WebM export. Hindcasts-home / Sgueltch-kin (see placement rule). Spec: `remanence/remanence.md`.
@@ -317,7 +319,7 @@ Sounder and Pythia are the suite's most canonical replies because they answer *i
 - **`MASKROM`** — the toy-electronics speech-coder member (`maskrom/maskrom.md`). Nothing implemented; frame format, codebook values, chirp table, and overflow width are all asserted and unverified. Two decisions open before code: whether TI's tables ship, and whether the AAC lineage is load-bearing in the writing.
 
 **Next moves (ordered by leverage):**
-0. **Symmetry contract build-out** *(added 2026-07-17; OFF completed 2026-07-24)* — Pythia Caesura DUCK (closes the matrix), Wet layer switch in both, then Prolepsis audio control input (envelope mode, then gap-map mode). Contract + status table in the symmetry section above; consumer ledger in `DEPENDENCIES.md`.
+0. **Symmetry contract build-out** *(added 2026-07-17; OFF completed 2026-07-24; Pythia DUCK completed 2026-08-13)* — next is the Wet layer switch in Pythia and Metachamber (one mix-law change, shared open question: does Wet layer force both directions to unity or does Balance still weight the pair), then Prolepsis audio control input (envelope mode, then gap-map mode). Contract + status table in the symmetry section above; consumer ledger in `DEPENDENCIES.md`.
 1. **`sounder` → cell / host refactor + rack** — dissolve the intake panel into a clean **cell** (freq-dist × dB-dist + waveform) and a **host** (file / transport / master); then a per-app **rack**: DAG-modeled, linear by default, collapsible flowchart, per-cell wet/dry, offline intermediate-caching, optional mixer/merge node. Pushes sounder into a real mixing/mastering tool. *(The multiband STFT → Worker + STFT-cache is paused underneath this.)*
 2. **Histogram-waveshaper presets** — the automatic CDF-onto-target warps (uniform / Gaussian / arcsine / another-file's-histogram) as one-click modes inside `sounder` (now per-band), plus the cross-file version on Pythia's control/source input. Closes the audio↔image histogram loop.
 3. **`MASKROM`** — the quantization thesis as a playable object, now with a voice: the 1978 TI speech coder given an input, INHERITED codebooks at MVP, vocabulary ROM fabricated from the whole file. Takes over the slot the Lloyd–Max quantizer held (optimal vs inverted bins survive as its deferred codebook stances). First build step is cheap and decisive — pull the real tables, then round-trip a spoken phrase before anything else. Spec: `maskrom/maskrom.md`.
@@ -327,6 +329,14 @@ Sounder and Pythia are the suite's most canonical replies because they answer *i
 ---
 
 ## log
+
+**2026-08-13 — Claude Code — Pythia Caesura DUCK built; the OFF/FIT/DUCK matrix is closed for both audio members.** `pythia-worker.js` gains `buildDuckPolicy` + `applyDuckRide`: the fixed feedback law renders untouched, then the summed wet is multiplied by a ride solved per event pair from the shared gap map. Budget is FIT's existing Spill / masking-credit / floor solve; the predicted arriving level is the fixed train's own — the primary tap when the gap is shorter than Time, otherwise `feedback^k` for the repeat that crosses the gap — and the ride depth is the shortfall between them, so a train that already fits asks for nothing and the render stays bit-identical to OFF. Direction follows Time exactly as FIT does, and symmetric solves each linked direction from one map. UI is a third radio in the existing Caesura row; Spill and Masking Credit now stay live for FIT and DUCK alike; state v10.
+
+The one design departure from Metachamber, and the reason it is a departure: Metachamber marks event spans and runs a forward/backward one-pole over them, which at delay timescales cannot reach its own target — a 45 ms span smoothed with a 45 ms constant lands about a third of the way down, measured. Pythia builds the ride directly instead — full depth held across the event, 45 ms raised-cosine skirts of equal length either side — which keeps the zero-phase property the contract actually asks for while hitting the requested depth exactly. Both are zero-phase wet rides on one map; only the shape differs, and the shape is medium-specific.
+
+*Verified*: node tests in `pythia/test-pythia.mjs` (depth lands on the solved budget, 1.00 ratio away from any protected event, ride opens before the event and closes after it with equal skirts, an unridden DUCK bounce byte-identical to OFF, anticipation rides the preceding event, symmetric rides both directions). Browser lifecycle checked through the real Worker on a synthetic two-click file at 44.1 kHz: gap map analyzed, DUCK bounce produced, and the A/B against OFF shows the colliding repeat at −35 dB against a −35.3 dB budget with the rest of the train numerically untouched. No console errors.
+
+Not done, and next if this line is picked up: **DUCK has not been auditioned on music** — the 2026-07-17 decision to let the ride dip mid-repeat is still an open call by ear, and the repeat-quantized fallback stays on the shelf until someone hears the continuous one on rhythmic material. The 45 ms ride width is a fixed constant, not a control, and it is the obvious thing to want on the surface once the ride has been heard. Live preview still does not reproduce DUCK (bounce-authoritative, same as FIT). Next contract item is the Wet layer in both audio members.
 
 **2026-08-09 — Claude Code — MASKROM specced (no code).** New AUDIO member `maskrom/maskrom.md`: the 1978 TI speech coder given the input it never had. The turn the design rests on is that the Speak & Spell's *analysis* half was always offline — coefficient frames analyzed over whole words and etched into a mask ROM, with only playback realtime — which makes the toy a hindcast and the live plugins that imitate it (the demo that started the conversation) the degraded version. Located the haunting in the codebooks rather than the bit depth: the K-parameter tables are fixed quantizers fit to one 1978 speaker, so the quantization thesis lands on articulation instead of on level (Sounder) or sample values (Lloyd–Max). Recorded three period specifics that carry the character and are usually missed — unvoiced frames carrying only K1–K4, the stored 51-sample chirp instead of a saw or square, and lattice overflow that wraps rather than clips. MVP scope held to one acausal move (the vocabulary ROM); the codebook stances, Viterbi frame path, anticipatory voicing, excitation search, residual output, and adaptive frame grid are all parked in the spec's deferred section. Vocoding excluded to a possible later app by the user's decision.
 

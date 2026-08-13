@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 const html = fs.readFileSync(new URL("./index.html", import.meta.url), "utf8");
-for (const id of ["caesura-off", "caesura-fit", "max-ring", "gap-spill", "masking-credit", "gap-fit-status", "time-wake", "time-anticipation", "time-symmetric", "time-balance"]) {
+for (const id of ["caesura-off", "caesura-fit", "caesura-duck", "max-ring", "gap-spill", "masking-credit", "gap-fit-status", "time-wake", "time-anticipation", "time-symmetric", "time-balance"]) {
   assert.match(html, new RegExp(`id=["']${id}["']`), `${id} control is wired into the page`);
 }
 assert.ok(
@@ -97,6 +97,42 @@ assert.ok(
   "negative Gap Fit uses the preceding gap"
 );
 
+// Caesura DUCK: fixed feedback law, wet ridden down into the oncoming event.
+const ducked = performBounceRender({ ...base, caesuraPolicy: "duck" });
+assert.equal(ducked.caesuraPolicy, "duck");
+assert.equal(ducked.duckEvents, 1, "one gap pair yields one ride");
+assert.equal(ducked.gapFitEvents, 0, "DUCK leaves the feedback law alone");
+const duckedCollision = Math.abs(sample(ducked, 0.5));
+assert.ok(duckedCollision < ordinaryCollision * 0.01, "the ride pulls the train down at the protected onset");
+assert.ok(duckedCollision > 1e-6, "DUCK is a ride, not a kill");
+
+const duckFar = Math.abs(sample(ducked, 0.2)), ordinaryFar = Math.abs(sample(ordinary, 0.2));
+assert.equal(duckFar, ordinaryFar, "away from a protected event the fixed train is untouched");
+
+// A continuous source reads the ride's own shape rather than the repeat grid.
+const steady = new Float32Array(length).fill(0.5);
+const steadyBase = { ...base, sourceChannels: [steady] };
+const steadyOff = performBounceRender({ ...steadyBase, caesuraPolicy: "off" });
+const steadyDuck = performBounceRender({ ...steadyBase, caesuraPolicy: "duck" });
+const rideAt = time => Math.abs(sample(steadyDuck, time)) / Math.abs(sample(steadyOff, time));
+assert.ok(rideAt(0.44) > 0.999, "the ride is closed well before the event");
+assert.ok(rideAt(0.478) < 0.75 && rideAt(0.478) > rideAt(0.5), "the ride opens ahead of the event it protects");
+assert.ok(rideAt(0.5) < 0.01, "the ride is fully down when the event arrives");
+// The held span runs onset → release, floored at the 45 ms ride width: 0.500–0.545
+// here, so the skirt mirroring 0.478 sits at 0.566.
+assert.ok(Math.abs(rideAt(0.478) - rideAt(0.566)) < 0.005, "the ride is zero-phase — equal skirts either side");
+
+const duckOpen = performBounceRender({ ...base, caesuraPolicy: "duck", params: { ...params, gapSpill: 0 } });
+assert.equal(duckOpen.duckEvents, 0, "a fully open spill budget asks for no ride");
+assert.deepEqual(new Uint8Array(duckOpen.wavBuffer), new Uint8Array(ordinary.wavBuffer), "an unridden DUCK bounce is bit-identical to OFF");
+
+const duckedNegative = performBounceRender({ ...negativeBase, caesuraPolicy: "duck" });
+assert.equal(duckedNegative.duckEvents, 1, "anticipation rides the preceding event");
+assert.ok(
+  Math.abs(sample(duckedNegative, 0.5)) < Math.abs(sample(ordinaryNegative, 0.5)) * 0.6,
+  "negative Time rides the train down into the event it precedes"
+);
+
 const symmetricBase = {
   ...base,
   caesuraPolicy: "off",
@@ -120,5 +156,11 @@ assert.ok(Math.abs(sample(anticipationOnly, 0.0)) > 0.9 && Math.abs(sample(antic
 assert.ok(Math.abs(sample(wakeOnly, 0.2)) > 0.9 && Math.abs(sample(wakeOnly, 0.0)) < 1e-8, "balance hard-right isolates wake");
 const symmetricFitted = performBounceRender({ ...symmetricBase, caesuraPolicy: "fit" });
 assert.equal(symmetricFitted.gapFitEvents, gapMap.events.length, "symmetric Caesura solves both linked directions from one map");
+const symmetricDucked = performBounceRender({ ...symmetricBase, caesuraPolicy: "duck" });
+assert.equal(symmetricDucked.duckEvents, 1, "symmetric DUCK rides both linked directions from one map");
+assert.ok(
+  Math.abs(sample(symmetricDucked, 0.5)) < Math.abs(sample(symmetric, 0.5)) * 0.6,
+  "symmetric DUCK rides the linked wet at the protected onset"
+);
 
-console.log("Pythia symmetric + Caesura OFF/FIT tests passed");
+console.log("Pythia symmetric + Caesura OFF/FIT/DUCK tests passed");

@@ -576,13 +576,15 @@ window.onload = () => {
     // Gap Fit analyzes the audible source, not the sidechain. The canonical v1
     // analyzer runs in a short-lived worker so long files do not pin the UI.
     const updateGapFitUI = () => {
-        const gapFitEnabled = caesuraPolicy === 'fit';
+        // Spill and Masking Credit set the budget both mapped policies read, so
+        // they stay live for FIT and DUCK alike.
+        const mapped = caesuraPolicy !== 'off';
         caesuraRadios.forEach(radio => { radio.checked = radio.value === caesuraPolicy; });
         document.querySelectorAll('.gap-fit-param').forEach(el => {
-            el.style.opacity = gapFitEnabled ? '1' : '0.45';
+            el.style.opacity = mapped ? '1' : '0.45';
         });
         if (!gapFitStatus) return;
-        if (!gapFitEnabled) gapFitStatus.textContent = 'off';
+        if (!mapped) gapFitStatus.textContent = 'off';
         else if (!sourceBuffer) gapFitStatus.textContent = 'load source';
         else if (!sourceGapMap) gapFitStatus.textContent = 'not mapped';
         else gapFitStatus.textContent = `${sourceGapMap.events.length} events`;
@@ -628,7 +630,7 @@ window.onload = () => {
     };
 
     const ensureSourceGapMap = () => {
-        if (caesuraPolicy !== 'fit' || !sourceBuffer) return Promise.resolve(null);
+        if (caesuraPolicy === 'off' || !sourceBuffer) return Promise.resolve(null);
         if (sourceGapMap) return Promise.resolve(sourceGapMap);
         if (gapMapPromise) return gapMapPromise;
         const revision = sourceGapRevision;
@@ -649,7 +651,7 @@ window.onload = () => {
         sourceGapMap = null;
         gapMapPromise = null;
         updateGapFitUI();
-        if (caesuraPolicy === 'fit' && sourceBuffer) void ensureSourceGapMap().catch(console.error);
+        if (caesuraPolicy !== 'off' && sourceBuffer) void ensureSourceGapMap().catch(console.error);
     };
 
     const AUDIO_FILE_RE = /\.(wav|wave|mp3|m4a|aac|ogg|oga|flac|aif|aiff|webm)$/i;
@@ -804,9 +806,9 @@ window.onload = () => {
         radio.addEventListener('change', () => {
             if (!radio.checked) return;
             markPresetCustom();
-            caesuraPolicy = radio.value === 'fit' ? 'fit' : 'off';
+            caesuraPolicy = ['fit', 'duck'].includes(radio.value) ? radio.value : 'off';
             updateGapFitUI();
-            if (caesuraPolicy === 'fit') void ensureSourceGapMap().catch(error => {
+            if (caesuraPolicy !== 'off') void ensureSourceGapMap().catch(error => {
                 console.error('Gap Fit analysis error:', error);
                 if (gapFitStatus) gapFitStatus.textContent = 'map failed';
             });
@@ -1502,7 +1504,8 @@ window.onload = () => {
     // v7 (Phase 5 first slice): Maximum Ring + optional shared-map Gap Fit policy.
     // v8: linked WAKE / ANTICIPATION / SYMMETRIC stance; Time becomes magnitude.
     // v9: Caesura OFF / FIT becomes an explicit policy; keep gapFitEnabled for compatibility.
-    const STATE_VERSION = 9;
+    // v10: Caesura DUCK joins the policy — fixed feedback law, zero-phase wet ride.
+    const STATE_VERSION = 10;
 
     const serializeState = () => ({
         version:      STATE_VERSION,
@@ -1568,10 +1571,10 @@ window.onload = () => {
         if (pingPongCheckbox) pingPongCheckbox.checked = pingPong;
         updatePingPong();
 
-        caesuraPolicy = ['off', 'fit'].includes(s.caesuraPolicy)
+        caesuraPolicy = ['off', 'fit', 'duck'].includes(s.caesuraPolicy)
             ? s.caesuraPolicy : s.gapFitEnabled === true ? 'fit' : 'off';
         updateGapFitUI();
-        if (caesuraPolicy === 'fit') void ensureSourceGapMap().catch(console.error);
+        if (caesuraPolicy !== 'off') void ensureSourceGapMap().catch(console.error);
 
         // Legacy migration: pre-Phase-2 `mode: 'triggered'` was always follow-direction
         // gating; `mode: 'continuous'` was always follow. Polarity comes from params

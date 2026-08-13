@@ -30,7 +30,7 @@ function performBounceRender(data) {
         ? requestedTemporalStance : inferredStance;
     const temporalBalance = Math.max(0, Math.min(1, Number.isFinite(requestedTemporalBalance)
         ? requestedTemporalBalance : Number.isFinite(inputParams.timeBalance) ? inputParams.timeBalance : 0.5));
-    const caesuraPolicy = ['off', 'fit'].includes(requestedCaesuraPolicy)
+    const caesuraPolicy = ['off', 'fit', 'duck'].includes(requestedCaesuraPolicy)
         ? requestedCaesuraPolicy : gapFitEnabled ? 'fit' : 'off';
     const timeMagnitude = Math.abs(inputParams.time);
     const params = {
@@ -176,6 +176,88 @@ function performBounceRender(data) {
             maxRepeats: solved.reduce((n, event) => Math.max(n, event.repeats), 0),
             eventAtSample,
         };
+    };
+
+    // Caesura DUCK keeps the feedback law fixed and rides the whole wet down
+    // into each oncoming event, from whole-file analysis rather than from the
+    // control envelope: it is active with the sidechain off, and polarity still
+    // multiplies on top. It is a ride, not a kill — it may dip mid-repeat.
+    const DUCK_RIDE_SECONDS = 0.045;
+
+    const buildDuckPolicy = (map, params, loopClip) => {
+        const events = map && map.schema === 'hindcasts.gap-map' && map.version === 1
+            ? map.events : [];
+        if (events.length < 2) return null;
+        const credit = clamp(Number.isFinite(params.maskingCredit) ? params.maskingCredit : 0.35, 0, 1);
+        const spill = Number.isFinite(params.gapSpill) ? params.gapSpill : -36;
+        const floorDb = Number.isFinite(map.floorDbfs) ? map.floorDbfs : -72;
+        const feedback = clamp(params.feedback, 0, 0.95);
+        const positive = params.time >= 0;
+        const step = Math.max(0.03, Math.abs(params.time));
+        const primaryOffset = Math.abs(params.time);
+        const pairCount = loopClip ? events.length : events.length - 1;
+        const rides = [];
+
+        for (let index = 0; index < pairCount; index++) {
+            const first = events[index];
+            const second = events[(index + 1) % events.length];
+            const gapSamples = index + 1 < events.length
+                ? Math.max(0, second.onsetSample - first.releaseSample)
+                : Math.max(0, map.durationSamples - first.releaseSample + second.onsetSample);
+            // The train travels the way Time points: wake spills forward onto
+            // the next event, anticipation spills backward onto the previous one.
+            const emitter = positive ? first : second;
+            const shielded = positive ? second : first;
+            const floorRel = floorDb - emitter.eventRmsPeakDbfs;
+            const baseRel = spill <= -71.5 ? floorRel : Math.max(spill, floorRel);
+            const maskingRel = shielded.eventRmsPeakDbfs - emitter.eventRmsPeakDbfs - 12;
+            const allowedRel = clamp(baseRel + credit * Math.max(0, maskingRel - baseRel), -120, 0);
+            // How loud the fixed train still is when it arrives: the primary tap
+            // itself when the gap is shorter than Time, otherwise the repeat that
+            // crosses the gap.
+            const crossing = Math.ceil(Math.max(0, gapSamples / map.sampleRate - primaryOffset) / step);
+            const predictedRel = crossing === 0 ? 0
+                : feedback <= 0.001 ? -Infinity
+                : 20 * crossing * Math.log10(feedback);
+            const gain = Math.pow(10, Math.min(0, allowedRel - predictedRel) / 20);
+            if (!(gain < 1)) continue;
+            const onset = shielded.onsetSample / map.sampleRate;
+            const release = Math.max(shielded.releaseSample / map.sampleRate, onset + DUCK_RIDE_SECONDS);
+            rides.push({ onset, release, gain });
+        }
+
+        return rides.length ? { rides } : null;
+    };
+
+    const applyDuckRide = (wet, sampleRate, win, policy) => {
+        if (!policy) return 0;
+        const length = wet[0].length;
+        const envelope = new Float32Array(length);
+        envelope.fill(1);
+        // Zero-phase by construction: a raised-cosine ramp of equal length on
+        // both sides of the event, so the ride is already down when the event
+        // arrives and back up after it, with no group delay and the full
+        // requested depth held across the event itself.
+        const ramp = Math.max(1, Math.round(DUCK_RIDE_SECONDS * sampleRate));
+        let applied = 0;
+        for (const ride of policy.rides) {
+            const core = Math.round((ride.onset - win.start) * sampleRate);
+            const coreEnd = Math.round((ride.release - win.start) * sampleRate);
+            if (coreEnd <= core) continue;
+            const from = clamp(core - ramp, 0, length);
+            const to = clamp(coreEnd + ramp, from, length);
+            if (to <= from) continue;
+            applied++;
+            for (let i = from; i < to; i++) {
+                const outside = i < core ? (core - i) / ramp : i >= coreEnd ? (i - coreEnd + 1) / ramp : 0;
+                const skirt = 0.5 - 0.5 * Math.cos(Math.PI * clamp(outside, 0, 1));
+                const gain = ride.gain + (1 - ride.gain) * skirt;
+                if (gain < envelope[i]) envelope[i] = gain;
+            }
+        }
+        if (!applied) return 0;
+        for (const channel of wet) for (let i = 0; i < length; i++) channel[i] *= envelope[i];
+        return applied;
     };
 
     const bounceWindow = (controlBuffer, params, gapPolicy) => {
@@ -557,7 +639,7 @@ function performBounceRender(data) {
         const BOUNCE_PEAK = 0.977;
         const scale = peak > BOUNCE_PEAK ? BOUNCE_PEAK / peak : 1;
         if (scale < 1) for (const channel of out) for (let i = 0; i < channel.length; i++) channel[i] *= scale;
-        if (_returnPcm) return { pcmChannels:out, start, duration:length / sampleRate, peak, scale, gapFitEvents:Math.max(anticipation.gapFitEvents, wake.gapFitEvents), caesuraPolicy, temporalStance, temporalBalance };
+        if (_returnPcm) return { pcmChannels:out, start, duration:length / sampleRate, peak, scale, gapFitEvents:Math.max(anticipation.gapFitEvents, wake.gapFitEvents), duckEvents:Math.max(anticipation.duckEvents, wake.duckEvents), caesuraPolicy, temporalStance, temporalBalance };
         return {
             wavBuffer: encodeFloatWav(out, sampleRate),
             start,
@@ -565,6 +647,7 @@ function performBounceRender(data) {
             peak,
             scale,
             gapFitEvents: Math.max(anticipation.gapFitEvents, wake.gapFitEvents),
+            duckEvents: Math.max(anticipation.duckEvents, wake.duckEvents),
             caesuraPolicy,
             temporalStance,
             temporalBalance,
@@ -577,6 +660,7 @@ function performBounceRender(data) {
     const sampleRate = controlSampleRate;
     const channels = Math.max(2, sourceBuffer.numberOfChannels, controlBuffer.numberOfChannels);
     const gapPolicy = caesuraPolicy === 'fit' ? buildGapFitPolicy(gapMap, params, loopClip) : null;
+    const duckPolicy = caesuraPolicy === 'duck' ? buildDuckPolicy(gapMap, params, loopClip) : null;
     const win = bounceWindow(controlBuffer, params, gapPolicy);
     const length = Math.max(1, Math.ceil(win.duration * sampleRate));
     const dry = Array.from({ length: channels }, () => new Float32Array(length));
@@ -640,6 +724,7 @@ function performBounceRender(data) {
     const wet = gapPolicy
         ? renderGapFitFeedback(wetBase, sampleRate, params, pingPong, seed, gapPolicy, win, gapMap, sourceBuffer, loopClip)
         : renderWetFeedback(wetBase, sampleRate, params, pingPong, seed);
+    const duckEvents = applyDuckRide(wet, sampleRate, win, duckPolicy);
     const dryMix = Math.cos(params.mix * 0.5 * Math.PI);
     const wetMix = Math.cos((1 - params.mix) * 0.5 * Math.PI);
     const out = Array.from({ length: channels }, () => new Float32Array(length));
@@ -669,6 +754,7 @@ function performBounceRender(data) {
         peak,
         scale,
         gapFitEvents: gapPolicy ? gapPolicy.events.length : 0,
+        duckEvents,
         caesuraPolicy,
         temporalStance,
         temporalBalance,
@@ -681,6 +767,7 @@ function performBounceRender(data) {
         peak,
         scale,
         gapFitEvents: gapPolicy ? gapPolicy.events.length : 0,
+        duckEvents,
         caesuraPolicy,
         temporalStance,
         temporalBalance,
