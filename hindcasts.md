@@ -328,7 +328,83 @@ Sounder and Pythia are the suite's most canonical replies because they answer *i
 
 ---
 
+## the regime table — what ships live, what ships offline, and what forces it
+
+*(2026-09-09; built for the MAH paper, kept here because it is the suite's map too.)*
+
+One row per operation that exists in both media. The comparison is controlled: the statistic is the
+same on both sides, so any difference in regime is lineage, not mathematics.
+
+| Operation | Audio form | Audio regime | Image / video form | Its regime | What forces the difference |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Dynamic range control** | Compressor — attack, release, threshold | **Causal.** Those three controls exist to manage the lateness | Exposure and tone matching across a shot | **Acausal**, and creative | Monitoring. Audio had to be heard while played; image never did |
+| **Peak limiting** | Brickwall limiter | **Causal, and cheating** — lookahead delay since Waves L1, 1994 | Highlight rolloff in the grade | **Acausal** | The field's own admission that the ideal is acausal, with a ship date |
+| **Noise reduction** | Broadcast denoise / iZotope RX spectral repair | **Split** — the live version is an effect, the whole-file version is *restoration* | Temporal denoise, bidirectional | **Acausal**, and unremarkable | Audio licenses acausality only as repair; video needs no excuse |
+| **Level normalization** | ITU-R BS.1770 (2006), EBU R 128 (2010), integrated over a whole programme | **Acausal — but at delivery, as compliance** | Shot matching across a sequence | **Acausal**, as a grade | The same whole-timeline statistic. One is a broadcast standard, the other is authorship |
+| **Retiming** | Time-stretch — a realtime warp exists, the quality version is offline | **Split** | Optical-flow retiming | **Acausal by definition** — interpolation needs the bracketing future frame | Neither is good causally; only audio pretends otherwise |
+| **Motion / pitch estimation** | Pitch detection — causal in tuners, whole-file in Melodyne, and Melodyne reaches it through ARA, *outside* the plugin API | **Split, and the split is architectural** | Optical flow — acausal in compositing, forced causal in filters, game engines, frame generation | **Converting** | The image side is being pulled toward causality against its own lineage |
+| **Quantization** | Bitcrusher — fixed grid, causal | **Causal** | Colour quantization — median cut, k-means fitted to the whole image | **Acausal**, standard since GIF | The cleanest asymmetry in the set. Identical operation, opposite defaults |
+| **Filtering** | IIR EQ, phase shift accepted; linear-phase FIR only in mastering, because it costs latency | **Causal by default** | Convolution kernels, symmetric | **Zero-phase by default** | Image never carried a latency budget, so it never had to choose |
+| **Gating** | Sidechain ducking — hence pumping, an artifact of lateness | **Causal** | Mattes and masks driven by another layer | **Acausal** | "Pumping" has no image counterpart, because nothing arrives late |
+| **Reverberation** | Convolution and algorithmic reverb | **Causal** — a tail cannot precede its impulse | No counterpart | — | Pre-verb exists only as a manual offline gesture — reverse, treat, reverse back — never as a shipped effect. Metachamber's opening |
+| **Transport stabilization** | Wow and flutter correction — RX, Capstan | **Restoration only** | Stabilization, deflicker | **Acausal**, and ordinary | The same quarantine as noise reduction, one medium later |
+| **Routing** | Serial / parallel rack | A graph — **but time is the transport** | Node graph — Nuke, Fusion, Natron, Houdini COPs | A graph — **and time is a coordinate** | The deepest one. See below |
+
+### Two corrections to the spoken version
+
+**Film compositing is not where the graph is lost — it is where the graph won.** Nuke has been the
+film industry's standard compositor for two decades and is a node graph; so are Fusion, Natron,
+Blender's compositor, Houdini's COPs, and Substance Designer. Realtime tools are node graphs too,
+but the accurate list there is TouchDesigner, Notch, vvvv and Jitter — Resolume is layers with
+per-layer effect chains, closer to a deck than a patch.
+
+So the stack-based holdout is not film. It is **photo** editing — Photoshop, Lightroom — and to a
+lesser degree the NLE timeline. That is better for the argument, not worse: a photo editor's stack
+is a pile of transparent sheets on a lightbox, and an NLE timeline is a splicing bench. Both are
+skeuomorphs of a physical arrangement, and both are exactly where the graph failed to arrive. The
+tools that were never modelled on a physical object got graphs immediately.
+
+**The new cell: audio has the graph but not the timeline.** The two adjacency entries above frame
+this as a routing import in either direction. The sharper statement is architectural.
+
+- In a **compositing graph**, time is an *addressable coordinate*. Any node may request any frame.
+  `TimeOffset`, `FrameBlend` and retimers are ordinary nodes rather than special cases, and the
+  graph is a dependency graph evaluated per frame.
+- In an **audio rack**, time is the *transport*. Buffers stream through in order, and a plugin
+  cannot reach beyond its declared lookahead. Whole-file access does exist in audio — Melodyne, RX
+  — but it lives *outside* the plugin graph, reached through a separate host protocol or a
+  standalone editor.
+
+So what audio lacks is not the rack. Audio has the rack. What audio lacks is **random access to
+time inside the rack**, and the place that access currently lives is the restoration quarantine.
+That is the thesis restated as software architecture rather than as a list of effects, and it is
+what the suite is building the counter-case for.
+
 ## log
+
+**2026-09-09 — Claude Code — Added the regime table; corrected the compositing-graph claim.** One
+row per operation that exists in both audio and image, with the regime each ships in and what
+forces it. Built for the MAH 2027 paper, kept here because it maps the suite as well: every empty
+or quarantined cell on the audio side is a member or a candidate.
+
+Two things it settles. Film compositing is where the node graph *won*, not where it is lost — Nuke,
+Fusion, Natron, Houdini COPs — so the stack-based holdouts are photo editing and the NLE timeline,
+both skeuomorphs of a physical arrangement. And the audio↔video routing asymmetry is not really
+about racks, since audio has racks: a compositing graph treats time as an addressable coordinate
+while an audio rack treats it as the transport, so whole-file access in audio exists only outside
+the plugin graph, in Melodyne and RX. That is the acausality-as-repair quarantine appearing again
+at the level of software architecture.
+
+*Verified*: nothing runs here — this is reference material, and its claims are about how named
+tools are built. The architectural claim was checked against the plugin-API constraint the suite
+already works around, which is why Pythia and Metachamber are bounce-authoritative; it was not
+checked against a fresh test.
+
+Not done: the two adjacency entries — the console going audio→video, and image compositing going
+video→audio — predate the table and still describe the routing import without the
+time-as-coordinate distinction. Fold them into one entry when either is picked up, rather than
+leaving three overlapping notes. Nothing in the suite changes as a result of this, and no **Next in
+Dev** line moves.
 
 **2026-08-13 — Claude Code — Pythia Caesura DUCK built; the OFF/FIT/DUCK matrix is closed for both audio members.** `pythia-worker.js` gains `buildDuckPolicy` + `applyDuckRide`: the fixed feedback law renders untouched, then the summed wet is multiplied by a ride solved per event pair from the shared gap map. Budget is FIT's existing Spill / masking-credit / floor solve; the predicted arriving level is the fixed train's own — the primary tap when the gap is shorter than Time, otherwise `feedback^k` for the repeat that crosses the gap — and the ride depth is the shortfall between them, so a train that already fits asks for nothing and the render stays bit-identical to OFF. Direction follows Time exactly as FIT does, and symmetric solves each linked direction from one map. UI is a third radio in the existing Caesura row; Spill and Masking Credit now stay live for FIT and DUCK alike; state v10.
 
