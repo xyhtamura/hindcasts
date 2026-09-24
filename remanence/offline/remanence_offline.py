@@ -455,7 +455,7 @@ if __name__ == "__main__":
         if not (A.video and A.audio and A.out): ap.error("mux needs --video, --audio, and --out")
         codec = ["-c:a", "pcm_f32le"] if A.out.lower().endswith(".mkv") else ["-c:a", "aac", "-b:a", "192k"]
         subprocess.run([FFMPEG, "-hide_banner", "-v", "error", "-y", "-i", A.video, "-i", A.audio,
-                        "-map", "0:v", "-map", "1:a", "-c:v", "copy", *codec, "-shortest", A.out], check=True)
+                        "-map", "0:v", "-map", "1:a", "-c:v", "copy", *codec, A.out], check=True)
         print("mux done ->", A.out, flush=True)
     else:
         if not (A.reel and A.out): ap.error(f"{A.mode} needs --reel and --out")
