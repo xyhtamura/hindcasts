@@ -245,6 +245,28 @@ processing is unchanged. First consumer is `renderedwork/bed-world` (a 106 s
 960×720 film, 3197 frames). The reel folder costs width × height × 3 bytes per
 frame, 6.6 GB for that film, and is disposable.
 
+
+**2026-09-25 — Claude Code — probes, parallel workers, reel size**
+
+Added `probe` (a sheet of source/degraded pairs at 12 points, or `--times`, and
+`--clips N` for short clips at the same points), `--workers` for `video`, and
+`reel --size` with `--upscale`. Frames are independent (each reads only the reel
+and the ramp at its own position), so probe frames equal full-render frames, and
+single-worker, parallel, and pre-refactor output match by MD5.
+
+Measured on bed-world (3197 frames). At 960×720 the render is **disk-bound**, not
+CPU-bound. Each output frame gathers up to 72 reel frames, the 6.6 GB reel exceeds
+free RAM, and 6 workers gave only 1.35× (60 frames: 50 s → 37 s). Storing the reel
+at 320×240 (the master's native pixel grid) made the sheet 7 s, sheet plus
+twelve 1 s clips 30 s, and the full film 1 min 50 s against about 50 min.
+Pixel-unit effects (blur radius, tracking drift) are relative to reel width,
+so a smaller reel makes them proportionally stronger. That brings them nearer the
+426-wide scale they were tuned at.
+
+Wear caches were keyed on nothing. They depend on end-state depth, fall, and fold,
+so editing those in a ramp would have reused a stale map without warning. They
+are now named for those values.
+
 ---
 
 *spine: the tape remembers forward.*
