@@ -21,6 +21,12 @@ Usage:
   python remanence_offline.py video --reel REELDIR --out degraded.mkv
   python remanence_offline.py audio --reel REELDIR --out degraded.wav
   python remanence_offline.py mux   --video degraded.mkv --audio degraded.wav --out final.mkv
+  python remanence_offline.py probe --reel REELDIR --out sheet.png [--points 12 | --times 10,40,85] [--clips 1]
+
+  probe renders frame pairs (source above, degraded below) across the film in
+  seconds, and with --clips, short clips at the same points for motion effects.
+  Frames are independent, so a probe frame is exactly what the full render
+  gives at that point. video renders across --workers processes (default 6).
 
   --ramp ramp.json overrides entries of RAMP, e.g. {"print": [0, 0.85, 1.5]}
   --start/--count render a frame range (for probes).
@@ -28,7 +34,7 @@ Usage:
   REELDIR is disposable: raw frames take width*height*3 bytes each (a 106 s
   960x720 film at 30 fps is 6.6 GB). Delete it when the renders are done.
 """
-import numpy as np, math, os, sys, subprocess, argparse, json
+import numpy as np, math, os, sys, subprocess, argparse, json, time
 from scipy.signal import lfilter
 from scipy.ndimage import uniform_filter
 
@@ -112,7 +118,8 @@ def sample_at(x, pos):
 # ---------------------------------------------------------------- video
 def video_wear_map(frames, N, depth, fall, wrap0, grow, fold):
     """occupancy (luma+motion) folded through the reel — structural, unramped"""
-    cache = os.path.join(REEL, "wearmap.npy")
+    # The map depends on the source and the end-state depth, fall, and fold.
+    cache = os.path.join(REEL, f"wearmap-d{depth}-f{fall:.4f}-o{fold:.4f}.npy")
     if os.path.exists(cache): return np.load(cache)
     occ = np.zeros(N, np.float32)
     prev = None
@@ -159,12 +166,17 @@ def flow_map(N, rate, amount_arr, wear_arr, kind):
     m = (swell * (slowAmp * slow + fastAmp * flutter)).astype(np.float32)
     return box1(m, max(1, int(rate * 0.001)) if audio else 1, 1)
 
-def video_codec(outfile, crf):
-    if outfile.lower().endswith(".mkv"):
-        return ["-c:v", "ffv1", "-level", "3", "-pix_fmt", "rgb24"]
-    return ["-c:v", "libx264", "-crf", str(crf), "-preset", "medium", "-pix_fmt", "yuv420p"]
+UPSCALE = None
 
-def render_video(n0, count, outfile, crf=16):
+def video_codec(outfile, crf):
+    scale = ["-vf", f"scale={UPSCALE.replace('x', ':')}:flags=neighbor"] if UPSCALE else []
+    if outfile.lower().endswith(".mkv"):
+        return [*scale, "-c:v", "ffv1", "-level", "3", "-pix_fmt", "rgb24"]
+    return [*scale, "-c:v", "libx264", "-crf", str(crf), "-preset", "medium", "-pix_fmt", "yuv420p"]
+
+def video_renderer():
+    """Return (N, frame_at). Each output frame depends only on the reel and the
+    ramp at its own position, so frames can be rendered in any order or process."""
     N = os.path.getsize(os.path.join(REEL, "frames.raw")) // (H * W * 3)
     frames = np.memmap(os.path.join(REEL, "frames.raw"), np.uint8, 'r', shape=(N, H, W, 3))
     wrap0, grow = WRAP_S * FPS, GROW_S * FPS
@@ -186,13 +198,7 @@ def render_video(n0, count, outfile, crf=16):
         q = np.round(p + fmap[int(round(p)) % N]).astype(np.int64) % N
         return frames[q]
 
-    ff = subprocess.Popen(
-        [FFMPEG, "-hide_banner", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24",
-         "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-", "-an", *video_codec(outfile, crf), outfile],
-        stdin=subprocess.PIPE)
-
-    for i in range(count):
-        n = n0 + i
+    def frame_at(n):
         u = n / (N - 1.0)
         p = par(u)
         a, b = (1 - p['wind']) / 2, (1 + p['wind']) / 2
@@ -246,9 +252,21 @@ def render_video(n0, count, outfile, crf=16):
             hd = head[..., None]
             out = out * (1 - hd * np.array([0.34, 0.48, 0.18], np.float32)) + hd * np.array([26., 8., 40.], np.float32)
 
-        ff.stdin.write(np.clip(out, 0, 255).astype(np.uint8).tobytes())
+        return np.clip(out, 0, 255).astype(np.uint8)
+
+    return N, frame_at
+
+def render_video(n0, count, outfile, crf=16):
+    N, frame_at = video_renderer()
+    ff = subprocess.Popen(
+        [FFMPEG, "-hide_banner", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24",
+         "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-", "-an", *video_codec(outfile, crf), outfile],
+        stdin=subprocess.PIPE)
+    for i in range(count):
+        n = n0 + i
+        ff.stdin.write(frame_at(n).tobytes())
         if i % 300 == 0:
-            print(f"  frame {i}/{count} (n={n}, u={u:.3f}) depth={dep:.1f} print={pr:.2f} fold={fold:.2f} wear={p['wear']:.2f}", flush=True)
+            print(f"  frame {i}/{count} (n={n})", flush=True)
     ff.stdin.close(); ff.wait()
     print("video done ->", outfile, flush=True)
 
@@ -276,7 +294,7 @@ def render_audio(outfile, chunk=1 << 20):
         return nch, E, Etot / E
 
     # ---- wear map (cached — the fold loop is 72 gathers over the whole reel) ----
-    cache = os.path.join(REEL, "audio_wearmap.npy")
+    cache = os.path.join(REEL, f"audio_wearmap-d{maxd}-f{RAMP['fall'][1]:.4f}-o{RAMP['fold'][1]:.4f}.npy")
     if os.path.exists(cache):
         wmap = np.load(cache)
     else:
@@ -384,7 +402,7 @@ def render_audio(outfile, chunk=1 << 20):
     print("audio done ->", outfile, flush=True)
 
 # ---------------------------------------------------------------- reel and CLI
-def probe(path, ffprobe):
+def probe_video(path, ffprobe):
     out = subprocess.run([ffprobe, "-v", "error", "-select_streams", "v:0", "-show_entries",
                           "stream=width,height,r_frame_rate", "-of", "json", path],
                          capture_output=True, text=True, check=True).stdout
@@ -392,12 +410,20 @@ def probe(path, ffprobe):
     num, den = s["r_frame_rate"].split("/")
     return int(s["width"]), int(s["height"]), float(num) / float(den)
 
-def build_reel(src_path, reel, ffprobe):
-    """Extract every frame (RGB24) and the audio (f32le stereo, 48 kHz) to disk."""
+def build_reel(src_path, reel, ffprobe, size=None):
+    """Extract every frame (RGB24) and the audio (f32le stereo, 48 kHz) to disk.
+    size="320x240" stores the reel smaller. For a pixel-art master that was
+    upscaled by whole blocks, the native size loses nothing, reads a ninth of the
+    data, and keeps Remanence's pixel-unit effects (blur, tracking drift) at the
+    scale they were tuned for."""
     os.makedirs(reel, exist_ok=True)
-    w, h, fps = probe(src_path, ffprobe)
+    w, h, fps = probe_video(src_path, ffprobe)
+    scale = []
+    if size:
+        w, h = (int(v) for v in size.lower().split("x"))
+        scale = ["-vf", f"scale={w}:{h}:flags=area"]
     frames_path, audio_path = os.path.join(reel, "frames.raw"), os.path.join(reel, "audio.raw")
-    subprocess.run([FFMPEG, "-hide_banner", "-v", "error", "-y", "-i", src_path, "-an",
+    subprocess.run([FFMPEG, "-hide_banner", "-v", "error", "-y", "-i", src_path, "-an", *scale,
                     "-f", "rawvideo", "-pix_fmt", "rgb24", frames_path], check=True)
     subprocess.run([FFMPEG, "-hide_banner", "-v", "error", "-y", "-i", src_path, "-vn",
                     "-f", "f32le", "-ac", "2", "-ar", str(SR), audio_path], check=True)
@@ -407,9 +433,8 @@ def build_reel(src_path, reel, ffprobe):
     with open(os.path.join(reel, "meta.json"), "w", encoding="utf-8") as f:
         json.dump(meta, f, indent=2)
     # Wear maps depend on the source, so a rebuilt reel invalidates them.
-    for cache in ("wearmap.npy", "audio_wearmap.npy"):
-        p = os.path.join(reel, cache)
-        if os.path.exists(p): os.remove(p)
+    for name in os.listdir(reel):
+        if name.endswith(".npy"): os.remove(os.path.join(reel, name))
     print(f"reel: {n} frames {w}x{h} @ {fps:g} fps, {meta['audioSamples'] / SR:.2f} s audio -> {reel}", flush=True)
 
 def configure(reel, ramp_file, wrap, grow):
@@ -424,6 +449,84 @@ def configure(reel, ramp_file, wrap, grow):
                 if k not in RAMP: raise SystemExit(f"unknown ramp parameter {k!r}; known: {', '.join(RAMP)}")
                 RAMP[k] = tuple(float(x) for x in v)
 
+def passthrough(A):
+    """Arguments a worker process needs to reproduce this run's configuration."""
+    out = ["--reel", A.reel, "--wrap", str(A.wrap), "--grow", str(A.grow),
+           "--ffmpeg", A.ffmpeg, "--ffprobe", A.ffprobe]
+    return out + (["--ramp", A.ramp] if A.ramp else [])
+
+def run_segments(A, ranges, stem):
+    """Render (start, count) ranges as lossless segments, at most A.workers at once."""
+    pending, running, segments = list(enumerate(ranges)), [], [None] * len(ranges)
+    while pending or running:
+        while pending and len(running) < A.workers:
+            i, (start, count) = pending.pop(0)
+            seg = f"{stem}.part{i:03d}.mkv"
+            cmd = [sys.executable, os.path.abspath(__file__), "video", "--workers", "1", "--segment",
+                   "--start", str(start), "--count", str(count), "--out", seg] + passthrough(A)
+            running.append((subprocess.Popen(cmd, stdout=subprocess.DEVNULL), seg, i))
+            segments[i] = seg
+        for item in list(running):
+            if item[0].poll() is not None:
+                if item[0].returncode: raise SystemExit(f"worker for {item[1]} failed ({item[0].returncode})")
+                running.remove(item)
+                print(f"  segment {item[2] + 1}/{len(ranges)} done", flush=True)
+        if running: time.sleep(0.5)
+    return segments
+
+def concat(segments, outfile, crf, reencode=False):
+    listing = outfile + ".segments.txt"
+    with open(listing, "w", encoding="utf-8") as f:
+        for seg in segments: f.write(f"file '{os.path.abspath(seg)}'\n")
+    copy = outfile.lower().endswith(".mkv") and not reencode and not UPSCALE
+    codec = ["-c", "copy"] if copy else video_codec(outfile, crf)
+    subprocess.run([FFMPEG, "-hide_banner", "-v", "error", "-y", "-f", "concat", "-safe", "0",
+                    "-i", listing, *codec, outfile], check=True)
+    for seg in segments: os.remove(seg)
+    os.remove(listing)
+
+def render_parallel(A, n0, count):
+    """Frames are independent, so contiguous blocks render in separate processes."""
+    video_renderer()  # builds the wear-map cache once, before the workers read it
+    size = math.ceil(count / (A.workers * 4))  # small blocks keep workers busy to the end
+    ranges = [(s, min(size, n0 + count - s)) for s in range(n0, n0 + count, size)]
+    stem = os.path.splitext(A.out)[0]
+    concat(run_segments(A, ranges, stem), A.out, A.crf)
+    print("video done ->", A.out, flush=True)
+
+def probe(A):
+    """A sheet of source/degraded frame pairs across the reel, and optionally short
+    clips at the same points. Probe frames are exactly what a full render gives there."""
+    from PIL import Image, ImageDraw, ImageFont
+    N, frame_at = video_renderer()
+    if A.times:
+        idx = [min(N - 1, max(0, round(float(t) * FPS))) for t in A.times.split(",")]
+    else:
+        idx = [round(k * (N - 1) / (A.points - 1)) for k in range(A.points)]
+    src = np.memmap(os.path.join(REEL, "frames.raw"), np.uint8, "r", shape=(N, H, W, 3))
+    tw, th, cols = 320, round(320 * H / W), min(6, len(idx))
+    rows = math.ceil(len(idx) / cols)
+    label_h = 38
+    sheet = Image.new("RGB", (cols * tw, rows * (2 * th + label_h)), (20, 22, 26))
+    draw, font = ImageDraw.Draw(sheet), ImageFont.load_default(size=13)
+    for j, n in enumerate(idx):
+        x, y = (j % cols) * tw, (j // cols) * (2 * th + label_h)
+        p = par(n / (N - 1.0))
+        draw.text((x + 6, y + 4), f"{n / FPS:6.1f} s   print {p['print']:.2f}  depth {p['depth']:.1f}  fold {p['fold']:.2f}",
+                  fill=(230, 230, 230), font=font)
+        draw.text((x + 6, y + 20), f"wear {p['wear']:.2f}  flow {p['flow']:.2f}  track {p['track']:.2f}  dry {p['dry']:.2f}",
+                  fill=(170, 175, 180), font=font)
+        sheet.paste(Image.fromarray(np.asarray(src[n])).resize((tw, th), Image.BILINEAR), (x, y + label_h))
+        sheet.paste(Image.fromarray(frame_at(n)).resize((tw, th), Image.BILINEAR), (x, y + label_h + th))
+    sheet.save(A.out)
+    print(f"sheet: {len(idx)} points, source above, degraded below -> {A.out}", flush=True)
+    if A.clips > 0:
+        length = max(1, round(A.clips * FPS))
+        ranges = [(min(max(0, n - length // 2), N - length), length) for n in idx]
+        stem = os.path.splitext(A.out)[0] + "-clips"
+        concat(run_segments(A, ranges, stem), stem + ".mp4", 18, reencode=True)
+        print(f"clips: {len(ranges)} x {A.clips:g} s, picture only -> {stem}.mp4", flush=True)
+
 def below_normal_priority():
     if os.name == "nt":
         import ctypes
@@ -431,7 +534,7 @@ def below_normal_priority():
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("mode", choices=["reel", "video", "audio", "mux"])
+    ap.add_argument("mode", choices=["reel", "video", "audio", "mux", "probe"])
     ap.add_argument("--in", dest="src", help="reel: source video with audio")
     ap.add_argument("--reel", help="folder holding frames.raw, audio.raw, meta.json, and wear caches")
     ap.add_argument("--out", help="video, audio, mux: output file")
@@ -440,17 +543,25 @@ if __name__ == "__main__":
     ap.add_argument("--start", type=int, default=0)
     ap.add_argument("--count", type=int, default=0)
     ap.add_argument("--crf", type=int, default=16)
+    ap.add_argument("--segment", action="store_true", help=argparse.SUPPRESS)
+    ap.add_argument("--workers", type=int, default=6, help="video, probe: parallel processes (keep to 4-8)")
+    ap.add_argument("--points", type=int, default=12, help="probe: evenly spaced sample points")
+    ap.add_argument("--times", help="probe: comma-separated seconds instead of --points")
+    ap.add_argument("--clips", type=float, default=0, help="probe: also render clips of this many seconds per point")
     ap.add_argument("--ramp", help="JSON file overriding RAMP entries")
     ap.add_argument("--wrap", type=float, default=0.400, help="reel wrap period in seconds (app maximum 0.4)")
     ap.add_argument("--grow", type=float, default=0.500, help="wrap growth over the reel in seconds (app maximum 0.5)")
+    ap.add_argument("--size", help="reel: store frames at WxH, e.g. 320x240")
+    ap.add_argument("--upscale", help="video, probe: scale output to WxH with whole-pixel blocks, e.g. 960x720")
     ap.add_argument("--ffmpeg", default="ffmpeg")
     ap.add_argument("--ffprobe", default="ffprobe")
     A = ap.parse_args()
     FFMPEG = A.ffmpeg
+    UPSCALE = None if A.segment else A.upscale
     below_normal_priority()
     if A.mode == "reel":
         if not (A.src and A.reel): ap.error("reel needs --in and --reel")
-        build_reel(A.src, A.reel, A.ffprobe)
+        build_reel(A.src, A.reel, A.ffprobe, A.size)
     elif A.mode == "mux":
         if not (A.video and A.audio and A.out): ap.error("mux needs --video, --audio, and --out")
         codec = ["-c:a", "pcm_f32le"] if A.out.lower().endswith(".mkv") else ["-c:a", "aac", "-b:a", "192k"]
@@ -462,6 +573,9 @@ if __name__ == "__main__":
         configure(A.reel, A.ramp, A.wrap, A.grow)
         if A.mode == "video":
             N = os.path.getsize(os.path.join(REEL, "frames.raw")) // (H * W * 3)
-            render_video(A.start, A.count or N, A.out, A.crf)
+            if A.workers > 1: render_parallel(A, A.start, A.count or N - A.start)
+            else: render_video(A.start, A.count or N - A.start, A.out, A.crf)
+        elif A.mode == "probe":
+            probe(A)
         else:
             render_audio(A.out)
