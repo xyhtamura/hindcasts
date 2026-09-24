@@ -61,6 +61,9 @@ RAMP = {
     'fall':  (0.55,   0.84, 1.0),
     'tilt':  (20000,   700, 1.3),
     'dry':   (1.00,   0.50, 1.8),
+    # Scales the scrolling oxide-stripe bands inside video wear. 1 is the port's
+    # original behaviour; 0 keeps wear's erosion and bleaching without the bands.
+    'stripe': (1.00,  1.00, 1.0),
 }
 
 def par(u):
@@ -246,7 +249,7 @@ def video_renderer():
             gray = rgb.mean(axis=2, keepdims=True); bleach = erode * 0.45
             rgb = rgb * (1 - bleach) + gray * bleach
             stripe = 0.5 + 0.5 * np.sin((yy + n * 1.7) * 0.65 + np.sin(xx * 0.061 + n * 0.19))
-            oxide = np.maximum(0, stripe[..., None] + local * 1.4 - 1.18)
+            oxide = np.maximum(0, stripe[..., None] + local * 1.4 - 1.18) * p['stripe']
             loss = np.minimum(0.9, local * (0.12 + 0.28 * lum) + oxide * 0.62)
             out = dry * rgb * (1 - loss) + pr * g2 * ghostBoost
             hd = head[..., None]
@@ -514,7 +517,7 @@ def probe(A):
         p = par(n / (N - 1.0))
         draw.text((x + 6, y + 4), f"{n / FPS:6.1f} s   print {p['print']:.2f}  depth {p['depth']:.1f}  fold {p['fold']:.2f}",
                   fill=(230, 230, 230), font=font)
-        draw.text((x + 6, y + 20), f"wear {p['wear']:.2f}  flow {p['flow']:.2f}  track {p['track']:.2f}  dry {p['dry']:.2f}",
+        draw.text((x + 6, y + 20), f"wear {p['wear']:.2f}  flow {p['flow']:.2f}  track {p['track']:.2f}  dry {p['dry']:.2f}  stripe {p['stripe']:.2f}",
                   fill=(170, 175, 180), font=font)
         sheet.paste(Image.fromarray(np.asarray(src[n])).resize((tw, th), Image.BILINEAR), (x, y + label_h))
         sheet.paste(Image.fromarray(frame_at(n)).resize((tw, th), Image.BILINEAR), (x, y + label_h + th))
