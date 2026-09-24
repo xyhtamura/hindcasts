@@ -226,6 +226,25 @@ read the opening frames at 0.87 weight); ramp checked visually at u = 0.15 / 0.4
 points above are observations, not planned work, so **Next moves** above is
 unchanged.
 
+
+**2026-09-25 — Claude Code — general offline renderer in `offline/`**
+
+[`offline/remanence_offline.py`](offline/remanence_offline.py) is the open4 port
+with its constants turned into arguments, so it takes any source: `reel --in
+<file> --reel <dir>` extracts every frame and the audio and records width,
+height, and frame rate in `meta.json`. `video` and `audio` render from that reel,
+and `mux` joins them. `--ramp` takes a JSON file of `RAMP` overrides, and
+`--wrap`/`--grow` set the reel geometry. `.mkv` video output is lossless FFV1 so
+the result can go on to another effect without generation loss, and `.wav` audio
+output is float. The process runs at below-normal priority. The open4 copy stays
+where it was, unchanged, as the record of that render.
+
+Verified: the original and the new script, run against the same 90-frame
+426×240 reel, produced the same decoded-video MD5 and byte-identical audio. The
+processing is unchanged. First consumer is `renderedwork/bed-world` (a 106 s
+960×720 film, 3197 frames). The reel folder costs width × height × 3 bytes per
+frame, 6.6 GB for that film, and is disposable.
+
 ---
 
 *spine: the tape remembers forward.*
