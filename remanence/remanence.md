@@ -270,3 +270,29 @@ are now named for those values.
 ---
 
 *spine: the tape remembers forward.*
+
+---
+
+## log
+
+### 2026-09-30 — Antigravity — A/V DSP extraction into engine.js
+
+Extracted audio and video processing routines from `remanence/index.html` into a standalone UMD module `remanence/engine.js` (`RemanenceDSP`), runnable in Node or browser without DOM, Canvas, or Web Audio API dependencies.
+
+- **Boundary contract:**
+  - **Audio pipeline (`renderAudio` / `render`):**
+    - Accepts `channels` (`Float32Array[]` or `AudioBuffer`), `sampleRate`, `params`, and optional `onProgress`.
+    - Returns `{ channels: Float32Array[], sampleRate, length, duration, wearMap, flowMap, params }`.
+    - **Timing & Origin:** Output length matches input length exactly (`N = channels[0].length`). Sample 0 maps to input sample 0. Acausal pre-echo looks forward in time. When `loop: 0` (open tape), reads outside `[0, N-1]` return 0 (silence). When `loop: 1` (circle loop), reads wrap modularly across the seam (`((pos % N) + N) % N`).
+    - **Dynamics & Clipping:** Soft-clipping using `Math.tanh(v)` when `|v| > 1.2`. Includes occupancy-driven HF self-erasure, oxide shed dropout, and VHS tracking ducking/whoosh.
+  - **Video pipeline (`renderVideo`):**
+    - Accepts `frames` (`Array<Uint8ClampedArray|Uint8Array>` RGBA buffers of size `width * height * 4`), `width`, `height`, `fps`, `params`, and optional `onProgress`.
+    - Returns `{ frames: Uint8ClampedArray[], width, height, fps, duration, wearMap, flowMap, params }`.
+    - Preserves native frame/time structures independently from the audio pipeline. Frame count and resolution are 1:1 preserved.
+    - Separable 3-channel box-blur on ghost buffers implements spatial low-pass tilt. Row-level transport failure implements VHS head-switch drift, seam tear, stripe bleach, and oxide loss.
+  - **Determinism:** The pipeline contains zero `Math.random` calls; reel geometry, flow map, and wear maps are fully deterministic across runs.
+- **Verification:**
+  - `node remanence/test-remanence.mjs`: Verified audio and video render paths, bit-exact SHA-256 reproducibility, preset parsing (`cartridge`, `fold`, `melt`), finite sample values, and WAV chunk encoding (exited 0).
+  - `node remanence/test-browser.cjs`: Verified in headless Microsoft Edge via CDP pipe loading real AudioBuffer and video frame arrays, executing `renderAudio()` and `renderVideo()`, verifying UI progress and button enablement, checking WAV export bytes, and switching presets (exited 0).
+- **Undone / known broken:** None.
+

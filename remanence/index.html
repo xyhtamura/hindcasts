@@ -372,6 +372,7 @@ footer{margin-top:26px;font-family:var(--mono);font-size:10.5px;color:#d8c7f0;te
   </footer>
 </div>
 
+<script src="engine.js"></script>
 <script>
 "use strict";
 window.addEventListener('DOMContentLoaded',()=>{
@@ -509,185 +510,22 @@ async function loadVideo(f){
 function drawVideoFrame(buf){ if(!buf)return; const vc=$('vcanvas'),g=vc.getContext('2d');
   g.putImageData(new ImageData(new Uint8ClampedArray(buf),vW,vH),0,0); }
 
-function clamp01(v){ return v<0?0:v>1?1:v; }
-function boxBlur1(src,r,passes=1){
-  const N=src.length; if(r<1||N<2) return src.slice();
-  let a=src, b=new Float32Array(N), win=2*r+1;
-  for(let p=0;p<passes;p++){
-    let s=0;
-    for(let i=-r;i<=r;i++) s+=a[Math.min(N-1,Math.max(0,i))];
-    for(let i=0;i<N;i++){
-      b[i]=s/win;
-      const add=Math.min(N-1,i+r+1), sub=Math.max(0,i-r);
-      s+=a[add]-a[sub];
-    }
-    const t=a; a=b; b=t;
-  }
-  return a;
-}
-function normalizeMap(map,pow=0.72){
-  let peak=0; for(let i=0;i<map.length;i++) if(map[i]>peak) peak=map[i];
-  if(peak<1e-9) return map;
-  const scale=1/peak;
-  for(let i=0;i<map.length;i++) map[i]=Math.pow(clamp01(map[i]*scale),pow);
-  return map;
-}
-function buildVideoWearMap(depth,fall,wrap0,growF,fold){
-  if(P.wear<=0||!vFrames||vN<1) return null;
-  const occ=new Float32Array(vN), step=16;
-  for(let n=0;n<vN;n++){
-    const f=vFrames[n], prev=n?vFrames[n-1]:null; let lum=0, motion=0, count=0;
-    for(let p=0;p<f.length;p+=step){
-      const y=(0.2126*f[p]+0.7152*f[p+1]+0.0722*f[p+2])/255;
-      lum+=y;
-      if(prev) motion+=Math.abs(y-(0.2126*prev[p]+0.7152*prev[p+1]+0.0722*prev[p+2])/255);
-      count++;
-    }
-    occ[n]=0.78*(lum/count)+0.22*(motion/count)*3;
-  }
-  const env=boxBlur1(occ,1,2);
-  const slope=growF/Math.max(1,vN), lin=slope<1e-9, O0s=lin?0:wrap0/slope;
-  const ek=new Float64Array(depth+1), g=new Float32Array(depth+1);
-  for(let k=1;k<=depth;k++){ ek[k]=Math.exp(slope*k); g[k]=Math.pow(fall,k-1); }
-  const Etot=1+slope*vN/wrap0, map=new Float32Array(vN);
-  for(let n=0;n<vN;n++){
-    const E=1+slope*n/wrap0, Ef=Etot/E, m=vN-n; let s=env[n], w=1;
-    for(let k=1;k<=depth;k++){
-      let outP,inP;
-      if(lin){ const off=wrap0*k; outP=n+off; inP=n-off; }
-      else { outP=O0s*(E*ek[k]-1); inP=O0s*(E/ek[k]-1); }
-      s+=0.5*g[k]*(sampleAt(env,outP)+sampleAt(env,inP)); w+=g[k];
-      if(fold>0){ let foP,fiP;
-        if(lin){ const off=wrap0*k; foP=m+off; fiP=m-off; }
-        else { foP=O0s*(Ef*ek[k]-1); fiP=O0s*(Ef/ek[k]-1); }
-        s+=0.5*fold*g[k]*(sampleAt(env,foP)+sampleAt(env,fiP)); w+=fold*g[k];
-      }
-    }
-    map[n]=s/w;
-  }
-  return normalizeMap(boxBlur1(map,1,1),0.72);
-}
-function buildFlowMap(N,rate,amount,wearMap,kind){
-  if(amount<=0||N<2) return null;
-  const map=new Float32Array(N);
-  const audio=kind==='audio';
-  const slowAmp=audio ? rate*(0.002+0.010*amount)*amount : (0.18+1.8*amount)*amount;
-  const fastAmp=audio ? rate*0.0007*amount : 0.16*amount;
-  for(let n=0;n<N;n++){
-    const t=n/rate, wear=wearMap?sampleAt(wearMap,n)*P.wear:0, swell=1+0.8*wear;
-    const slow=0.58*Math.sin(2*Math.PI*0.19*t+0.9*Math.sin(2*Math.PI*0.031*t))
-      +0.30*Math.sin(2*Math.PI*0.071*t+1.7)
-      +0.12*Math.sin(2*Math.PI*0.43*t+0.6*Math.sin(2*Math.PI*0.047*t));
-    const flutter=Math.sin(2*Math.PI*6.2*t+0.55*Math.sin(2*Math.PI*0.37*t))
-      +0.45*Math.sin(2*Math.PI*11.7*t+1.9);
-    map[n]=swell*(slowAmp*slow+fastAmp*flutter);
-  }
-  return boxBlur1(map,audio?Math.max(1,(rate*0.001)|0):1,1);
-}
-
-// separable box blur, 3-channel interleaved Float32 (stride 3) — video's spatial LF (print tilt)
-function boxBlur3(buf,W,H,r){
-  if(r<1) return; const tmp=new Float32Array(buf.length), win=2*r+1;
-  for(let ch=0;ch<3;ch++){
-    for(let y=0;y<H;y++){ let s=0; const row=y*W;
-      for(let x=-r;x<=r;x++) s+=buf[(row+Math.min(W-1,Math.max(0,x)))*3+ch];
-      for(let x=0;x<W;x++){ tmp[(row+x)*3+ch]=s/win;
-        const add=Math.min(W-1,x+r+1), sub=Math.max(0,x-r);
-        s+=buf[(row+add)*3+ch]-buf[(row+sub)*3+ch]; } }
-  }
-  for(let ch=0;ch<3;ch++){
-    for(let x=0;x<W;x++){ let s=0;
-      for(let y=-r;y<=r;y++) s+=tmp[(Math.min(H-1,Math.max(0,y))*W+x)*3+ch];
-      for(let y=0;y<H;y++){ buf[(y*W+x)*3+ch]=s/win;
-        const add=Math.min(H-1,y+r+1), sub=Math.max(0,y-r);
-        s+=tmp[(add*W+x)*3+ch]-tmp[(sub*W+x)*3+ch]; } }
-  }
-}
 async function renderVideo(){
   if(!vFrames) return; stopPlay(); LOOP=P.loop;
-  const depth=P.wraps, fall=P.fall, print=P.print, dry=P.dry, a=(1-P.wind)/2, b=(1+P.wind)/2;
-  const wrap0=P.wrap*vFps, growF=P.grow*vFps, fold=P.fold;   // reel period in FRAMES
-  const g=new Float32Array(depth+1); for(let k=1;k<=depth;k++) g[k]=Math.pow(fall,k-1);
-  const blurR=Math.round((1-(P.tilt-200)/19800)*5);   // low tilt (LF) → more ghost blur
-  const px=vW*vH*4, gpx=vW*vH*3;
-  // reel-fold geometry in frames (mirror of the audio spiral)
-  const slope=growF/Math.max(1,vN), lin=slope<1e-9, O0s=lin?0:wrap0/slope;
-  const ek=new Float64Array(depth+1); for(let k=1;k<=depth;k++) ek[k]=Math.exp(slope*k);
-  const Etot=1+slope*vN/wrap0;
-  if(P.wear>0) setStatus('mapping wear…');
-  const wearMap=buildVideoWearMap(depth,fall,wrap0,growF,fold);
-  const flowMap=buildFlowMap(vN,vFps,P.flow,wearMap,'video');
-  vOut=new Array(vN); setStatus('winding the reel…'); $('render').disabled=true;
-  const frameAt=n=>{ n=Math.round(n+(flowMap?sampleAt(flowMap,n):0));
-    if(n>=0&&n<vN) return vFrames[n];
-    if(LOOP>0) return vFrames[((n%vN)+vN)%vN];   // circle loop — frame reads wrap across the splice
-    return null; };
-  for(let n=0;n<vN;n++){
-    const src=frameAt(n)||vFrames[n], o=new Uint8ClampedArray(px), gh=new Float32Array(gpx), wearFrame=wearMap?wearMap[n]*P.wear:0;
-    const E=1+slope*n/wrap0, Ef=Etot/E, m=vN-n;
-    // accumulate ghost (light from neighbour wraps, spiral fold)
-    for(let k=1;k<=depth;k++){ const gk=g[k];
-      let outP,inP; if(lin){ const off=wrap0*k; outP=n+off; inP=n-off; } else { outP=O0s*(E*ek[k]-1); inP=O0s*(E/ek[k]-1); }
-      const fp=frameAt(outP), fq=frameAt(inP);
-      let ff=null,fg=null;
-      if(fold>0){ let foP,fiP; if(lin){ const off=wrap0*k; foP=m+off; fiP=m-off; } else { foP=O0s*(Ef*ek[k]-1); fiP=O0s*(Ef/ek[k]-1); }
-        ff=frameAt(foP); fg=frameAt(fiP); }
-      if(!fp&&!fq&&!ff&&!fg) continue;
-      for(let q=0,pp=0;q<gpx;q+=3,pp+=4){
-        let c0=a*(fp?fp[pp]:0)+b*(fq?fq[pp]:0), c1=a*(fp?fp[pp+1]:0)+b*(fq?fq[pp+1]:0), c2=a*(fp?fp[pp+2]:0)+b*(fq?fq[pp+2]:0);
-        if(fold>0){ c0+=fold*(a*(ff?ff[pp]:0)+b*(fg?fg[pp]:0)); c1+=fold*(a*(ff?ff[pp+1]:0)+b*(fg?fg[pp+1]:0)); c2+=fold*(a*(ff?ff[pp+2]:0)+b*(fg?fg[pp+2]:0)); }
-        gh[q]+=gk*c0; gh[q+1]+=gk*c1; gh[q+2]+=gk*c2;
-      }
-    }
-    boxBlur3(gh,vW,vH,blurR);            // print favours low spatial frequency
-    let dryBlur=null;
-    if(wearFrame>0.001){
-      dryBlur=new Float32Array(gpx);
-      for(let q=0,pp=0;q<gpx;q+=3,pp+=4){ dryBlur[q]=src[pp]; dryBlur[q+1]=src[pp+1]; dryBlur[q+2]=src[pp+2]; }
-      boxBlur3(dryBlur,vW,vH,Math.max(1,Math.min(5,blurR+1)));
-    }
-    const ghostBoost=1+0.55*wearFrame;
-    const trackFrame=P.track*(0.25+0.75*wearFrame);
-    if(wearFrame<=0.001 && trackFrame<=0.001){
-      // fast path — no failure sins when wear+track are off
-      for(let q=0,pp=0;q<gpx;q+=3,pp+=4){
-        let v0=dry*src[pp]+print*gh[q], v1=dry*src[pp+1]+print*gh[q+1], v2=dry*src[pp+2]+print*gh[q+2];
-        o[pp]=v0>255?255:v0; o[pp+1]=v1>255?255:v1; o[pp+2]=v2>255?255:v2; o[pp+3]=255;
-      }
-    } else {
-      const seamY=vH*(0.84+0.055*Math.sin(n*0.31+Math.sin(n*0.047)*2.1));
-      const stripePh=n*1.7;
-      for(let yy=0,pp=0;yy<vH;yy++){
-        // per-row failure geometry (independent of xx — hoisted out of the pixel loop)
-        const seam=trackFrame?Math.exp(-Math.abs(yy-seamY)/(1.6+trackFrame*13)):0;
-        const drift=trackFrame*(Math.sin(yy*0.073+n*0.41)*3+Math.sin(yy*0.017+n*0.13)*8)+seam*trackFrame*44;
-        const head=Math.min(0.85,seam*trackFrame*1.35);
-        for(let xx=0;xx<vW;xx++,pp+=4){
-          const sx=Math.max(0,Math.min(vW-1,Math.round(xx+drift)));
-          const sp=(yy*vW+sx)*4, sq=(yy*vW+sx)*3;
-          const lum=(src[sp]+src[sp+1]+src[sp+2])/765, local=wearFrame*(0.35+0.65*lum);
-          const erode=Math.min(0.85,local*0.78);
-          let r=src[sp], gr=src[sp+1], bl=src[sp+2];
-          if(dryBlur){ r=r*(1-erode)+dryBlur[sq]*erode; gr=gr*(1-erode)+dryBlur[sq+1]*erode; bl=bl*(1-erode)+dryBlur[sq+2]*erode; }
-          const gray=(r+gr+bl)/3, bleach=erode*0.45;
-          r=r*(1-bleach)+gray*bleach; gr=gr*(1-bleach)+gray*bleach; bl=bl*(1-bleach)+gray*bleach;
-          let loss=0;
-          if(local>0.001){ const stripe=0.5+0.5*Math.sin((yy+stripePh)*0.65+Math.sin(xx*0.061+n*0.19));
-            const oxide=Math.max(0,stripe+local*1.4-1.18); loss=Math.min(0.9,local*(0.12+0.28*lum)+oxide*0.62); }
-          let v0=dry*r*(1-loss)+print*gh[sq]*ghostBoost;
-          let v1=dry*gr*(1-loss)+print*gh[sq+1]*ghostBoost;
-          let v2=dry*bl*(1-loss)+print*gh[sq+2]*ghostBoost;
-          if(head>0){ v0=v0*(1-head*0.34)+head*26; v1=v1*(1-head*0.48)+head*8; v2=v2*(1-head*0.18)+head*40; }
-          o[pp]=v0>255?255:v0; o[pp+1]=v1>255?255:v1; o[pp+2]=v2>255?255:v2; o[pp+3]=255;
-        }
-      }
-    }
-    vOut[n]=o;
-    $('progBar').style.width=(100*n/vN).toFixed(1)+'%';
-    if((n&3)===0){ setStatus(`winding… <b>${n+1}/${vN}</b>`); await new Promise(r=>setTimeout(r)); }
+  setStatus('winding the reel…'); $('render').disabled=true;
+  try {
+    const res = await RemanenceDSP.renderVideo(vFrames, vW, vH, vFps, P, prog => {
+      $('progBar').style.width = (100 * prog).toFixed(1) + '%';
+      setStatus(`winding… <b>${Math.min(vN, Math.round(prog * vN))}/${vN}</b>`);
+    });
+    vOut = res.frames;
+    $('progBar').style.width = '100%'; $('render').disabled = false; $('play').disabled = false; $('export').disabled = false;
+    setStatus('rendered — <b>▶ PLAY</b>'); drawVideoFrame(vOut[0]);
+  } catch(err) {
+    console.error(err);
+    $('render').disabled = false;
+    setStatus('render failed — ' + err.message);
   }
-  $('progBar').style.width='100%'; $('render').disabled=false; $('play').disabled=false; $('export').disabled=false;
-  setStatus('rendered — <b>▶ PLAY</b>'); drawVideoFrame(vOut[0]);
 }
 function playVideo(){
   if(!vOut) return; stopVideoPlay(); playing=true; vIdx=0; $('stop').disabled=false;
@@ -717,109 +555,27 @@ async function exportWebM(){
   $('export').disabled=false; setStatus('<b>exported</b> remanence.webm');
 }
 
-/* ---------- DSP: print-through render (verified) ----------
-   out[n] = dry*x[n] + Print * LPtilt( Σ_k fall^(k-1) ( a·x[n+kT(n)] + b·x[n-kT(n)] ) )
-   T(n)=(wrap+grow·progress) samples — reel period drifts hub→rim across the clip
-   a=anticipation share, b=wake share, from wind (-1 pre .. +1 post)                       */
-function sampleAt(x,pos){ const N=x.length;
-  if(pos>=0&&pos<=N-1){ const i=pos|0,f=pos-i; return i>=N-1?x[N-1]:x[i]*(1-f)+x[i+1]*f; }
-  if(LOOP<=0) return 0;                              // open tape — silence past the ends
-  const wp=((pos%N)+N)%N, i=wp|0, f=wp-i, j=(i+1)%N; // circle loop — read wraps across the splice
-  return x[i]*(1-f)+x[j]*f;
-}
-function flowSample(x,pos,flowMap){ return sampleAt(x,pos+(flowMap?sampleAt(flowMap,pos):0)); }
-function buildAudioWearMap(channels,sr,N,depth,fall,wrap0,growS,fold,slope,lin,O0s,ek,Etot){
-  if(P.wear<=0) return null;
-  const amp=new Float32Array(N), ch=channels.length;
-  for(let n=0;n<N;n++){
-    let s=0; for(let c=0;c<ch;c++) s+=Math.abs(channels[c][n]||0);
-    amp[n]=s/ch;
-  }
-  const env=boxBlur1(amp,Math.max(1,(sr*0.012)|0),2);
-  const g=new Float32Array(depth+1), map=new Float32Array(N);
-  for(let k=1;k<=depth;k++) g[k]=Math.pow(fall,k-1);
-  for(let n=0;n<N;n++){
-    const E=1+slope*n/wrap0, Ef=Etot/E, m=N-n; let s=env[n], w=1;
-    for(let k=1;k<=depth;k++){
-      let outP,inP;
-      if(lin){ const off=wrap0*k; outP=n+off; inP=n-off; }
-      else { outP=O0s*(E*ek[k]-1); inP=O0s*(E/ek[k]-1); }
-      s+=0.5*g[k]*(sampleAt(env,outP)+sampleAt(env,inP)); w+=g[k];
-      if(fold>0){ let foP,fiP;
-        if(lin){ const off=wrap0*k; foP=m+off; fiP=m-off; }
-        else { foP=O0s*(Ef*ek[k]-1); fiP=O0s*(Ef/ek[k]-1); }
-        s+=0.5*fold*g[k]*(sampleAt(env,foP)+sampleAt(env,fiP)); w+=fold*g[k];
-      }
-    }
-    map[n]=s/w;
-  }
-  return normalizeMap(boxBlur1(map,Math.max(1,(sr*0.006)|0),1),0.65);
-}
-function shedLoss(n,wear){
-  if(wear<=0) return 0;
-  const phase=0.5+0.5*Math.sin(n*0.00083+Math.sin(n*0.000091)*6.283);
-  const scar=Math.max(0,phase+wear*1.12-1.08);
-  return Math.min(0.92,0.22*Math.pow(wear,1.7)+0.78*scar*wear);
-}
+/* ---------- DSP: print-through render ---------- */
 async function render(){
   if(!srcBuf) return; stopPlay(); LOOP=P.loop;
   const sr=srcBuf.sampleRate, N=srcBuf.length, ch=srcBuf.numberOfChannels;
   const out=ac.createBuffer(ch,N,sr);
-  const wrap0=P.wrap*sr, growS=P.grow*sr, depth=P.wraps, fall=P.fall, tilt=P.tilt, print=P.print, dry=P.dry;
-  const a=(1-P.wind)/2, b=(1+P.wind)/2, fold=P.fold;
-  const alpha=1-Math.exp(-2*Math.PI*tilt/sr);
-  // reel-fold geometry: neighbour offset O(x)=wrap0+slope·x grows as tape winds; wind the clip onto
-  // an Archimedean spiral. k-th neighbour = same angular phase, k wraps out (cumulative, not k·T).
-  // e^{s·W(n)} = 1 + slope·n/wrap0 → closed form, no per-sample log/exp. Fold = mirror across the reel.
-  const slope=growS/Math.max(1,N), lin=slope<1e-9, O0s=lin?0:wrap0/slope;
-  const ek=new Float64Array(depth+1); for(let k=1;k<=depth;k++) ek[k]=Math.exp(slope*k);
-  const Etot=1+slope*N/wrap0;
-  const channels=Array.from({length:ch},(_,i)=>srcBuf.getChannelData(i));
-  if(P.wear>0) setStatus('mapping wear…');
-  const wearMap=buildAudioWearMap(channels,sr,N,depth,fall,wrap0,growS,fold,slope,lin,O0s,ek,Etot);
-  const flowMap=buildFlowMap(N,sr,P.flow,wearMap,'audio');
   setStatus('winding the reel…'); $('render').disabled=true;
-  for(let c=0;c<ch;c++){
-    const x=channels[c], y=out.getChannelData(c), wet=new Float32Array(N);
-    const g=new Float32Array(depth+1); for(let k=1;k<=depth;k++) g[k]=Math.pow(fall,k-1);
-    for(let n=0;n<N;n++){
-      const E=1+slope*n/wrap0, Ef=Etot/E; let s=0;
-      for(let k=1;k<=depth;k++){
-        let outP,inP;
-        if(lin){ const off=wrap0*k; outP=n+off; inP=n-off; }
-        else { outP=O0s*(E*ek[k]-1); inP=O0s*(E/ek[k]-1); }        // outer=later(pre), inner=earlier(post)
-        let tap=a*flowSample(x,outP,flowMap)+b*flowSample(x,inP,flowMap);
-        if(fold>0){ let foP,fiP; const m=N-n;
-          if(lin){ const off=wrap0*k; foP=m+off; fiP=m-off; }
-          else { foP=O0s*(Ef*ek[k]-1); fiP=O0s*(Ef/ek[k]-1); }     // mirror wrap: clip-distant, reel-adjacent
-          tap+=fold*(a*flowSample(x,foP,flowMap)+b*flowSample(x,fiP,flowMap)); }
-        s+=g[k]*tap;
-      }
-      wet[n]=s;
-      if((n&0x3FFFF)===0){ progBar.style.width=(100*(c*N+n)/(ch*N)).toFixed(1)+'%'; await new Promise(r=>setTimeout(r)); }
+  try {
+    const res = await RemanenceDSP.renderAudio(srcBuf, sr, P, prog => {
+      progBar.style.width=(100*prog).toFixed(1)+'%';
+    });
+    for(let c=0; c<ch; c++){
+      out.getChannelData(c).set(res.channels[c]);
     }
-    let lp=0; for(let n=0;n<N;n++){ lp+=alpha*(wet[n]-lp); wet[n]=lp; }
-    const eraseAlpha=1-Math.exp(-2*Math.PI*(900+(1-P.wear)*7200)/sr);
-    let selfLp=0, lossLp=0;
-    for(let n=0;n<N;n++){
-      const wear=wearMap?wearMap[n]*P.wear:0;
-      const dryRead=flowSample(x,n,flowMap);
-      selfLp+=eraseAlpha*(dryRead-selfLp);
-      const erase=Math.min(0.9,wear*0.85), dull=dryRead*(1-erase)+selfLp*erase;
-      const targetLoss=P.wear*shedLoss(n,wearMap?wearMap[n]:0);
-      lossLp+=0.025*(targetLoss-lossLp);
-      const track=P.track*(0.22+0.78*wear), t=n/sr;
-      const seam=Math.max(0,Math.sin(2*Math.PI*29.97*t+0.9*Math.sin(2*Math.PI*0.11*t))-(1.04-0.72*track));
-      const whoosh=track*seam*(0.018*Math.sin(2*Math.PI*(860+210*Math.sin(2*Math.PI*0.07*t))*t)
-        +0.010*Math.sin(2*Math.PI*1720*t+0.8*Math.sin(2*Math.PI*0.33*t)));
-      const duck=Math.min(0.55,track*seam*0.38);
-      let v=dry*dull*Math.max(0,1-lossLp-duck)+print*wet[n]*(1+0.65*wear)+whoosh;
-      y[n]= (v>1.2||v<-1.2)? Math.tanh(v) : v;
-    }
+    wetBuf=out; progBar.style.width='100%';
+    $('render').disabled=false; $('play').disabled=false; $('export').disabled=false;
+    setStatus('rendered — <b>▶ PLAY</b>'); drawWave();
+  } catch(err) {
+    console.error(err);
+    $('render').disabled=false;
+    setStatus('render failed — ' + err.message);
   }
-  wetBuf=out; progBar.style.width='100%';
-  $('render').disabled=false; $('play').disabled=false; $('export').disabled=false;
-  setStatus('rendered — <b>▶ PLAY</b>'); drawWave();
 }
 const renderAudio=render;
 $('render').addEventListener('click',()=>{ media==='video'?renderVideo():renderAudio(); });
@@ -850,16 +606,7 @@ $('export').addEventListener('click',()=>{
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 });
 function encodeWav(buf){
-  const ch=buf.numberOfChannels, N=buf.length, sr=buf.sampleRate;
-  const data=new DataView(new ArrayBuffer(44+N*ch*2));
-  const w=(o,s)=>{for(let i=0;i<s.length;i++)data.setUint8(o+i,s.charCodeAt(i));};
-  w(0,'RIFF');data.setUint32(4,36+N*ch*2,true);w(8,'WAVE');w(12,'fmt ');data.setUint32(16,16,true);
-  data.setUint16(20,1,true);data.setUint16(22,ch,true);data.setUint32(24,sr,true);
-  data.setUint32(28,sr*ch*2,true);data.setUint16(32,ch*2,true);data.setUint16(34,16,true);
-  w(36,'data');data.setUint32(40,N*ch*2,true);
-  let o=44; for(let n=0;n<N;n++)for(let c=0;c<ch;c++){
-    let s=Math.max(-1,Math.min(1,buf.getChannelData(c)[n])); data.setInt16(o,s<0?s*0x8000:s*0x7FFF,true); o+=2; }
-  return data.buffer;
+  return RemanenceDSP.encodeWav(buf);
 }
 
 /* ---------- visualisation ---------- */
@@ -923,6 +670,35 @@ function drawReel(){
 }
 window.addEventListener('resize',()=>{drawWave();drawReel();});
 drawWave(); drawReel();
+
+window.__remanence = {
+  loadAudioBuffer: async (buf, name = 'test.wav') => {
+    stopPlay(); setMedia('audio');
+    ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+    srcBuf = buf;
+    meta.innerHTML = `<b>${name}</b> · ${buf.numberOfChannels}ch · ${(buf.sampleRate/1000).toFixed(1)}kHz · ${buf.duration.toFixed(1)}s`;
+    wetBuf = null; $('render').disabled = false; $('play').disabled = true; $('export').disabled = true;
+    setStatus('ready — <b>RENDER</b> to wind the reel'); drawWave(); drawReel();
+  },
+  loadFrames: (frames, w, h, fps = 15, name = 'test.mp4') => {
+    stopPlay(); setMedia('video');
+    vFrames = frames; vOut = null; vW = w; vH = h; vFps = fps; vN = frames.length;
+    const vc = $('vcanvas'); vc.width = vW; vc.height = vH; vc.style.aspectRatio = vW + '/' + vH;
+    meta.innerHTML = `<b>${name}</b> · ${vW}×${vH} @ ${vFps}fps · ${vN} frames`;
+    $('render').disabled = false; $('play').disabled = true; $('export').disabled = true;
+    setStatus('captured — <b>RENDER</b> to wind the reel');
+    drawVideoFrame(vFrames[0]);
+  },
+  renderAudio: render,
+  renderVideo,
+  encodeWav,
+  P,
+  getSrcBuf: () => srcBuf,
+  getWetBuf: () => wetBuf,
+  getVFrames: () => vFrames,
+  getVOut: () => vOut,
+  RemanenceDSP
+};
 
 }); // DOMContentLoaded
 </script>
