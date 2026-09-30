@@ -1,0 +1,79 @@
+{
+  "format": "hindcasts-rack",
+  "version": 1,
+  "nodes": [
+    {
+      "id": "sounder1",
+      "type": "sounder",
+      "input": "source",
+      "state": {
+        "version": 2,
+        "global": {
+          "crossovers": [],
+          "makeupDb": 0,
+          "mix": 1
+        },
+        "bands": [
+          {
+            "tauMs": 40,
+            "floorDb": -90,
+            "smoothMs": 30,
+            "makeupDb": 0,
+            "mix": 1,
+            "curve": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 1,
+                "y": 1
+              }
+            ],
+            "enabled": true,
+            "solo": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "sounder2",
+      "type": "sounder",
+      "input": "sounder1",
+      "state": {
+        "version": 2,
+        "global": {
+          "crossovers": [],
+          "makeupDb": 0,
+          "mix": 1
+        },
+        "bands": [
+          {
+            "tauMs": 40,
+            "floorDb": -90,
+            "smoothMs": 30,
+            "makeupDb": 0,
+            "mix": 1,
+            "curve": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 1,
+                "y": 1
+              }
+            ],
+            "enabled": true,
+            "solo": false
+          }
+        ]
+      }
+    }
+  ],
+  "output": "sounder2",
+  "master": {
+    "makeupDb": 0,
+    "ceilingDb": -1
+  }
+}

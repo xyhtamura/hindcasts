@@ -10,7 +10,7 @@ The current single-band tool stays, retitled **`sounder (single band)`** — it 
 
 This is the HINDCASTS member that speaks to the practical audience — producers, mixers, masters making things real people will hear. The thesis rides underneath; the surface is a tool that fixes the thing you fought with last Tuesday.
 
-> **Status: multiband shipped and verified.** Phases 0–2 are done (state refactor, dB grid, linear-phase splitter, band manager + crossover field, per-band τ/curve/floor — the regime field is live). Perfect reconstruction confirmed to Float32 precision; one full-range band is the single-band tool by construction. The Worker offload is *paused* (bundled with the STFT-cache). The live edge of the work is now the **cell / host refactor + rack** — see the two new sections below.
+> **Status: multiband and the offline rack core are built.** `engine.js` supplies the browser and command-line runner with the same DSP; `rack.js` supplies versioned routing, Sounder cells, mixers, and per-render intermediate buffers. See [WORKFLOWS.md](WORKFLOWS.md) for commands and the recipe contract. The browser can save its cell as a rack recipe; the interactive rack editor and host layout remain unbuilt. Worker offload and STFT reuse remain paused.
 
 ---
 
@@ -90,7 +90,7 @@ Keep *cell* and *host* apart. The cell is what sounder *is*; the host is where c
 
 *The ambitious move, and tractable* because *it's offline. Decided: model it as a DAG from the start; ship the linear view first; the mixer/merge node is in (optional).*
 
-**Per-app rack, not a suite-general host.** Each HINDCAST app gets its own isolated rack of its own cell-type. Not a shared host — a shared *pattern*, reinstantiated per app. (Weaker coupling, safer.)
+**Start with Sounder, then add audio effect adapters.** The 2026-09-30 direction replaces isolated per-app racks with a reusable recipe and offline runner. Sounder is the first supported effect. Keep each effect's state and DSP separate from routing; adding Pythia requires an explicit sample-origin and head/tail contract, because the first rack preserves the input timeline. Audio/video routing remains parked.
 
 **Model the DAG now; default to the chain.** A linear chain and a node graph are the same object at two fidelities — a chain is a path, a path is a DAG. So model edges explicitly from day one: the linear UI is just the default rendering (append auto-wires i→i+1), and the collapsible **flowchart** (TouchDesigner / Reaktor register) is the *unlocked rendering of the same structure.* "Most people won't use the graph" becomes "most people see the path-view of the graph." No either/or.
 
@@ -205,6 +205,7 @@ People learn what curves do by reading the named ones against the dB grid, then 
 See the two new sections above. Rough order:
 - [ ] **Layout refactor** — dissolve the intake panel; whole-screen file drop; stats into the waveform header; τ + floor + curve + presets into the depth-chart panel. (Makes room *and* encodes the cell/host split.)
 - [ ] **Cell ↔ host factoring** — sounder becomes a self-contained cell with clean in/out; the host owns file / transport / master / safety.
+- [x] **DSP extraction and offline rack core** — shared browser/Node processing, validated recipes, explicit DAG inputs, cell wet/dry and bypass, mixers, intermediate buffers, WAV runner, and JSON reports.
 - [ ] **Rack v1** — DAG model, linear default rendering, collapsible flowchart, per-cell wet/dry, offline intermediate-caching ("show any step"), **optional mixer/merge node.**
 
 ### still ahead (intent unchanged)
@@ -237,3 +238,16 @@ See the two new sections above. Rough order:
 ---
 
 *spine: the normalizer, let off its leash — an effect that has read the whole file before it draws a single point.*
+
+
+## Log
+
+**2026-09-30 — Codex — Extracted Sounder's DSP and built the offline rack foundation.** `engine.js` runs in the existing browser editor and in Node. The browser keeps its between-band yields and adds **Save rack**. `rack.js` validates Sounder version 2 states and explicit DAG routing, renders output ancestors once, retains raw intermediates, supports cell mix/bypass and gain-controlled mixers, and applies one final sample ceiling. `run-rack.cjs` reads PCM/float WAV, writes float32 WAV, refuses accidental overwrites, and reports stage peak/RMS and limiting. Commands, API, format limits, and agent workflow are in [WORKFLOWS.md](WORKFLOWS.md); the two-stage example is identity processing, not a taste preset.
+
+Checks: `test-rack.cjs` passes short/stereo/multiband identity, serial and parallel processing, mix/bypass, ceiling, determinism, invalid routing/state, WAV round trips, the real CLI output/report, and overwrite guards. `test-browser.cjs` loads stereo audio and three bands through the page's file controls, presses Process, decodes its WAV download, and validates Save rack. With `BASELINE_REF=38fc9be`, the browser export is byte-identical to the pre-extraction page for a three-band curve with shaping/compression/leveling windows. No listening check was made.
+
+Known prerequisite: the existing linked detector averages channels before squaring. An opposite-polarity stereo sine measured normalized level 0 and received zero curve-driven gain change, despite nonzero energy in each channel. This inherited behavior is preserved for extraction parity; choose and test a channel-energy detector before treating stereo rack output as a mastering result. The browser's ceiling still affects monitoring only, while its PCM16 export clamps at full scale; the rack's final ceiling affects exported samples. Neither is a true-peak limiter.
+
+Next: build a vertical browser insert stack with cell selection, add/duplicate/remove/reorder, recipe load/save, and intermediate audition. A selected cell's histogram must describe its actual upstream signal. Resolve the stereo detector issue before relying on the rack for wide stereo mastering. The interactive rack item above remains open for this UI work; routing and mixers are already implemented in the core.
+
+Undone: host layout, Worker/STFT reuse, edit-to-edit cache invalidation, memory limits for long branched graphs, other effect adapters, and sample-origin/tail routing. Layout was postponed so a runnable recipe/CLI could establish the processing contract first. Work stayed sequential in the existing checkout; no worktree was created. The pre-existing Pythia edit was left untouched.
