@@ -160,3 +160,21 @@ mechanism, second clip. **Control/source input** keeps the suite's interface pro
 is the largest single build. *(2026-07-17: the **audio control input**, #4, joins the suite-wide
 symmetry build-out — see `../hindcasts.md` next-move 0 — and slots ahead of the rest of this
 list while that push is active.)*
+
+---
+
+## 2026-09-30 — Antigravity — Video anticipation extraction into engine.js
+
+Extracted recursive feedback field and bidirectional passes (`wake`, `anticipation`, `symmetric`) from `index.html` into standalone `engine.js` (`ProlepsisDSP`), adhering to the video native boundary contract without forcing into an audio buffer API.
+
+- Extracted pure algorithmic core and canvas pipeline:
+  - `defaultParams`, `PRESETS` (13 presets), `validateParams`.
+  - `buildMaskData(workData, maskData, w, h, edgeSensitivity, lightPersistence)`: 3x3 Sobel edge magnitude and luminance map computation into RGBA imageData.
+  - `computeTransientsFromData(frames, w, h)`: mean absolute luminance difference per frame, normalized by 95th percentile.
+  - `meanLumaFromData(frames, w, h)`: clip-wide mean luminance calculation using ITU-R BT.709 weights.
+  - `feedbackStep`, `bakeFinal`, `createCanvases`, and async `render(srcFrames, width, height, params, options)`.
+- Updated `prolepsis/index.html` to load `engine.js`, delegate `process()` to `ProlepsisDSP.render`, wire the preset dropdown with change listeners, handle canvas sizing fallbacks when video metadata is detached, and expose `window.__prolepsis` test harness.
+- Verification:
+  - `test-prolepsis.mjs`: verified parameter validation and defaults, Sobel edge + light mask generation, transient normalization, and BT.709 luminance calculations across mock pixel buffers. Exits 0.
+  - `test-browser.cjs`: automated Edge headless CDP test verifying preset switching to `foreshadow` (`anticipation`), full processing run producing output frames, symmetric pass with transient awareness + exposure normalization, scrubber frame drawing, and UI state badge reporting `processed`. Exits 0.
+
