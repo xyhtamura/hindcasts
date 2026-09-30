@@ -5,7 +5,7 @@ import vm from 'node:vm';
 
 const html=fs.readFileSync(new URL('./proteus.html',import.meta.url),'utf8');
 const core=html.split('<script>')[1].split('//====================== app state')[0];
-const api=vm.runInNewContext(core+';({morphChannel,stft,hann,fft});');
+const api=vm.runInNewContext(core+';({morphChannel,stft,hann,fft,peakRegions});');
 const N=2048,hop=N/4,win=api.hann(N);
 const tone=(len,f,phase=0)=>Float32Array.from({length:len},(_,n)=>.4*Math.sin(2*Math.PI*f*n/44100+phase));
 const render=(a,b,m,tf=1,offset=0,edge=0)=>api.morphChannel(a,b,{
@@ -47,3 +47,37 @@ const re=new Float64Array(N),im=new Float64Array(N);re[0]=1;
 api.fft(re,im,false);assert.ok(re.every(v=>Math.abs(v-1)<1e-10));
 api.fft(re,im,true);assert.ok(Math.abs(re[0]-1)<1e-10);
 console.log('PASS: short clips, exact length, endpoints, offsets, waveform fade, edge fade, identity, silence, FFT');
+
+function bandEnergy(signal,frequencies){
+  const size=32768,re=new Float64Array(size),im=new Float64Array(size);
+  for(let n=0;n<size;n++)re[n]=signal[n+4096]*(.5-.5*Math.cos(2*Math.PI*n/size));
+  api.fft(re,im,false);
+  let all=0,inside=0;
+  for(let k=1;k<size/2;k++){
+    const e=re[k]**2+im[k]**2,hz=k*44100/size;all+=e;
+    if(frequencies.some(f=>Math.abs(f-hz)<35))inside+=e;
+  }
+  return inside/all;
+}
+const single=render(tone(44100,220),tone(44100,440),.5);
+const singleRatio=bandEnergy(single,[330]);
+assert.ok(singleRatio>.9,`single transported peak energy ${singleRatio}`);
+const chord=(f,g)=>Float32Array.from(tone(44100,f),(v,n)=>.5*(v+toneSecond(g,n)));
+const toneSecond=(f,n)=>.4*Math.sin(2*Math.PI*f*n/44100);
+const chordOut=render(chord(220,660),chord(440,880),.5);
+const chordRatio=bandEnergy(chordOut,[330,770]);
+assert.ok(chordRatio>.8,`transported chord energy ${chordRatio}`);
+const regions=api.peakRegions(Float32Array.from([0,1,4,1,0,2,8,2,0]));
+assert.equal(regions.regions.length,2);
+assert.equal(regions.regions.reduce((s,r)=>s+r.mass,0),regions.total);
+console.log(JSON.stringify({singlePeakEnergy:singleRatio,chordPeakEnergy:chordRatio}));
+const glide=render(tone(44100,220),tone(44100,440),x=>x);
+for(const [start,end] of [[6000,12000],[30000,36000]]){
+  let crossings=0;for(let n=start+1;n<end;n++)if((glide[n-1]<0)!==(glide[n]<0))crossings++;
+  const hz=crossings*44100/(2*(end-start)),expected=220+220*(start+end)/2/44099;
+  assert.ok(Math.abs(hz-expected)<5,`glide ${hz} Hz; expected ${expected} Hz`);
+}
+let seed=17;
+const noise=Float32Array.from({length:10000},()=>{seed=(1664525*seed+1013904223)>>>0;return .1*(seed/2147483648-1);});
+finite(render(noise,tone(noise.length,500),.5));
+console.log('PASS: glide trajectory and noise-to-tone finiteness');

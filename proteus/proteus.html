@@ -210,6 +210,69 @@ function otMag(a,b,t,out){
   return out;
 }
 
+// Valley-bounded peak regions retain each peak's spectral lobe and relative phase.
+function peakRegions(mag){
+  let total=0,max=0;
+  for(const v of mag){total+=v;max=Math.max(max,v);}
+  if(total<=1e-12) return {regions:[],total};
+  const peaks=[];
+  for(let k=0;k<mag.length;k++){
+    if(mag[k]>max*1e-5 && (k===0 || mag[k]>mag[k-1]) &&
+       (k===mag.length-1 || mag[k]>=mag[k+1])) peaks.push(k);
+  }
+  const regions=[];let start=0;
+  for(let p=0;p<peaks.length;p++){
+    let end=mag.length;
+    if(p+1<peaks.length){
+      let valley=peaks[p]+1;
+      for(let k=valley+1;k<peaks[p+1];k++) if(mag[k]<mag[valley]) valley=k;
+      end=valley;
+    }
+    let mass=0;for(let k=start;k<end;k++)mass+=mag[k];
+    regions.push({peak:peaks[p],start,end,mass});start=end;
+  }
+  return {regions,total};
+}
+
+function peakTransport(A,B,f,bf,t,previous,re,im){
+  const a=peakRegions(A.mag[f]),b=peakRegions(B.mag[bf]);
+  re.fill(0);im.fill(0);
+  if(!a.regions.length || !b.regions.length){
+    // Silence has no peak correspondence: attenuate the available complex spectrum.
+    const X=a.regions.length?A:B,frame=a.regions.length?f:bf,g=a.regions.length?1-t:t;
+    for(let k=0;k<A.K;k++){re[k]=g*X.mag[frame][k]*Math.cos(X.phase[frame][k]);im[k]=g*X.mag[frame][k]*Math.sin(X.phase[frame][k]);}
+    return [];
+  }
+  const tracks=[],total=(1-t)*a.total+t*b.total;
+  let i=0,j=0,ra=a.regions[0].mass/a.total,rb=b.regions[0].mass/b.total,prevIndex=0;
+  while(i<a.regions.length && j<b.regions.length){
+    const ar=a.regions[i],br=b.regions[j],mass=Math.min(ra,rb);
+    const omega=(1-t)*A.adv[f][ar.peak]+t*B.adv[bf][br.peak];
+    const dest=Math.round((1-t)*ar.peak+t*br.peak);
+    const distance=p=>Math.abs(p.a-ar.peak)+Math.abs(p.b-br.peak);
+    while(prevIndex+1<previous.length && distance(previous[prevIndex+1])<distance(previous[prevIndex]))prevIndex++;
+    const old=previous[prevIndex];
+    const phase=old && distance(old)<=4 ? old.phase+omega :
+      A.phase[f][ar.peak]+t*princ(B.phase[bf][br.peak]-A.phase[f][ar.peak]);
+    tracks.push({a:ar.peak,b:br.peak,phase:princ(phase),omega});
+    const deposit=(X,frame,r,weight)=>{
+      const g=total*mass*weight/r.mass;
+      for(let k=r.start;k<r.end;k++){
+        const target=dest+k-r.peak;
+        if(target<0 || target>=A.K)continue;
+        const phi=phase+princ(X.phase[frame][k]-X.phase[frame][r.peak]);
+        const amplitude=g*X.mag[frame][k];
+        re[target]+=amplitude*Math.cos(phi);im[target]+=amplitude*Math.sin(phi);
+      }
+    };
+    if(mass>0){deposit(A,f,ar,1-t);deposit(B,bf,br,t);}
+    ra-=mass;rb-=mass;
+    if(ra<=1e-12){i++;if(i<a.regions.length)ra=a.regions[i].mass/a.total;}
+    if(rb<=1e-12){j++;if(j<b.regions.length)rb=b.regions[j].mass/b.total;}
+  }
+  return tracks;
+}
+
 function morphChannel(aData, bData, opts){
   const {N,hop,win,curveAt,bOffsetSamples,tf,edgeFadeSamples=0} = opts;
   const amountAt = n => {
@@ -234,36 +297,21 @@ function morphChannel(aData, bData, opts){
   const outLen=(F-1)*hop + N;
   const outAcc=new Float64Array(outLen), winAcc=new Float64Array(outLen);
   const re=new Float64Array(N), im=new Float64Array(N);
-  const phaseOut=new Float64Array(K);
-  const M=new Float32Array(K);
+  let tracks=[];
 
   for(let f=0; f<F; f++){
     const center=Math.max(0,Math.min(aData.length-1,f*hop-A.pad+N/2));
     const bf = Math.round(f - bOffFrames);
     const bIn = bf>=0 && bf<B.F;
-    const magA=A.mag[f], magB=bIn?B.mag[bf]:null;
-
     const m_eff=bIn ? amountAt(center) : 0;
-
-    if(magB){
-      otMag(magA,magB,m_eff,M);
+    if(m_eff===0 || m_eff===1){
+      const X=m_eff===1?B:A,frame=m_eff===1?bf:f;
+      re.fill(0);im.fill(0);tracks=[];
+      for(let k=0;k<K;k++){re[k]=X.mag[frame][k]*Math.cos(X.phase[frame][k]);im[k]=X.mag[frame][k]*Math.sin(X.phase[frame][k]);}
     } else {
-      for(let k=0;k<K;k++) M[k]=magA[k];
+      tracks=peakTransport(A,B,f,bf,m_eff,tracks,re,im);
     }
-
-    if(f===0 || m_eff===0 || m_eff===1){
-      for(let k=0;k<K;k++){
-        phaseOut[k]=m_eff===1 ? B.phase[bf][k] : A.phase[f][k];
-        if(f===0 && m_eff>0 && m_eff<1) phaseOut[k]+=m_eff*princ(B.phase[bf][k]-phaseOut[k]);
-      }
-    } else {
-      const advA=A.adv[f], advB=bIn?B.adv[bf]:null;
-      for(let k=0;k<K;k++){
-        phaseOut[k] += advB ? (1-m_eff)*advA[k] + m_eff*advB[k] : advA[k];
-      }
-    }
-
-    for(let k=0;k<K;k++){ re[k]=M[k]*Math.cos(phaseOut[k]); im[k]=M[k]*Math.sin(phaseOut[k]); }
+    im[0]=0;im[K-1]=0;
     for(let k=1;k<K-1;k++){ re[N-k]=re[k]; im[N-k]=-im[k]; }
     fft(re,im,true);
     const off=f*hop;
@@ -569,7 +617,7 @@ addEventListener('resize',()=>{drawTL();drawCurve();});
 drawTL(); drawCurve(); updTime();
 
 //====================== debug / self-test hooks =========================
-window.__proteus={ fft, otMag, morphChannel, stft, hann, bucketPeaks,
+window.__proteus={ fft, otMag, peakRegions, morphChannel, stft, hann, bucketPeaks,
   selftest(){
     const N=2048, hop=N/4, win=hann(N), rate=44100, len=rate|0;
     const a=new Float32Array(len), b=new Float32Array(len);

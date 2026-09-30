@@ -382,6 +382,8 @@ what the suite is building the counter-case for.
 
 ## log
 
+**2026-09-30 — Codex — Added peak-aware transport to Proteus.** The Transport control moves valley-bounded spectral regions and preserves their relative phase under peak-frequency accumulation. Tone, chord, glide, identity, boundary, and noise-finiteness regressions pass; headless Edge renders and decodes an exact-length WAV. Details and remaining reconstruction limits are in [proteus/proteus.md](proteus/proteus.md). Listening and whole-file correspondence smoothing remain undone. The suite's next step is unchanged.
+
 **2026-09-30 — Codex — Fixed Proteus's reviewed DSP bugs.** Short clips no longer read past their arrays, output retains A's exact length, and Fade mixes waveforms with exact sample offsets. Added DSP regressions and a headless Edge render/WAV decode check; both pass. Details and algorithm recommendations are in [proteus/proteus.md](proteus/proteus.md). Listening remains unchecked, and intermediate transport still needs peak-aware phase reconstruction. No roadmap step changed.
 
 **2026-09-09 — Claude Code — Added the regime table; corrected the compositing-graph claim.** One
