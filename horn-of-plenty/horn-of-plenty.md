@@ -116,6 +116,8 @@ Validated numerically: on a synthetic source 8.8× louder at head than tail, the
 
 ## log
 
+**2026-09-30 — Codex — Restored Husk's pre-extraction controls.** The module preset again uses density 4, reversal 10%, and spread 25%. `scripts/check-extraction.cjs` asserts the original preset; the Node and browser suites pass. `scripts/check-extraction-parity.cjs` runs both the historical and current pages under the same random sequence and obtains identical stereo samples for Husk. Other random sequences and long recordings were not compared; rack adaptation remains undone. No planned feature changed.
+
 ### 2026-09-30 — Antigravity — DSP extraction into engine.js
 
 Extracted DSP routines from `horn-of-plenty/index.html` into a standalone UMD module `horn-of-plenty/engine.js` (`HornOfPlentyDSP`), running in Node or browser without DOM or AudioContext dependencies.
@@ -131,4 +133,3 @@ Extracted DSP routines from `horn-of-plenty/index.html` into a standalone UMD mo
   - `node horn-of-plenty/test-horn-of-plenty.mjs`: Tested analysis, suggestion, seeded scatter determinism, length contract, level guardian, and WAV chunk structure. All assertions passed (exited 0).
   - `node horn-of-plenty/test-browser.cjs`: Tested headless Microsoft Edge via CDP pipe loading an AudioBuffer, winnowing grains, suggesting fiber, rendering stereo audio, verifying 0 dBFS ceiling, validating WAV export data size, and cycling presets. All assertions passed (exited 0).
 - **Undone / known broken:** None.
-

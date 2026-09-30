@@ -12,7 +12,7 @@
     mist: { fiber: 25, white: 85, dens: 8, even: 95, pitch: 1.5, rev: 20, spread: 55 },
     sand: { fiber: 45, white: 70, dens: 6.5, even: 90, pitch: 0.5, rev: 15, spread: 40 },
     orchard: { fiber: 90, white: 50, dens: 5, even: 80, pitch: 3, rev: 35, spread: 50 },
-    husk: { fiber: 160, white: 25, dens: 3.5, even: 65, pitch: 0, rev: 0, spread: 20 }
+    husk: { fiber: 160, white: 25, dens: 4, even: 65, pitch: 0, rev: 10, spread: 25 }
   });
 
   function defaultParams() {

@@ -9,6 +9,9 @@ let failed=0;
 function check(name,run){try{run();console.log(`PASS: ${name}`);}catch(e){failed++;console.error(`FAIL: ${name}\n${e.message}`);}}
 for(const key of ['balance','flowY','chromaSplit','edgeInscription','lightPersistence','blur']){
   check(`Prolepsis preserves ${key}=0`,()=>assert.equal(Prolepsis.validateParams({[key]:0})[key],0));
+  for(const invalid of [undefined,null,NaN,Infinity,'']){
+    check(`Prolepsis defaults invalid ${key}=${String(invalid)}`,()=>assert.equal(Prolepsis.validateParams({[key]:invalid})[key],Prolepsis.defaultParams[key]));
+  }
 }
 check('Horn of Plenty preserves the original Husk preset',()=>assert.deepEqual(Horn.PRESETS.husk,{
   fiber:160,white:25,dens:4,even:65,pitch:0,rev:10,spread:25

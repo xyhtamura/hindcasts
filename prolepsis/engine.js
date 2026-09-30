@@ -65,27 +65,34 @@
 
   function validateParams(raw = {}) {
     const p = { ...defaultParams, ...raw };
+    // Zero is a valid control value. Use the default only for missing/invalid input.
+    const finite = key => {
+      const value = p[key];
+      if (value === null || value === undefined || value === "") return defaultParams[key];
+      const n = Number(value);
+      return Number.isFinite(n) ? n : defaultParams[key];
+    };
     const validModes = ["wake", "anticipation", "symmetric"];
     return {
       mode: validModes.includes(p.mode) ? p.mode : "symmetric",
-      balance: clamp(Number(p.balance) || 0.5, 0, 1),
+      balance: clamp(finite("balance"), 0, 1),
       transientAware: Boolean(p.transientAware),
       exposureNorm: Boolean(p.exposureNorm),
-      memoryDecay: clamp(Number(p.memoryDecay) || 0.985, 0.85, 0.999),
-      deposit: clamp(Number(p.deposit) || 0.06, 0.005, 0.6),
-      flowX: clamp(Number(p.flowX) || 0, -8, 8),
-      flowY: clamp(Number(p.flowY) || -1.2, -8, 8),
-      zoom: clamp(Number(p.zoom) || 1.002, 0.96, 1.04),
-      rotation: clamp(Number(p.rotation) || 0, -2, 2),
-      oscillate: clamp(Number(p.oscillate) || 0, 0, 12),
-      oscRate: clamp(Number(p.oscRate) || 1, 0.1, 5),
-      strobe: clamp(Number(p.strobe) || 0, 0, 1),
-      strobeSpeed: clamp(Number(p.strobeSpeed) || 2, 0.5, 10),
-      hueShift: clamp(Number(p.hueShift) || 0, -5, 5),
-      chromaSplit: clamp(Number(p.chromaSplit) || 6.5, 0, 28),
-      edgeInscription: clamp(Number(p.edgeInscription) || 0.95, 0, 2),
-      lightPersistence: clamp(Number(p.lightPersistence) || 0.65, 0, 2),
-      blur: clamp(Number(p.blur) || 1.4, 0, 8)
+      memoryDecay: clamp(finite("memoryDecay"), 0.85, 0.999),
+      deposit: clamp(finite("deposit"), 0.005, 0.6),
+      flowX: clamp(finite("flowX"), -8, 8),
+      flowY: clamp(finite("flowY"), -8, 8),
+      zoom: clamp(finite("zoom"), 0.96, 1.04),
+      rotation: clamp(finite("rotation"), -2, 2),
+      oscillate: clamp(finite("oscillate"), 0, 12),
+      oscRate: clamp(finite("oscRate"), 0.1, 5),
+      strobe: clamp(finite("strobe"), 0, 1),
+      strobeSpeed: clamp(finite("strobeSpeed"), 0.5, 10),
+      hueShift: clamp(finite("hueShift"), -5, 5),
+      chromaSplit: clamp(finite("chromaSplit"), 0, 28),
+      edgeInscription: clamp(finite("edgeInscription"), 0, 2),
+      lightPersistence: clamp(finite("lightPersistence"), 0, 2),
+      blur: clamp(finite("blur"), 0, 8)
     };
   }
 

@@ -165,6 +165,7 @@ list while that push is active.)*
 
 ## 2026-09-30 — Antigravity — Video anticipation extraction into engine.js
 
+
 Extracted recursive feedback field and bidirectional passes (`wake`, `anticipation`, `symmetric`) from `index.html` into standalone `engine.js` (`ProlepsisDSP`), adhering to the video native boundary contract without forcing into an audio buffer API.
 
 - Extracted pure algorithmic core and canvas pipeline:
@@ -178,3 +179,4 @@ Extracted recursive feedback field and bidirectional passes (`wake`, `anticipati
   - `test-prolepsis.mjs`: verified parameter validation and defaults, Sobel edge + light mask generation, transient normalization, and BT.709 luminance calculations across mock pixel buffers. Exits 0.
   - `test-browser.cjs`: automated Edge headless CDP test verifying preset switching to `foreshadow` (`anticipation`), full processing run producing output frames, symmetric pass with transient awareness + exposure normalization, scrubber frame drawing, and UI state badge reporting `processed`. Exits 0.
 
+**2026-09-30 — Codex — Corrected the extracted validator's zero-value regression.** Numeric controls retain finite zero values and fall back to defaults for absent, null, empty, NaN, or infinite input. `scripts/check-extraction.cjs` tests the six affected zero boundaries and invalid defaults. The Node and browser suites pass; `scripts/check-extraction-parity.cjs` compares the real page against `f2e03ff` and produces identical frame bytes for a symmetric balance-0 sequence with zero flow, chroma, inscription, persistence, and blur, plus transient/exposure processing. Listening/visual taste, broader setting coverage, and rack integration remain undone. No planned feature changed.
