@@ -157,4 +157,15 @@ Verification: `node proteus/test-proteus.mjs` passes the earlier regressions plu
 
 The first phase update averaged successive frame advances, but failed the identity test by a maximum sample error of 0.068. It was replaced with the current frame's interval advance, which preserves identical inputs within the existing 0.0001 sample tolerance. No additional controls or alternate engines were added.
 
-Remaining limits: peak regions use local maxima and valleys, not the paper's reassignment-based partition. Their destination bins are rounded, though phase advances follow the interpolated frequency. Continuity uses nearby source peak-bin pairs between adjacent frames; changing assignments can reset phase, and whole-file correspondence smoothing remains unbuilt. Noise is not separated from tonal mass, attacks have no special handling, translated bins outside the representable band are discarded, and independent stereo channels can choose different plans. Listening on speech, changing chords, attacks, and noise remains undone. The suite's existing next step is unchanged.
+2026-09-30 — Antigravity — Extracted Proteus DSP into engine.js module.
+- `engine.js` exports `ProteusDSP` with `morphChannel`, `render`, `stft`, `fft`, `hann`, `princ`, `otMag`, `peakRegions`, `peakTransport`, `curveFromPoints`, `toMono`, `defaultParams`, `validateParams`, and `bucketPeaks`. Zero DOM, AudioContext, or UI dependencies; runs in Node.js and browser scripts.
+- `proteus.html` and `test-proteus.mjs` retargeted to `engine.js`, eliminating HTML string splitting and `vm.runInNewContext`.
+- `test-browser.cjs` updated to support headless Edge via native CDP pipe fallback when Playwright is not installed globally.
+- Verification: `node proteus/test-proteus.mjs` passes all regressions (short clips, exact length, endpoints, offsets, waveform crossfade, edge fade, identity, FFT, single peak energy 99.999998%, chord peak energy 99.982469%, glide trajectory, noise finiteness). `node proteus/test-browser.cjs` passes in headless Edge (72,000 samples, WAV decode match, status Rendered, peak 0.502, RMS 0.323).
+- Boundary contract:
+  - Named inputs: `channelsA` (`Float32Array[]`, source/body), `channelsB` (`Float32Array[]`, donor/target), `sampleRate` (number), `opts` (`fftSize`, `tf`, `bOffsetSamples` / `bOffset`, `edgeFadeSamples` / `edgeFade`, `stereoMode`, `curveAt` / `curve`). Both input arrays are read-only and never mutated.
+  - Placement: Output length is exactly A's length; input sample 0 of A lands at output sample 0. B is positioned at `bOffsetSamples`; samples outside B's span retain A untouched.
+  - Operations: Fade endpoint blends sample-aligned waveforms; Transport (`tf > 0`) reconstructs via STFT peak-region translation and instantaneous-frequency accumulation. Pre-normalization ceiling clamps peak to 0.891 (-1 dBFS) via `g = Math.min(1, 0.891 / peak)`.
+  - Randomness: Deterministic (no random state).
+- Remaining integration limits: dual-input routing and buffer alignment in the offline rack (A = primary clock, B = secondary donor); cross-channel stereo phase correlation; whole-file correspondence smoothing.
+

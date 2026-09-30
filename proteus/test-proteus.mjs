@@ -3,9 +3,12 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-const html=fs.readFileSync(new URL('./proteus.html',import.meta.url),'utf8');
-const core=html.split('<script>')[1].split('//====================== app state')[0];
-const api=vm.runInNewContext(core+';({morphChannel,stft,hann,fft,peakRegions});');
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const ProteusDSP = require('./engine.js');
+const api = ProteusDSP;
+const html = fs.readFileSync(new URL('./proteus.html', import.meta.url), 'utf8');
+assert.match(html, /<script src="engine\.js"><\/script>/, 'proteus.html loads engine.js');
 const N=2048,hop=N/4,win=api.hann(N);
 const tone=(len,f,phase=0)=>Float32Array.from({length:len},(_,n)=>.4*Math.sin(2*Math.PI*f*n/44100+phase));
 const render=(a,b,m,tf=1,offset=0,edge=0)=>api.morphChannel(a,b,{
