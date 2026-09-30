@@ -125,3 +125,13 @@ Decisions taken during the build (were open questions): central viz **is** the t
 ---
 
 *spine: hold the shapeshifter through every form, and he must tell you the future.*
+
+## Review log
+
+2026-09-30 — Codex — Reviewed the manual-alignment MVP without changing the app. Executed the HTML's DSP functions in Node with generated signals, FFT size 2048, hop 512, and edge fade disabled.
+
+- A 1,000-sample clip produces 1,025 non-finite magnitude bins because `stft` reads beyond its array. Passing those spectra into `otMag` hangs its loop: NaN residuals never advance either index. The render probe was interrupted. Zero-pad incomplete windows before taking the FFT.
+- The Fade endpoint interpolates magnitudes and phase advances rather than waveforms. With A a 220 Hz sine and B a 220 Hz cosine, both at amplitude 0.4 and 44,100 samples, the interior relative RMS error against a waveform crossfade is 1.415 at morph amount 1 and 1.001 at amount 0.5; the A endpoint error is 0.000141. The output phase starts from A even at amount 1. Provide a waveform crossfade for the Fade control and reconstruct the donor phase at the B endpoint.
+- The frame count drops the incomplete final window. A 44,100-sample input produces 44,032 samples. Include a zero-padded final window and trim reconstruction to A's exact sample count.
+
+All three defects remain unfixed. Browser interaction, listening, and WAV playback were not checked in this review. Planned stances and phase-reconstruction limitations remain as documented above.
