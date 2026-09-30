@@ -9,18 +9,13 @@ const h1Inner = html.match(/<h1>([\s\S]*?)<\/h1>/)?.[1];
 assert.equal(h1Inner?.replace(/<[^>]+>/g, ""), "Metachamber", "product heading reads Metachamber (display glyphs may be wrapped)");
 assert.match(html, /<h2>Caesura \/ [^<]+<\/h2>/, "Caesura remains the mechanic name");
 assert.doesNotMatch(html, /renderCaesura|__caesura|CAESURA_DSP/, "old product API symbols are gone");
-const sharedSource = fs.readFileSync(new URL("../shared/gap-map.js", import.meta.url), "utf8");
-const sharedScope = {};
-new Function("globalThis", "module", sharedSource)(sharedScope, undefined);
-const sharedAnalyzeGapMap = sharedScope.HindcastsGapMap.analyzeGapMap;
-const dspSource = html.match(/\/\* METACHAMBER_DSP_START \*\/([\s\S]*?)\/\* METACHAMBER_DSP_END \*\//)?.[1];
-assert.ok(dspSource, "DSP source block is present");
-
-const { analyzeGapMap, solveGapMap, renderMetachamber } = new Function(
-  "globalThis",
-  `${dspSource}; return { analyzeGapMap, solveGapMap, renderMetachamber };`
-)(sharedScope);
-assert.equal(analyzeGapMap, sharedAnalyzeGapMap, "Metachamber consumes the canonical shared analyzer");
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+const HindcastsGapMap = require("../shared/gap-map.js");
+const MetachamberDSP = require("./engine.js");
+const { analyzeGapMap, solveGapMap, renderMetachamber } = MetachamberDSP;
+assert.equal(analyzeGapMap, HindcastsGapMap.analyzeGapMap, "Metachamber consumes the canonical shared analyzer");
+assert.match(html, /<script src="engine\.js"><\/script>/, "index.html loads engine.js module");
 const encodeSource = html.match(/function encodeWav\([\s\S]*?(?=function safeStem)/)?.[0];
 assert.ok(encodeSource, "WAV encoder is present");
 const encodeWav = new Function(`${encodeSource}; return encodeWav;`)();
@@ -206,24 +201,7 @@ assert.equal(stereoWav.getFloat32(44 + (stereoIndex * 2 + stereoChannel) * 4, tr
 const hash = value => crypto.createHash("sha256").update(new Uint8Array(value)).digest("hex");
 assert.equal(hash(wavA), hash(wavB), "identical bounces have identical SHA-256 hashes");
 
-const workerProgram = `
-const { parentPort } = require("node:worker_threads");
-const analyzeGapMap = ${analyzeGapMap.toString()};
-const renderMetachamber = ${renderMetachamber.toString()};
-const self = { postMessage: (message, transfer) => parentPort.postMessage(message, transfer) };
-self.onmessage = event => {
-  const { id, kind, payload } = event.data;
-  const report = (phase, value) => self.postMessage({ id, progress: true, phase, value });
-  try {
-    if (kind === "analyze") self.postMessage({ id, ok: true, result: analyzeGapMap(payload, report) });
-    else if (kind === "render") {
-      const result = renderMetachamber(payload, report);
-      self.postMessage({ id, ok: true, result }, result.channels.map(channel => channel.buffer));
-    } else throw new Error("Unknown engine job");
-  } catch (error) { self.postMessage({ id, ok: false, error: error && error.stack || String(error) }); }
-};
-parentPort.on("message", data => self.onmessage({ data }));`;
-const engineWorker = new Worker(workerProgram, { eval: true });
+const engineWorker = new Worker(new URL("./worker.cjs", import.meta.url));
 let workerId = 0;
 const workerJob = (kind, payload, transfer = []) => new Promise((resolve, reject) => {
   const id = ++workerId;

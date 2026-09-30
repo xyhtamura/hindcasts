@@ -142,4 +142,21 @@ Built at `metachamber/index.html` in the suite's drop file → analyze → previ
 
 ---
 
+## Log
+
+**2026-09-30 — Antigravity — Extracted Metachamber DSP into engine.js module and thin Worker wrappers.**
+- `engine.js` exports `MetachamberDSP` with `analyzeGapMap`, `solveGapMap`, `renderMetachamber`, `render`, `defaultParams`, `validateParams`, and `createWorkerSource`. Zero DOM, AudioContext, or UI dependencies; runs in Node.js, Web Workers, and browser scripts.
+- Added `worker.cjs` (for Node `worker_threads` without eval) and `worker.js` (for browser Web Worker), retaining Blob-worker fallback in `index.html` for `file://` security contexts.
+- `index.html` and `test-metachamber.mjs` retargeted to `engine.js` and `worker.cjs`, removing runtime HTML regex extraction and eval.
+- Verification: `node metachamber/test-metachamber.mjs` reproduces the exact deterministic baseline WAV SHA-256 (`45f6ebb023187f7e5321de4cb836a3176292bb9580d2f54a5b4a34d7d4e3930e`), event counts (5), sample lengths (73,260), and boundary check allowances. `node metachamber/test-browser.mjs` passes in headless Microsoft Edge via CDP.
+- Boundary contract:
+  - Inputs: channel arrays (`Float32Array[]`), explicit `sampleRate`, `params` (spill, maskingCredit, rtMin, rtMax, preDelay, damping, mix, stance, temporal, temporalBalance). Source channels are read-only and never mutated.
+  - Placement: Input sample 0 lands at output index `headSamples` (`hasAnticipation ? Math.ceil((preDelay + rtMax * 1.5) * sampleRate) : 0`). Output length is `headSamples + sourceLength + tailSamples`.
+  - Operations: Equal-power wet/dry insert mix, direction balance weighting, and effect-owned ceiling scale (`peak > 0.977 ? 0.977 / peak : 1`).
+  - Randomness: Seeded `mulberry32(0xCAE50001)` internally governs deterministic FDN delay taps and polarities.
+- Undone / rack constraints: rack cell adapter, sample-origin/tail compensation across branched DAGs, and interactive insert stack remain for rack integration work.
+
+---
+
 *spine: a room that remembers the wake and foresees the arrival.*
+
