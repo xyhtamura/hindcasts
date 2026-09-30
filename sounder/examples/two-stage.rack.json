@@ -7,11 +7,12 @@
       "type": "sounder",
       "input": "source",
       "state": {
-        "version": 2,
+        "version": 3,
         "global": {
           "crossovers": [],
           "makeupDb": 0,
-          "mix": 1
+          "mix": 1,
+          "detector": "power"
         },
         "bands": [
           {
@@ -41,11 +42,12 @@
       "type": "sounder",
       "input": "sounder1",
       "state": {
-        "version": 2,
+        "version": 3,
         "global": {
           "crossovers": [],
           "makeupDb": 0,
-          "mix": 1
+          "mix": 1,
+          "detector": "power"
         },
         "bands": [
           {

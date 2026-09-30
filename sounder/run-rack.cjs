@@ -17,7 +17,7 @@ function main(args){
     if(opts[k.slice(2)]!==undefined)throw Error(`Duplicate option ${k}`);opts[k.slice(2)]=args.shift();
   }
   if(command==='describe'){
-    console.log(JSON.stringify({format:'hindcasts-rack',version:1,effects:[{id:'sounder',stateVersion:2,
+    console.log(JSON.stringify({format:'hindcasts-rack',version:1,effects:[{id:'sounder',stateVersion:3,acceptedStateVersions:[2,3],detectors:['power','mono'],
       operation:'Whole-file multiband level transfer',controls:{tauMs:[0.5,2000],floorDb:[-200,-1],smoothMs:[0,2000],makeupDb:[-60,36],mix:[0,1]},
       curve:'Normalized x and y in [0,1]; x=0 is floorDb, x=1 is 0 dB. Window tauMs changes the level measurement.'}],
       routing:['sounder (one input, bypass, cell mix)','mix (inputs with gainDb)'],example:Rack.chain([Rack.defaultState()])},null,2));return;

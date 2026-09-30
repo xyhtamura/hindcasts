@@ -251,3 +251,13 @@ Known prerequisite: the existing linked detector averages channels before squari
 Next: build a vertical browser insert stack with cell selection, add/duplicate/remove/reorder, recipe load/save, and intermediate audition. A selected cell's histogram must describe its actual upstream signal. Resolve the stereo detector issue before relying on the rack for wide stereo mastering. The interactive rack item above remains open for this UI work; routing and mixers are already implemented in the core.
 
 Undone: host layout, Worker/STFT reuse, edit-to-edit cache invalidation, memory limits for long branched graphs, other effect adapters, and sample-origin/tail routing. Layout was postponed so a runnable recipe/CLI could establish the processing contract first. Work stayed sequential in the existing checkout; no worktree was created. The pre-existing Pythia edit was left untouched.
+
+## 2026-09-30 — Codex — Channel-power stereo detector
+
+New version 3 states use mean channel power for RMS analysis. Each channel is band-filtered before its energy is measured; all channels receive the same RMS gain. Identical and opposite-polarity stereo now measure equally. One active stereo channel measures 3.01 dB below two equally active channels. Mono processing and the independent shaping path below 2 ms are unchanged.
+
+Version 1/2 browser states and version 2 rack states retain an explicit `mono` detector, preserving their sound. The Level detector selector switches to `power`; state and rack saves record the choice. The earlier stereo prerequisite is resolved.
+
+Checks: `test-stereo.cjs` passes energy, polarity, linked-gain, mono/legacy parity, multiband, short/silent-buffer, and migration cases. `test-rack.cjs` passes. `test-browser.cjs` with `BASELINE_REF=38fc9be` passes actual page processing/export, polarity-invariant histograms and output, selector invalidation, version 3 rack saving, and byte-identical migrated version 2 export against the historical page. No listening check was made.
+
+Next: the vertical browser insert stack, including upstream histograms and intermediate audition. Other-effect adapters, Worker processing, and reusable STFT caches remain undone.

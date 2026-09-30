@@ -14,15 +14,17 @@ function keys(o,allowed,name){
   if(!o||typeof o!=='object'||Array.isArray(o))fail(`${name} must be an object`);
   for(const k of Object.keys(o))if(!allowed.includes(k))fail(`${name}: unknown field ${k}`);
 }
-function defaultState(){return {version:2,global:{crossovers:[],makeupDb:0,mix:1},bands:[{
+function defaultState(){return {version:3,global:{crossovers:[],makeupDb:0,mix:1,detector:'power'},bands:[{
   tauMs:40,floorDb:-90,smoothMs:30,makeupDb:0,mix:1,
   curve:[{x:0,y:0},{x:1,y:1}],enabled:true,solo:false
 }]};}
 function validateState(state){
   keys(state,['version','global','bands'],'Sounder state');
-  if(state.version!==2)fail('Rack Sounder state requires version 2');
+  if(state.version!==2&&state.version!==3)fail('Rack Sounder state requires version 2 or 3');
   const s=copy(state),g=s.global;
-  keys(g,['crossovers','makeupDb','mix','ceilingDb'],'Sounder global');
+  keys(g,['crossovers','makeupDb','mix','ceilingDb','detector'],'Sounder global');
+  if(state.version===2){if(g.detector!==undefined)fail('Version 2 cannot declare a detector');g.detector='mono';s.version=3;}
+  if(!['power','mono'].includes(g.detector))fail('Detector must be power or mono');
   if(!Array.isArray(g.crossovers)||g.crossovers.length>31)fail('Expected at most 31 crossovers');
   g.crossovers.forEach((x,i)=>{number(x,20,96000,'crossover Hz');if(i&&x<=g.crossovers[i-1])fail('Crossovers must increase');});
   g.makeupDb=number((g.makeupDb===undefined?0:g.makeupDb),-60,36,'master makeup dB');

@@ -51,6 +51,23 @@ function avgMono(chs){const len=chs[0].length,m=new Float32Array(len),n=chs.leng
 function analyseMono(m,tauMs,floorDb){const len=m.length,nF=Math.ceil(len/HOP);
   const fe=new Float64Array(nF),fn=new Float64Array(nF);
   for(let f=0;f<nF;f++){const a=f*HOP,b=Math.min(a+HOP,len);let e=0;for(let i=a;i<b;i++)e+=m[i]*m[i];fe[f]=e;fn[f]=b-a;}
+  return analyseFrames(fe,fn,tauMs,floorDb);
+}
+function analyseChannels(chs,tauMs,floorDb,mode=G.detector||'power'){
+  if(mode==='mono')return analyseMono(avgMono(chs),tauMs,floorDb);
+  if(chs.length===1)return analyseMono(chs[0],tauMs,floorDb);
+  const len=chs[0].length,nF=Math.ceil(len/HOP),fe=new Float64Array(nF),fn=new Float64Array(nF);
+  // Split each channel before this measurement. Averaging waveforms or filtering
+  // a rectified energy proxy would lose cancellation energy or create harmonics.
+  for(let f=0;f<nF;f++){
+    const a=f*HOP,b=Math.min(a+HOP,len);let e=0;
+    for(let i=a;i<b;i++){let power=0;for(const c of chs)power+=c[i]*c[i];e+=power/chs.length;}
+    fe[f]=e;fn[f]=b-a;
+  }
+  return analyseFrames(fe,fn,tauMs,floorDb);
+}
+function analyseFrames(fe,fn,tauMs,floorDb){
+  const nF=fe.length;
   const pe=new Float64Array(nF+1),pn=new Float64Array(nF+1);
   for(let f=0;f<nF;f++){pe[f+1]=pe[f]+fe[f];pn[f+1]=pn[f]+fn[f];}
   const W=Math.max(1,Math.round((tauMs/1000*sr)/HOP)),hw=W>>1;
@@ -72,7 +89,7 @@ function lutFor(P){const cv=P.map(p=>({...p})).sort((a,b)=>a.x-b.x);cv[0].x=0;cv
 const applyOn=(L,nx)=>{const t=clamp(nx,0,1)*(LUTN-1),i=t|0,fr=t-i;return i>=LUTN-1?L[LUTN-1]:L[i]*(1-fr)+L[i+1]*fr;};
 
 /* process one band's channels -> WET channels (per-band dry/wet handled by caller) */
-function processChannels(chs,m,P,len,ch){
+function processChannels(chs,m,P,len,ch,mode=G.detector||'power'){
   const out=Array.from({length:ch},()=>new Float32Array(len)),L=lutFor(P.curve),fl=P.floorDb;
   const nToD=n=>fl+n*(0-fl),dToN=db=>clamp((db-fl)/(0-fl),0,1);
   if(P.tauMs<SHAPE_MS){
@@ -85,7 +102,7 @@ function processChannels(chs,m,P,len,ch){
       for(let i=0;i<len;i++){const v=din[i],t=(clamp(v,-1,1)+1)*0.5*(Ntf-1),k=t|0,fr=t-k;
         dout[i]=k>=Ntf-1?TF[Ntf-1]:TF[k]*(1-fr)+TF[k+1]*fr;}}
   } else {
-    const A=analyseMono(m,P.tauMs,P.floorDb),nF=A.nFrames,lev=A.levelN,gdb=new Float32Array(nF);
+    const A=mode==='mono'?analyseMono(m,P.tauMs,P.floorDb):analyseChannels(chs,P.tauMs,P.floorDb,mode),nF=A.nFrames,lev=A.levelN,gdb=new Float32Array(nF);
     for(let f=0;f<nF;f++){const nx=lev[f],inDb=nToD(nx),outDb=nToD(applyOn(L,nx));let g=outDb-inDb;
       if(nx<=0.001)g=Math.min(g,0);else if(nx<0.06)g*=nx/0.06;g=clamp(g+P.makeupDb,-60,36);gdb[f]=g;}
     const glin=new Float32Array(nF);for(let f=0;f<nF;f++)glin[f]=Math.pow(10,gdb[f]/20);
@@ -109,7 +126,8 @@ function* renderSteps(chs,state){
     yield b;
     if(!(anySolo?P.solo:P.enabled))continue;
     const bch=masks?chs.map(x=>splitBand(x,masks[b])):chs;
-    const wet=processChannels(bch,avgMono(bch),P,len,ch);
+    const mode=G.detector||(state.version<3?'mono':'power');
+    const wet=processChannels(bch,mode==='mono'?avgMono(bch):null,P,len,ch,mode);
     for(let c=0;c<ch;c++)for(let i=0;i<len;i++)
       acc[c][i]+=P.mix*wet[c][i]+(1-P.mix)*bch[c][i];
   }
@@ -127,7 +145,7 @@ async function renderAsync(chs,state,onBand=()=>{}){
   while(!step.done){onBand(step.value);await new Promise(r=>setTimeout(r,0));step=steps.next();}
   return step.value;
 }
-return {splitBand,crossoverBins,buildMasks,avgMono,analyseMono,lutFor,processChannels,render,renderAsync};
+return {splitBand,crossoverBins,buildMasks,avgMono,analyseMono,analyseChannels,lutFor,processChannels,render,renderAsync};
 }
 return {create};
 });

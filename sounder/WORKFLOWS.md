@@ -29,11 +29,11 @@ The root object has `format: "hindcasts-rack"`, `version: 1`, `nodes`, `output`,
 | `sounder` | `input`, a node ID or `source` | `state`, optional `bypass` (default false), optional `mix` (default 1) |
 | `mix` | `inputs`, an array of `{node, gainDb}` | Each input's gain; the mixer sums without normalization |
 
-A Sounder `state` uses the existing version 2 format. `global.crossovers` holds increasing frequencies in Hz. There must be one more band than crossover. Each band holds `tauMs`, `floorDb`, `smoothMs`, `makeupDb`, `mix`, `curve`, `enabled`, and `solo`. Optional `color` is editor metadata. The curve spans normalized `x=0` through `x=1`; both coordinates map from `floorDb` to 0 dB. `tauMs` changes the measurement used to read that curve. Saved version 1 states must first be loaded and saved by the browser editor.
+A Sounder `state` uses version 3. `global.detector` is `power` for mean channel energy or `mono` for the legacy mono-sum detector. Version 2 states are accepted and migrated to version 3 with `mono`, preserving their processing. `global.crossovers` holds increasing frequencies in Hz. There must be one more band than crossover. Each band holds `tauMs`, `floorDb`, `smoothMs`, `makeupDb`, `mix`, `curve`, `enabled`, and `solo`. Optional `color` is editor metadata. The curve spans normalized `x=0` through `x=1`; both coordinates map from `floorDb` to 0 dB. `tauMs` changes the measurement used to read that curve. Saved version 1 states must first be loaded and saved by the browser editor.
 
 The validator rejects unknown fields, unsupported effect IDs, cycles, missing nodes, non-finite numbers, duplicate curve x coordinates, and invalid ranges. It accepts an optional node `label`. Disconnected nodes are validated but not rendered.
 
-The extracted DSP retains the existing stereo detector: it averages channels before measuring their energy. Opposite-polarity channels can cancel in that analysis even when each channel is audible. Channel-energy analysis is a prerequisite for dependable wide-stereo dynamics. The browser's selected ceiling affects monitoring; its WAV export clamps only at full scale. Rack exports apply the rack's chosen final ceiling.
+New states use channel power: square each channel, average its energy across channels, then measure RMS over the selected window. Each band is filtered separately in each channel before measurement. Identical and opposite-polarity stereo have the same measured level; one active channel measures 3.01 dB below two equally active channels. RMS processing applies one gain curve to every channel. Below 2 ms, shaping still processes each channel independently. The browser’s **Level detector** selector can switch an older state to channel power; saving records that choice. The browser's selected ceiling affects monitoring; its WAV export clamps only at full scale. Rack exports apply the rack's chosen final ceiling.
 
 `master.makeupDb` defaults to 0; `master.ceilingDb` defaults to -1. The rack applies a sample hard ceiling once, after the chosen output node. The legacy `state.global.ceilingDb` is accepted as editor metadata; it does not limit a cell. The ceiling is not a true-peak limiter or a loudness target. The report counts limited samples and records each stage's peak and RMS.
 
@@ -58,8 +58,9 @@ Pythia and the other effects need adapters before their IDs can appear in a reci
 ## Checks
 
 ```powershell
+node sounder/test-stereo.cjs
 node sounder/test-rack.cjs
 node sounder/test-browser.cjs
 ```
 
-The first checks numerical processing and the real command-line WAV round trip. The second requires Playwright (set `PLAYWRIGHT_PATH` to its package path if necessary) and headless Edge (override with `EDGE_PATH`). It loads the actual editor, processes a stereo WAV through the file control and Process button, and compares the page output with the rack's raw cell output.
+The stereo check covers channel energy, linked gain, polarity invariance, mono parity, and legacy migration. The rack check covers numerical processing and the real command-line WAV round trip. The browser check requires Playwright (set `PLAYWRIGHT_PATH` to its package path if necessary) and headless Edge (override with `EDGE_PATH`). It loads the actual editor, processes a stereo WAV through the file control and Process button, and compares the page output with the rack's raw cell output.
