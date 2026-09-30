@@ -111,3 +111,24 @@ Validated numerically: on a synthetic source 8.8× louder at head than tail, the
 ---
 
 *spine: a vessel that has read the whole scrap before it begins to pour.*
+
+---
+
+## log
+
+### 2026-09-30 — Antigravity — DSP extraction into engine.js
+
+Extracted DSP routines from `horn-of-plenty/index.html` into a standalone UMD module `horn-of-plenty/engine.js` (`HornOfPlentyDSP`), running in Node or browser without DOM or AudioContext dependencies.
+
+- **Boundary contract:**
+  - `analyzeGrains(source, sampleRate, params)`: Winnows input into windowed grains, computes power and zero-crossing brightness proxy, filters via energy gate or loudness fallback.
+  - `suggestFiber(source, sampleRate)`: Computes short-time energy autocorrelation to suggest the seed's natural kernel length (15–300 ms).
+  - `sowAndFlatten(source, sampleRate, grains, params, randomSource)`: Jittered granular scatter with anti-repeat window, Hann windowing, pitch jitter, reverse probability, stereo constant-power spread, cross-channel power RMS smoothing/leveling (±9 dB evenness clamp), and 4 ms linear fade at boundaries. Supports deterministic integer seed (`mulberry32`) or custom PRNG for regression tests.
+  - `render(source, sampleRate, params, randomSource)`: End-to-end convenience entry point that handles mono conversion, grain analysis (if not supplied), and scattering.
+  - `encodeWav(leftChannel, rightChannel, sampleRate)`: Encodes 16-bit PCM stereo WAV `ArrayBuffer`.
+  - **Duration & Level contract:** Output length is configured by `params.len` (`Math.round(params.len * sampleRate)`). Level normalization respects `lvlOwn` (-1 dBFS peak) or RMS target with hard 0 dBFS ceiling.
+- **Verification:**
+  - `node horn-of-plenty/test-horn-of-plenty.mjs`: Tested analysis, suggestion, seeded scatter determinism, length contract, level guardian, and WAV chunk structure. All assertions passed (exited 0).
+  - `node horn-of-plenty/test-browser.cjs`: Tested headless Microsoft Edge via CDP pipe loading an AudioBuffer, winnowing grains, suggesting fiber, rendering stereo audio, verifying 0 dBFS ceiling, validating WAV export data size, and cycling presets. All assertions passed (exited 0).
+- **Undone / known broken:** None.
+

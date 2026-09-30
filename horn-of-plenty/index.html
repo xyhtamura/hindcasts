@@ -330,7 +330,9 @@ canvas.viz{display:block;width:100%;border:1px solid var(--line);border-radius:1
   <div class="foot"><i>Horn of Plenty</i> — the vessel that never empties · HINDCASTS</div>
 </div>
 
+<script src="engine.js"></script>
 <script>
+const { PRESETS, defaultParams, validateParams, toMono, analyzeGrains, suggestFiber: calcSuggestFiber, sowAndFlatten, encodeWav: encodeWAVBytes } = globalThis.HornOfPlentyDSP;
 const $=id=>document.getElementById(id);
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const AC=window.AudioContext||window.webkitAudioContext;
@@ -363,38 +365,26 @@ async function loadFile(file){
   setStatus('gathering the seed…',true);
   try{
     const buf=await ctx.decodeAudioData(await file.arrayBuffer());
-    sr=buf.sampleRate;const n=buf.length,ch=buf.numberOfChannels;
-    src=new Float32Array(n);
-    for(let c=0;c<ch;c++){const d=buf.getChannelData(c);for(let i=0;i<n;i++)src[i]+=d[i]/ch;}
-    srcAudioBuf=buf;const dur=n/sr;
-    $('filemeta').innerHTML=`<span class="k">${file.name}</span> &nbsp;·&nbsp; ${dur.toFixed(2)}s &nbsp;·&nbsp; ${(sr/1000).toFixed(1)}kHz &nbsp;·&nbsp; ${ch===1?'mono':ch+'ch → mono'}`;
-    $('r-src').textContent=fmtDur(dur);
-    $('suggest').disabled=false;$('render').disabled=false;$('ab-src').disabled=false;
-    drawScrap();analyze(true);
-    setStatus('seed gathered — fill the horn, or suggest a grain size',false);
+    await loadAudioBuffer(buf, file.name);
   }catch(err){console.error(err);setStatus('could not read that file — try a wav or mp3',false,true);}
+}
+
+async function loadAudioBuffer(buf, name = 'audio'){
+  sr=buf.sampleRate;const n=buf.length,ch=buf.numberOfChannels;
+  src=toMono(buf);
+  srcAudioBuf=buf;const dur=n/sr;
+  $('filemeta').innerHTML=`<span class="k">${name}</span> &nbsp;·&nbsp; ${dur.toFixed(2)}s &nbsp;·&nbsp; ${(sr/1000).toFixed(1)}kHz &nbsp;·&nbsp; ${ch===1?'mono':ch+'ch → mono'}`;
+  $('r-src').textContent=fmtDur(dur);
+  $('suggest').disabled=false;$('render').disabled=false;$('ab-src').disabled=false;
+  drawScrap();analyze(true);
+  setStatus('seed gathered — fill the horn, or suggest a grain size',false);
 }
 
 /* analysis: winnow into a grain library, with per-grain brightness */
 function analyze(redraw){
   if(!src)return;
-  const gLen=Math.max(64,Math.round(P.fiber/1000*sr)),hop=Math.max(1,Math.round(gLen/2));
-  const cand=[];
-  for(let s=0;s+gLen<=src.length;s+=hop){
-    let e=0,zc=0,prev=src[s];
-    for(let i=0;i<gLen;i++){const v=src[s+i];e+=v*v;if((v>=0)!==(prev>=0))zc++;prev=v;}
-    cand.push({start:s,power:e/gLen,bright:zc/gLen}); // bright = zero-crossing rate proxy
-  }
-  if(!cand.length){grains=[];return;}
-  const ps=cand.map(c=>c.power).sort((a,b)=>a-b);
-  const loudRef=ps[Math.floor(ps.length*0.90)]||ps[ps.length-1];
-  let kept=cand.filter(c=>c.power>=loudRef*0.016&&c.power>0);
-  if(kept.length<Math.min(24,cand.length))
-    kept=cand.filter(c=>c.power>0).sort((a,b)=>b.power-a.power).slice(0,Math.min(48,cand.length));
-  // normalize brightness across kept grains -> 0..1
-  let bmin=Infinity,bmax=-Infinity;kept.forEach(g=>{if(g.bright<bmin)bmin=g.bright;if(g.bright>bmax)bmax=g.bright;});
-  const span=(bmax-bmin)||1;kept.forEach(g=>g.bn=(g.bright-bmin)/span);
-  grains=kept;
+  const res = analyzeGrains(src, sr, P);
+  grains = res.grains;
   $('r-grains').textContent=String(grains.length);
   if(redraw)drawPalette();
   updateReuse();
@@ -402,14 +392,7 @@ function analyze(redraw){
 
 function suggestFiber(){
   if(!src)return;
-  const fh=Math.max(1,Math.round(sr*0.005)),nf=Math.floor(src.length/fh);
-  const env=new Float32Array(nf);
-  for(let f=0;f<nf;f++){let e=0;for(let i=0;i<fh;i++){const v=src[f*fh+i];e+=v*v;}env[f]=Math.sqrt(e/fh);}
-  let mean=0;for(let f=0;f<nf;f++)mean+=env[f];mean/=nf;for(let f=0;f<nf;f++)env[f]-=mean;
-  let r0=0;for(let f=0;f<nf;f++)r0+=env[f]*env[f];if(r0<=0)return;
-  const maxLag=Math.min(nf-1,60);let lag=16;
-  for(let L=1;L<=maxLag;L++){let r=0;for(let f=0;f+L<nf;f++)r+=env[f]*env[f+L];if(r<r0*0.3678){lag=L;break;}}
-  const ms=clamp(Math.round(lag*5),15,300);
+  const ms = calcSuggestFiber(src, sr);
   P.fiber=ms;$('k-fiber').value=ms;$('v-fiber').textContent=ms+' ms';
   $('h-fiber').textContent='suggested from the seed’s own grain — adjust to taste';
   analyze(true);setStatus('grain set to the seed’s natural kernel — fill the horn to hear it',false);
@@ -423,68 +406,23 @@ function render(){
   setTimeout(()=>{try{doRender();}catch(err){console.error(err);setStatus('pour failed — '+err.message,false,true);}$('render').disabled=false;},20);
 }
 function doRender(){
-  const gLen=Math.max(64,Math.round(P.fiber/1000*sr)),outLen=Math.round(P.len*sr),total=outLen+gLen;
-  const L=new Float32Array(total),R=new Float32Array(total);
-  const win=new Float32Array(gLen);for(let i=0;i<gLen;i++)win[i]=0.5-0.5*Math.cos(2*Math.PI*i/(gLen-1));
-  const hopOut=Math.max(1,Math.round(gLen/P.dens)),nOn=Math.ceil(outLen/hopOut)+1;
-  const w=P.white/100,jit=hopOut*(0.22+0.5*w);
-  const maxRecent=clamp(Math.round(grains.length*(0.12+0.6*w)),1,Math.max(1,grains.length-1));
-  const recent=[],pjit=P.pitch,revP=P.rev/100,spread=P.spread/100;
-  const rnd=(a,b)=>a+Math.random()*(b-a);
-  function pick(){for(let t=0;t<14;t++){const i=(Math.random()*grains.length)|0;
-    if(recent.indexOf(i)===-1){recent.push(i);if(recent.length>maxRecent)recent.shift();return i;}}
-    const i=(Math.random()*grains.length)|0;recent.push(i);if(recent.length>maxRecent)recent.shift();return i;}
-
-  for(let k=0;k<nOn;k++){
-    let pos=Math.round(k*hopOut+rnd(-jit,jit));if(pos<0)pos=0;if(pos>=outLen)continue;
-    const g=grains[pick()],base=g.start;
-    const rev=revP>0&&Math.random()<revP;
-    const ratio=pjit>0?Math.pow(2,rnd(-pjit,pjit)/12):1;
-    const pan=(Math.random()*2-1)*spread,ang=(pan+1)*Math.PI/4,gL=Math.cos(ang),gR=Math.sin(ang);
-    for(let i=0;i<gLen;i++){
-      const oi=pos+i;if(oi>=total)break;
-      const sp=rev?base+(gLen-1-i)*ratio:base+i*ratio;
-      const i0=sp|0,fr=sp-i0;
-      if(i0<0||i0+1>=src.length)continue;
-      const s=(src[i0]*(1-fr)+src[i0+1]*fr)*win[i];
-      L[oi]+=s*gL;R[oi]+=s*gR;
-    }
-  }
-
-  // loudness envelope on total cross-channel power
-  const pow=new Float32Array(outLen);for(let i=0;i<outLen;i++)pow[i]=L[i]*L[i]+R[i]*R[i];
-  const sm=Math.max(gLen*3,Math.round(sr*0.05));
-  const env=movRMSpow(pow,outLen,sm);
-  let acc=0;for(let i=0;i<outLen;i++)acc+=pow[i];const target=Math.sqrt(acc/outLen)||1e-6;
-  const evenness=P.even/100,mb=Math.pow(10,9/20);
-  for(let i=0;i<outLen;i++){let g=target/Math.max(env[i],1e-6);g=clamp(g,1/mb,mb);g=Math.pow(g,evenness);L[i]*=g;R[i]*=g;}
-
-  const fz=Math.min(Math.round(sr*0.004),outLen>>1);
-  for(let i=0;i<fz;i++){const a=i/fz;L[i]*=a;R[i]*=a;L[outLen-1-i]*=a;R[outLen-1-i]*=a;}
-
-  let pk=0,rms2=0;for(let i=0;i<outLen;i++){pk=Math.max(pk,Math.abs(L[i]),Math.abs(R[i]));rms2+=L[i]*L[i]+R[i]*R[i];}
-  rms2=Math.sqrt(rms2/(2*outLen))||1e-9;
-  let norm;
-  if(P.lvlOwn){
-    norm=pk>0?Math.pow(10,-1/20)/pk:1;            // own average: even, safe -1 dBFS peak
-  }else{
-    const tgt=Math.pow(10,P.level/20);             // fixed loudness target (RMS)
-    norm=tgt/rms2;
-    if(pk*norm>1)norm=pk>0?1/pk:1;                 // 0 dBFS hard ceiling — the guardian
-  }
-  outL=new Float32Array(outLen);outR=new Float32Array(outLen);
-  for(let i=0;i<outLen;i++){outL[i]=L[i]*norm;outR[i]=R[i]*norm;}
-
-  outAudioBuf=ctx.createBuffer(2,outLen,sr);
-  outAudioBuf.getChannelData(0).set(outL);outAudioBuf.getChannelData(1).set(outR);
+  const res = sowAndFlatten(src, sr, grains, P);
+  outL = res.channels[0];
+  outR = res.channels[1];
+  outAudioBuf = ctx.createBuffer(2, res.outLen, sr);
+  outAudioBuf.getChannelData(0).set(outL);
+  outAudioBuf.getChannelData(1).set(outR);
 
   // viz envelopes
-  const pow2=new Float32Array(outLen);for(let i=0;i<outLen;i++)pow2[i]=outL[i]*outL[i]+outR[i]*outR[i];
-  postEnv=movRMSpow(pow2,outLen,sm);preEnv=env;
-  const ref=Math.max(maxArr(preEnv),maxArr(postEnv),1e-6);
-  for(let i=0;i<preEnv.length;i++)preEnv[i]/=ref;for(let i=0;i<postEnv.length;i++)postEnv[i]/=ref;
+  preEnv = res.preEnv;
+  postEnv = res.postEnv;
+  const ref = Math.max(maxArr(preEnv), maxArr(postEnv), 1e-6);
+  for(let i=0;i<preEnv.length;i++)preEnv[i]/=ref;
+  for(let i=0;i<postEnv.length;i++)postEnv[i]/=ref;
 
-  $('r-out').textContent=fmtDur(P.len);updateReuse(nOn);drawYard();
+  $('r-out').textContent=fmtDur(P.len);
+  updateReuse(res.nPlacements);
+  drawYard();
   $('export').disabled=false;$('play').disabled=false;$('loop').disabled=false;$('ab-out').disabled=false;
   monitor='out';refreshAB();
   setStatus('poured. play it, loop to test the seam, or export.',false);
@@ -595,15 +533,8 @@ $('export').addEventListener('click',()=>{if(!outL)return;
   const a=document.createElement('a');a.href=url;a.download='horn-of-plenty.wav';a.click();
   setTimeout(()=>URL.revokeObjectURL(url),1500);});
 function encodeWAV(Lc,Rc,rate){
-  const len=Lc.length,ch=2,ab=new ArrayBuffer(44+len*ch*2),v=new DataView(ab);
-  const ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
-  ws(0,'RIFF');v.setUint32(4,36+len*ch*2,true);ws(8,'WAVE');ws(12,'fmt ');
-  v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,ch,true);
-  v.setUint32(24,rate,true);v.setUint32(28,rate*ch*2,true);v.setUint16(32,ch*2,true);v.setUint16(34,16,true);
-  ws(36,'data');v.setUint32(40,len*ch*2,true);let o=44;
-  for(let i=0;i<len;i++){let l=clamp(Lc[i],-1,1),r=clamp(Rc[i],-1,1);
-    v.setInt16(o,l<0?l*32768:l*32767,true);o+=2;v.setInt16(o,r<0?r*32768:r*32767,true);o+=2;}
-  return ab;}
+  return encodeWAVBytes(Lc,Rc,rate);
+}
 
 /* knob wiring */
 let analyzeTimer=null;
@@ -617,14 +548,6 @@ $('k-even').addEventListener('input',e=>{P.even=+e.target.value;$('v-even').text
 $('k-pitch').addEventListener('input',e=>{P.pitch=+e.target.value;$('v-pitch').textContent=P.pitch+' st';});
 $('k-rev').addEventListener('input',e=>{P.rev=+e.target.value;$('v-rev').textContent=P.rev+'%';});
 $('k-spread').addEventListener('input',e=>{P.spread=+e.target.value;$('v-spread').textContent=P.spread+'%';});
-
-/* presets — points on the grain × whiteness plane (plus motion) */
-const PRESETS={
-  mist:   {fiber:25, white:85, dens:8,   even:95, pitch:1.5, rev:20, spread:55},
-  sand:   {fiber:45, white:70, dens:6.5, even:90, pitch:0.5, rev:15, spread:40},
-  orchard:{fiber:90, white:50, dens:5,   even:80, pitch:3,   rev:35, spread:50},
-  husk:   {fiber:160,white:25, dens:4,   even:65, pitch:0,   rev:10, spread:25}
-};
 function syncKnobs(){
   $('k-fiber').value=P.fiber;$('v-fiber').textContent=P.fiber+' ms';
   $('k-white').value=P.white;$('v-white').textContent=P.white+'%';
@@ -654,6 +577,20 @@ function fmtDur(s){return s>=60?Math.floor(s/60)+'m '+(s%60).toFixed(0).padStart
 function fmtClock(s){s=Math.max(0,s);const m=Math.floor(s/60),x=Math.floor(s%60);return m+':'+String(x).padStart(2,'0');}
 function setStatus(t,work,err){const el=$('status');el.textContent=t;el.classList.toggle('work',!!work);el.classList.toggle('err',!!err);}
 window.addEventListener('resize',()=>{if(src)drawScrap();if(grains.length)drawPalette();if(postEnv)drawYard();});
+
+window.__hornOfPlenty = {
+  loadAudioBuffer,
+  analyze,
+  suggestFiber,
+  doRender,
+  render,
+  P,
+  getGrains: () => grains,
+  getOutL: () => outL,
+  getOutR: () => outR,
+  getOutAudioBuf: () => outAudioBuf,
+  HornOfPlentyDSP
+};
 </script>
 </body>
 </html>
