@@ -67,8 +67,8 @@ Henderson & Solomon, *"Audio Transport: a generalized portamento via optimal tra
 ### Path C — sinusoidal modeling (parked)
 Full partial-tracking (SMS): track partials through both files, assign partial-to-partial correspondences via OT *over whole trajectories* (not per-frame), interpolate frequencies/amplitudes of matched partials. The most beautiful version and the heaviest — tracker quality dominates results. Park until Path B's peak-grouping proves insufficient.
 
-### Path D — 2-D optimal transport over full spectrograms (the prize; parked)
-Mass moves in time *and* frequency at once — the morph plans globally where every parcel of energy in file A ends up in file B, no frame marriage at all. Research-grade (entropic/Sinkhorn solvers, real compute), only possible offline. This is Proteus's "dense optical flow" line item — the version that's still genuinely nobody's-seen-it. Keep alive, don't start here.
+### Path D — 2-D optimal transport over full spectrograms (parked)
+Mass moves in time and frequency at once, without requiring one frame pairing. Valdivia, Renaud, Cazelles, and Févotte's [2025 preprint](https://arxiv.org/abs/2502.15430) implements global spectrogram barycenters with unbalanced transport and a cost that restricts distant time displacement. The earlier novelty claim is withdrawn. This remains a heavier candidate for Proteus, with computation and transient preservation to assess before adoption.
 
 ### Feasibility notes
 Single self-contained HTML, house pattern: `decodeAudioData` intake, own radix-2 FFT (pythia/sounder already carry the chops), everything rendered offline, **pre-rendered result = instant acausal scrubbing** (the Prolepsis transport lesson), WAV export, drag-drop. DTW on downsampled feature frames (e.g. 20–40 mel/log bands at ~10 ms hop) is trivial compute at song length; the O(N²) cost matrix at 3-minute × 3-minute needs banding (Sakoe–Chiba) — standard. Worker offload is the same carry-forward it always is.
@@ -135,3 +135,18 @@ Decisions taken during the build (were open questions): central viz **is** the t
 - The frame count drops the incomplete final window. A 44,100-sample input produces 44,032 samples. Include a zero-padded final window and trim reconstruction to A's exact sample count.
 
 All three defects remain unfixed. Browser interaction, listening, and WAV playback were not checked in this review. Planned stances and phase-reconstruction limitations remain as documented above.
+
+2026-09-30 — Codex — Fixed the three reviewed DSP defects. `stft` adds zero-padded pre-roll and final windows, and reconstruction returns A's exact sample count. Fade mixes sample-aligned waveforms; transport uses that crossfade as its other endpoint. Morph amounts 0 and 1 preserve the corresponding input samples, with A retained outside donor coverage. Edge fade and the curve are evaluated against sample time. Transport phase accumulation uses 64-bit storage, and endpoint frames use the corresponding source phase.
+
+Verification: `node proteus/test-proteus.mjs` passes short clips (1–2,049 samples), exact lengths, endpoints, phase-different waveform fades, positive and negative offsets, donor absence, a drawn ramp, edge fade, identical inputs, silence, and an FFT impulse reference. `test-browser.cjs` runs the app in headless Edge through the Render button and decodes the WAV: 72,000 source, output, and decoded samples, with the expected PCM payload size. The browser glide probe remains finite and measures 226→435 Hz for a 220→440 Hz pair. Listening and pointer interaction were not checked. Run the browser test with Playwright available as `playwright`, or set `PLAYWRIGHT_PATH`; `EDGE_PATH` overrides the browser executable.
+
+The existing intermediate transport still moves raw bins and blends phase advances at fixed bins. Donor analysis frames remain rounded to a hop; exact offsets apply to the waveform fade and input endpoints. Endpoint preservation does not establish continuity for curves that repeatedly hit 0 or 1. These are remaining reconstruction limitations, not claims of a finished phase algorithm. No additional morph engine was implemented in this sitting.
+
+Algorithm assessment, in order of expected usefulness:
+
+1. Move spectral peak regions as units and preserve each region's relative bin phases. Accumulate phase at the transported peak frequency, rather than blending instantaneous frequencies at unchanged output bins. Henderson and Solomon's [Audio Transport](https://www.dafx.de/paper-archive/2019/DAFx2019_paper_56.pdf), sections 3.2–3.3, provides the concrete reconstruction model. This addresses the current mismatch between moved magnitudes and stationary-bin phase.
+2. Separate harmonic and percussive material, so sustained components can move while attacks retain their timing. Roma, Green, and Tremblay's [matrix-decomposition morph](https://dafx2020.mdw.ac.at/proceedings/papers/DAFx2020_paper_42.pdf) combines HPSS, NMF component transport, and PGHI. Component-level morphing is a separate candidate for transferring timbre while retaining A's activation pattern; it needs additional analysis and component matching.
+3. Use whole-file access to stabilize peak correspondences over time, then evaluate automatic alignment on onset and spectral features. This is an implementation proposal, not a demonstrated quality improvement. Compare sustained tones, chords, attacks, speech, and unequal-length recordings against the waveform fade before choosing it.
+4. Assess global spectrogram transport as a separate experimental engine, with restricted time displacement and unbalanced mass handling. It has a published precedent, cited in Path D. Keep it parked until the frame-based reconstruction is credible.
+
+The three papers were retrieved into `../../library/proteus/`; the 2025 file is named as a preprint. The app roadmap is unchanged: these are recommendations for discussion, not adopted development steps.
