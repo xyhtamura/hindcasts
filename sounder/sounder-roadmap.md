@@ -261,3 +261,13 @@ Version 1/2 browser states and version 2 rack states retain an explicit `mono` d
 Checks: `test-stereo.cjs` passes energy, polarity, linked-gain, mono/legacy parity, multiband, short/silent-buffer, and migration cases. `test-rack.cjs` passes. `test-browser.cjs` with `BASELINE_REF=38fc9be` passes actual page processing/export, polarity-invariant histograms and output, selector invalidation, version 3 rack saving, and byte-identical migrated version 2 export against the historical page. No listening check was made.
 
 Next: the vertical browser insert stack, including upstream histograms and intermediate audition. Other-effect adapters, Worker processing, and reusable STFT caches remain undone.
+
+## 2026-10-01 — Codex — Browser insert rack
+
+[rack.html](rack.html) hosts serial Sounder cells with selection, add/duplicate/remove/reorder, bypass, and cell mix. The existing editor receives each selected cell’s upstream PCM through a source-checked message bridge; changes return version 3 state to the host. Bypass and mix changes refresh downstream analysis. The host rejects unsupported graph shapes without replacing the recipe.
+
+Processing uses the rack core. The Stage selector auditions or exports the recording, a raw cell stage, or the final rack output. Export is float32 WAV; the rack ceiling affects only final output. Edits clear playback and disable stale exports. Rack load/save preserves all cells and master controls. The original single-cell editor remains available, with an Open rack link.
+
+Checks: `test-rack-browser.cjs` exercises the real page’s cell edits/reordering, upstream histogram response, recipe round trip/rejection, sample ceiling, output and intermediate float WAV parity with `Rack.render`, media duration/playback advancement, and edit invalidation. Desktop and 390 px mobile screenshots were inspected; the selected-cell panel resizes to its controls. The single-cell browser, stereo, and core rack checks also pass. No listening assessment was made.
+
+Next: Worker rendering with progress and cancellation. Whole-file main-thread processing can pause the interface; upstream analysis also rerenders its prefix. Branched graph editing, other-effect adapters, cache reuse, bounded memory, and sample-origin/tail routing remain undone. Branch editing was deferred so this page can use an inspectable insert-chain UI without flattening a saved DAG. Work stayed in the existing checkout; the pre-existing Pythia edit is untouched.

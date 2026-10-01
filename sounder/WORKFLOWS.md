@@ -2,7 +2,17 @@
 
 Sounder's browser editor and command-line rack use `engine.js` for whole-file processing. The rack runs Sounder cells in an explicit graph, with optional parallel mixers. A recipe holds processing state; recordings stay in separate files.
 
-The browser's **Save rack** button exports the selected Sounder settings as a one-cell recipe. The browser rack editor is planned. For multiple cells, edit the recipe or build one with `HindcastsRack.chain(states)` (`require('./rack.js').chain(states)` in Node).
+The single-cell editor’s **Save rack** button exports its settings as a one-cell recipe. The [browser rack](rack.html) edits serial Sounder chains. For branched routing, edit the recipe or build one with `HindcastsRack.chain(states)` (`require('./rack.js').chain(states)` in Node).
+
+## Browser rack
+
+Open `sounder/rack.html` through the root server, or follow **Open rack** in the single-cell editor. Load a recording, then add or select Sounder cells in the insert chain. Duplicate, remove, or move cells with their buttons. Each cell has a bypass switch and a separate dry/wet mix. The existing curve editor controls the selected cell; its histogram measures that cell’s actual upstream signal.
+
+**Process rack** renders the chain. **Stage** selects the recording, a raw cell output, or the rack output for the audio player and **Export WAV**. Raw stages precede rack makeup and ceiling. The rack output applies both controls. Export writes float32 WAV at the decoded recording’s rate and length. The browser may resample recordings to its AudioContext rate when decoding; the CLI preserves the input WAV rate.
+
+**Save rack** stores every cell and the output settings. **Load rack** accepts serial Sounder recipes; it rejects branched or unsupported recipes without replacing the open chain. Edits disable stage audition and export until processing runs again. The browser and CLI use the same recipe format and DSP.
+
+Rendering and upstream histogram preparation run on the main thread and retain whole-file buffers. Long files can pause the interface. Worker rendering with progress and cancellation is the next step. Other effects and branched graph editing remain outside this browser editor.
 
 ## Run a recording
 
@@ -61,6 +71,9 @@ Pythia and the other effects need adapters before their IDs can appear in a reci
 node sounder/test-stereo.cjs
 node sounder/test-rack.cjs
 node sounder/test-browser.cjs
+node sounder/test-rack-browser.cjs
 ```
 
 The stereo check covers channel energy, linked gain, polarity invariance, mono parity, and legacy migration. The rack check covers numerical processing and the real command-line WAV round trip. The browser check requires Playwright (set `PLAYWRIGHT_PATH` to its package path if necessary) and headless Edge (override with `EDGE_PATH`). It loads the actual editor, processes a stereo WAV through the file control and Process button, and compares the page output with the rack's raw cell output.
+
+`test-rack-browser.cjs` checks the actual rack page: cell edits and routing, upstream histograms, output/stage float WAV parity with the core renderer, playback advancement, edit invalidation, recipe round trips and rejection, and narrow-screen width. It saves desktop/mobile screenshots to the system temporary directory, or `SCREENSHOT_DIR` when set.
