@@ -2,15 +2,17 @@
 
 Sounder's browser editor and command-line rack use `engine.js` for whole-file processing. The rack runs Sounder cells in an explicit graph, with optional parallel mixers. A recipe holds processing state; recordings stay in separate files.
 
-The single-cell editor’s **Save rack** button exports its settings as a one-cell recipe. The [browser rack](rack.html) edits Sounder graphs with serial and parallel paths. Recipes can also be edited as JSON; build serial chains with `HindcastsRack.chain(states)` (`require('./rack.js').chain(states)` in Node).
+The [Sounder page](index.html) owns a rack with serial and parallel paths. **Save rack** exports the complete configuration, including each effect’s values, routing, output settings, names, and node positions. Recipes can also be edited as JSON; build serial chains with `HindcastsRack.chain(states)` (`require('./rack.js').chain(states)` in Node).
 
 ## Browser rack
 
-Open `sounder/rack.html` through the root server, or follow **Rack view** in the single-cell editor. The single-effect editor starts with one Sounder. **Rack view** carries its settings and decoded recording into the patch editor. The rack’s **Effect view** button hides the graph without discarding routing or audio. Load a recording, then add or select Sounder cells. Duplicate, remove, or move cells with their buttons. Each cell has a bypass switch and a separate dry/wet mix. The existing curve editor controls the selected cell; its histogram measures that cell’s actual upstream signal.
+Open `sounder/index.html` through the root server. The default network is recording → Sounder → rack output, with routing hidden. **Rack view** reveals that same network; **Effect view** hides its routing controls. Switching views keeps the selected node, all effect values, and the decoded recording in memory. There is no page navigation or transfer between separate racks. The old `rack.html` address redirects to `index.html?view=rack`.
+
+Select a node to show its settings on the page. Each Sounder has its own curve, bands, detector, makeup, and mix; its histogram measures the actual upstream signal. Recording selection shows channel, rate, and frame information. Output selection exposes the final makeup and ceiling. Mixer selection exposes input gains and disconnection. Add, duplicate, remove, or reorder Sounder cells with their buttons. Each cell also has a bypass switch and a separate dry/wet mix.
 
 **Process rack** renders the chain. **Stage** selects the recording, a raw cell output, or the rack output for the audio player and **Export WAV**. Raw stages precede rack makeup and ceiling. The rack output applies both controls. Export writes float32 WAV at the decoded recording’s rate and length. The browser may resample recordings to its AudioContext rate when decoding; the CLI preserves the input WAV rate.
 
-**Save rack** stores every cell and the output settings. **Load rack** accepts Sounder and mixer graphs. It rejects cycles and unsupported recipes without replacing the open graph. Edits disable stage audition and export until processing runs again. The browser and CLI use the same recipe format and DSP.
+**Save rack** stores every cell, connection, name, position, and output setting in JSON. **Load rack** restores them and reveals routing for multi-node or nonserial configurations. Recordings stay separate; loading a rack preserves any recording already loaded. It rejects cycles and unsupported recipes without replacing the open graph. Edits disable stage audition and export until processing runs again. The browser and CLI use the same recipe format and DSP.
 
 Rendering and upstream histogram preparation run in dedicated Workers. Processing reports the current cell and completed cell count, then the final output stage; this is stage progress, not an estimate of remaining time. **Cancel processing** terminates the render Worker and disables its output. The recording and recipe remain available for another render. Superseded histogram jobs are also terminated; generation checks prevent an old result from replacing the selected cell’s analysis.
 

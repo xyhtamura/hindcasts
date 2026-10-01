@@ -1,11 +1,11 @@
-/* Serial browser host; recipes use the same validated graph as the CLI. */
+/* Browser host; recipes use the same validated graph as the CLI. */
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id),Rack=HindcastsRack;
 let recipe=Rack.chain([Rack.defaultState()]),selected=recipe.nodes[0].id,audio=null,result=null,editorReady=false,serial=1,objectURL=null;
 let revision=0,editorGeneration=0,busy=false;
 let renderJob=null,analysisJob=null,analysisTimer=null,analysisSequence=0,selectedBand=0;
-let graph=null,graphView=true;
+let graph=null,graphView=false;
 const status=t=>{$('status').textContent=t;};
 function sourceAudio(buffer){return {sampleRate:buffer.sampleRate,channels:Array.from({length:buffer.numberOfChannels},(_,i)=>buffer.getChannelData(i))};}
 function wire(){recipe.nodes.forEach((n,i)=>n.input=i?recipe.nodes[i-1].id:'source');recipe.output=recipe.nodes.at(-1)?.id||'source';}
@@ -41,7 +41,15 @@ function newId(){let id;do{id=`sounder${++serial}`;}while(recipe.nodes.some(n=>n
 function select(id){if(busy)return;selected=id;drawCells();syncEditor();}
 function syncEditor(){
   if(!editorReady)return;
-  const cell=recipe.nodes.find(n=>n.id===selected);if(!cell)return;
+  const cell=recipe.nodes.find(n=>n.id===selected);
+  document.querySelector('aside').append(document.querySelector('.master'));
+  $('node-name').hidden=!cell;$('endpoint-controls').hidden=!!cell;
+  if(!cell){cancelAnalysis();editorGeneration++;$('editor').hidden=true;$('mixer-controls').hidden=true;
+    $('selected').textContent=selected==='source'?'Recording':'Rack output';
+    $('upstream').textContent=selected==='source'?(audio?`${audio.channels.length} channels, ${audio.sampleRate} Hz, ${audio.channels[0].length} frames.`:'Load a recording using the file control above.'):'Final gain and sample ceiling follow the connected node.';
+    if(selected==='__output')$('endpoint-controls').append(document.querySelector('.master'));
+    return;
+  }
   cancelAnalysis();selectedBand=0;
   $('node-label').value=cell.label||cell.id;
   $('editor').hidden=cell.type==='mix';$('mixer-controls').hidden=cell.type!=='mix';
@@ -78,21 +86,22 @@ addEventListener('message',e=>{
     catch(err){status(err.message);}
   }
 });
-$('add').onclick=()=>{if(busy)return;const linear=isSerial(),n={id:newId(),type:'sounder',input:selected||'source',state:Rack.defaultState()};recipe.nodes.push(n);selected=n.id;if(linear)wire();else recipe.output=n.id;invalidate();drawCells();syncEditor();};
-$('add-mixer').onclick=()=>{const next=structuredClone(recipe),id=newId().replace('sounder','mixer');next.nodes.push({id,type:'mix',inputs:[{node:selected||'source',gainDb:0}]});next.output=id;selected=id;commit(next);};
+$('add').onclick=()=>{if(busy)return;const linear=isSerial(),n={id:newId(),type:'sounder',input:selected==='__output'?recipe.output:selected||'source',state:Rack.defaultState()};recipe.nodes.push(n);selected=n.id;if(linear)wire();else recipe.output=n.id;invalidate();drawCells();syncEditor();};
+$('add-mixer').onclick=()=>{const next=structuredClone(recipe),id=newId().replace('sounder','mixer');next.nodes.push({id,type:'mix',inputs:[{node:selected==='__output'?recipe.output:selected||'source',gainDb:0}]});next.output=id;selected=id;commit(next);};
 $('output-node').onchange=e=>connect(e.target.value,'__output');
 $('node-label').onchange=e=>{const n=recipe.nodes.find(n=>n.id===selected);if(!n)return;n.label=e.target.value.trim()||selected;
   const title=$('graph').querySelector(`[data-node="${selected}"] text`);if(title)title.textContent=n.label;
   const button=$('cells').querySelector(`[data-id="${selected}"] > button`);if(button)button.textContent=n.label;
   $('selected').textContent=n.label+' controls';const option=[...$('stage').options].find(o=>o.value===selected);if(option)option.textContent=n.label;};
 function drawMixer(cell){$('mixer-controls').replaceChildren();cell.inputs.forEach((p,i)=>{const row=document.createElement('div'),label=document.createElement('label');label.textContent=p.node+' gain (dB) ';const gain=document.createElement('input');gain.type='number';gain.min=-120;gain.max=36;gain.step=.5;gain.value=p.gainDb;gain.onchange=()=>{if(!gain.checkValidity()||gain.value==='')return;recipe.nodes.find(n=>n.id===cell.id).inputs[i].gainDb=+gain.value;invalidate();};label.append(gain);row.append(label);const remove=document.createElement('button');remove.textContent='Disconnect '+p.node;remove.disabled=cell.inputs.length===1;remove.onclick=()=>{const next=structuredClone(recipe);next.nodes.find(n=>n.id===cell.id).inputs.splice(i,1);commit(next);};row.append(remove);$('mixer-controls').append(row);});}
-$('view').onclick=()=>{graphView=!graphView;$('patch').hidden=!graphView;$('view').textContent=graphView?'Effect view':'Rack view';};
+function setView(value){graphView=value;document.body.classList.toggle('effect-view',!value);$('patch').hidden=!value;$('view').textContent=value?'Effect view':'Rack view';$('view').setAttribute('aria-expanded',String(value));
+}
+$('view').onclick=()=>setView(!graphView);
 $('load').onclick=()=>$('recipe-file').click();
 $('recipe-file').onchange=async e=>{
   const f=e.target.files[0];e.target.value='';if(!f)return;
   try{const next=acceptRecipe(JSON.parse(await f.text()));recipe=next;
-    if(!recipe.nodes.length){recipe.nodes=[{id:newId(),type:'sounder',state:Rack.defaultState()}];wire();}
-    selected=recipe.nodes[0].id;invalidate();drawCells();syncMaster();syncEditor();status('Rack loaded. Process to audition.');
+    selected=recipe.nodes[0]?.id||'__output';invalidate();drawCells();syncMaster();syncEditor();if(recipe.nodes.length>1||!isSerial())setView(true);status('Rack loaded. Process to audition.');
   }catch(err){status(`Rack not loaded: ${err.message}`);}
 };
 function download(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1500);}
@@ -131,9 +140,8 @@ $('stage').onchange=audition;
 $('export').onclick=()=>{if(result)download(wav(stageChannels(),audio.sampleRate),`sounder-${$('stage').value}.wav`);};
 graph=new SounderGraph($('graph'),{getRecipe:()=>recipe,select,change:connect,status,move:(id,p)=>{recipe.layout??={positions:{}};recipe.layout.positions[id]=p;}});
 $('zoom-in').onclick=()=>{graph.zoom=Math.min(2,graph.zoom+.25);graph.draw();};$('zoom-out').onclick=()=>{graph.zoom=Math.max(.25,graph.zoom-.25);graph.draw();};
-drawCells();syncMaster();
+drawCells();syncMaster();setView(new URLSearchParams(location.search).get('view')==='rack');
 const handshake=()=>$('editor').contentWindow.postMessage({type:'sounder-connect'},'*');
 $('editor').addEventListener('load',handshake);handshake();
-if(new URLSearchParams(location.search).get('from')==='effect')SounderSession.take().then(d=>{if(!d)return;recipe=Rack.validate(d.recipe).recipe;selected=recipe.nodes[0].id;audio=d.audio;invalidate();drawCells();syncMaster();syncEditor();$('process').disabled=!audio;status('Effect opened in rack view.');}).catch(e=>status(e.message));
 })();
 

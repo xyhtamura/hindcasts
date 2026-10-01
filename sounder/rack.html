@@ -1,40 +1,4 @@
 <!doctype html>
-<html lang="en">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Sounder rack</title>
-<link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="rack.css">
-<header><h1>Sounder rack</h1><a href="index.html">Single-cell editor</a><a href="WORKFLOWS.md">Workflow guide</a></header>
-<div class="toolbar">
-  <label>Recording <input id="recording" type="file" accept="audio/*"></label>
-  <button id="load">Load rack</button><input id="recipe-file" type="file" accept=".json" hidden>
-  <button id="save">Save rack</button><button id="process" disabled>Process rack</button>
-  <button id="cancel" disabled>Cancel processing</button>
-  <button id="export" disabled>Export WAV</button>
-</div>
-<div class="toolbar"><button id="view">Effect view</button><button id="add-mixer">Add mixer</button><button id="zoom-out" aria-label="Zoom graph out">−</button><button id="zoom-in" aria-label="Zoom graph in">＋</button><label>Rack output <select id="output-node"></select></label></div>
-<p id="status" role="status">Load a recording or edit the chain.</p><progress id="progress" hidden aria-label="Rack processing progress"></progress>
-<section id="patch"><h2>Patch graph</h2><p>Drag a node body to move it. Select a node title to edit it. Choose an output port, then an input port to connect. Mixer input ports add a path.</p><div class="patch-scroll"><svg id="graph" aria-label="Audio routing graph"></svg></div></section>
-<main>
- <aside>
-  <h2>Nodes</h2><p>Connections determine processing order.</p>
-  <div id="cells" role="group" aria-label="Sounder cells"></div>
-  <button id="add">Add Sounder</button>
-  <div class="master">
-   <h2>Rack output</h2>
-   <label>Makeup (dB) <input id="master-gain" type="number" min="-60" max="36" step="0.5" value="0"></label>
-   <label>Sample ceiling (dB) <input id="master-ceiling" type="number" min="-60" max="0" step="0.5" value="-1"></label>
-  </div>
- </aside>
- <section class="editor"><h2 id="selected">Sounder 1 controls</h2><label>Node name <input id="node-label" type="text" maxlength="120"></label><p id="upstream">Histogram input: recording</p>
-  <iframe id="editor" src="index.html?rack" title="Selected Sounder cell controls"></iframe>
-  <div id="mixer-controls" hidden></div>
- </section>
-</main>
-<section class="audition">
- <h2>Audition</h2><label>Stage <select id="stage" disabled><option value="source">Recording</option></select></label>
- <audio id="player" controls></audio><p>Cell stages precede rack makeup and ceiling. Export follows the selected stage.</p>
-</section>
-<script src="engine.js"></script><script src="rack.js"></script><script src="rack-jobs.js"></script><script src="rack-session.js"></script><script src="rack-graph.js"></script><script src="rack-browser.js"></script>
-</html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sounder rack</title><script>location.replace('index.html?view=rack');</script>
+<p><a href="index.html?view=rack">Open Sounder rack</a></p></html>

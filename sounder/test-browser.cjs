@@ -16,7 +16,7 @@ async function downloaded(download){return fs.readFileSync(await download.path()
       curve:[{x:0,y:0},{x:0.6,y:0.66},{x:1,y:1}]}));
     async function processPage(baseline,inputState=state,inputAudio=audio){
       if(baseline)await page.setContent(execFileSync('git',['show',`${process.env.BASELINE_REF}:sounder/index.html`],{cwd:path.join(__dirname,'..'),encoding:'utf8',maxBuffer:2e6}));
-      else await page.goto(pathToFileURL(path.join(__dirname,'index.html')).href);
+      else await page.goto(pathToFileURL(path.join(__dirname,'effect.html')).href);
       await page.locator('#file').setInputFiles({name:'probe.wav',mimeType:'audio/wav',buffer:WAV.encode(inputAudio)});
       await page.waitForFunction(()=>!document.getElementById('sound').disabled);
       await page.locator('#state-file').setInputFiles({name:'probe.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(inputState))});
