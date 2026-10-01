@@ -5,7 +5,7 @@ const $=id=>document.getElementById(id),Rack=HindcastsRack;
 let recipe=Rack.chain([Rack.defaultState()]),selected=recipe.nodes[0].id,audio=null,result=null,editorReady=false,serial=1,objectURL=null;
 let revision=0,editorGeneration=0,busy=false;
 let renderJob=null,analysisJob=null,analysisTimer=null,analysisSequence=0,selectedBand=0;
-let graph=null,graphView=false;
+let graph=null,routing=null,graphView=false;
 const status=t=>{$('status').textContent=t;};
 function sourceAudio(buffer){return {sampleRate:buffer.sampleRate,channels:Array.from({length:buffer.numberOfChannels},(_,i)=>buffer.getChannelData(i))};}
 function wire(){recipe.nodes.forEach((n,i)=>n.input=i?recipe.nodes[i-1].id:'source');recipe.output=recipe.nodes.at(-1)?.id||'source';}
@@ -20,6 +20,7 @@ function drawCells(){
   recipe.nodes.forEach((n,i)=>{
     const card=document.createElement('div');card.className='cell'+(selected===n.id?' selected':'');card.dataset.id=n.id;
     const choose=document.createElement('button');choose.textContent=n.label||`Sounder ${i+1}`;choose.setAttribute('aria-pressed',String(n.id===selected));choose.onclick=()=>select(n.id);card.append(choose);
+    const routingRow=document.createElement('div'),route=document.createElement('button');routingRow.className='cell-routing';route.textContent='Routing';route.disabled=busy;route.onclick=()=>routing.open(n.id);routingRow.append(route);card.append(routingRow);
     if(n.type==='mix'){choose.textContent=n.label||n.id;const remove=document.createElement('button');remove.textContent='Remove';remove.disabled=busy||recipe.nodes.length===1;remove.onclick=()=>removeNode(n.id);card.append(remove);$('cells').append(card);return;}
     const actions=document.createElement('div');actions.className='actions';
     for(const [text,action,disabled] of [
@@ -43,6 +44,7 @@ function syncEditor(){
   if(!editorReady)return;
   const cell=recipe.nodes.find(n=>n.id===selected);
   document.querySelector('aside').append(document.querySelector('.master'));
+  $('routing-open').hidden=!cell;
   $('node-name').hidden=!cell;$('endpoint-controls').hidden=!!cell;
   if(!cell){cancelAnalysis();editorGeneration++;$('editor').hidden=true;$('mixer-controls').hidden=true;
     $('selected').textContent=selected==='source'?'Recording':'Rack output';
@@ -114,7 +116,7 @@ $('recording').onchange=async e=>{
   try{const buffer=await context.decodeAudioData(await f.arrayBuffer());audio=sourceAudio(buffer);invalidate();$('process').disabled=false;syncEditor();status(`Loaded ${f.name}: ${buffer.numberOfChannels} channels, ${buffer.sampleRate} Hz. Process to audition.`);}
   catch(err){status(`Recording not loaded: ${err.message}`);}
 };
-function setBusy(value){busy=value;$('editor').inert=value;$('mixer-controls').inert=value;$('node-label').disabled=value;$('cancel').disabled=!value;$('progress').hidden=!value;for(const id of ['process','add','add-mixer','output-node','load','save','recording','master-gain','master-ceiling'])$(id).disabled=value||(id==='process'&&!audio);drawCells();}
+function setBusy(value){busy=value;$('editor').inert=value;$('mixer-controls').inert=value;$('node-label').disabled=value;$('cancel').disabled=!value;$('progress').hidden=!value;for(const id of ['process','add','add-mixer','output-node','load','save','recording','master-gain','master-ceiling','routing-open'])$(id).disabled=value||(id==='process'&&!audio);drawCells();}
 $('process').onclick=async()=>{
   if(!audio||busy)return;cancelAnalysis();setBusy(true);$('stage').disabled=true;$('export').disabled=true;status('Processing rack…');$('progress').removeAttribute('value');
   const job=HindcastsRackJobs.start({kind:'render',audio,recipe},p=>{
@@ -138,6 +140,8 @@ function wav(channels,rate){const frames=channels[0].length,count=channels.lengt
 function audition(){if(!result)return;$('player').pause();if(objectURL)URL.revokeObjectURL(objectURL);objectURL=URL.createObjectURL(wav(stageChannels(),audio.sampleRate));$('player').src=objectURL;}
 $('stage').onchange=audition;
 $('export').onclick=()=>{if(result)download(wav(stageChannels(),audio.sampleRate),`sounder-${$('stage').value}.wav`);};
+routing=new SounderRouting({getRecipe:()=>recipe,commit});
+$('routing-open').onclick=()=>{if(!busy)routing.open(selected);};
 graph=new SounderGraph($('graph'),{getRecipe:()=>recipe,select,change:connect,status,move:(id,p)=>{recipe.layout??={positions:{}};recipe.layout.positions[id]=p;}});
 $('zoom-in').onclick=()=>{graph.zoom=Math.min(2,graph.zoom+.25);graph.draw();};$('zoom-out').onclick=()=>{graph.zoom=Math.max(.25,graph.zoom-.25);graph.draw();};
 drawCells();syncMaster();setView(new URLSearchParams(location.search).get('view')==='rack');

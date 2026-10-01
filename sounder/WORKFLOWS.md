@@ -18,6 +18,14 @@ Rendering and upstream histogram preparation run in dedicated Workers. Processin
 
 Serve the rack over HTTP; there is no main-thread render fallback when a Worker fails. Workers receive copies of the recording and transfer results back, retaining whole-file buffers. Decoding, buffer copying, drawing, and WAV preparation still run on the main thread. Other effects remain outside this browser editor. [Effect adapters](../RACK-ADAPTERS.md) records the reusable structure and each extracted engine’s integration requirements.
 
+## Cell routing
+
+Each cell’s **Routing** button opens its incoming and outgoing connections. The selected cell’s controls also have a **Routing** button, available in Effect view. **In** selects the upstream recording or cell. Mixers have multiple input rows, each with a gain control, plus **Add input** and **Remove input**.
+
+**Out** lists destination cells and rack output. Checking a Sounder replaces that destination’s input; unchecking it restores the recording. Checking a mixer adds this cell at 0 dB and preserves any existing input gain. Unchecking it removes this cell’s paths; a mixer must retain at least one input. Checking rack output makes this cell the final result; unchecking it restores the recording as output. A cell can feed several destinations.
+
+**Apply routing** validates all changes together. A cycle or a mixer with no inputs keeps the dialog open with an error and leaves the rack unchanged. **Cancel** or Escape discards changes. Routing edits retain effect values and positions, invalidate processed audio, and save through the existing rack JSON format.
+
 ## Patch graph
 
 Drag a node body to move it; select its title to edit it. Choose an output port and then an input port to connect. A Sounder input replaces its previous connection. A mixer input adds a path; its controls set each input gain and disconnect paths. Choose **Rack output** or connect to the output node to set the exported result. The graph permits shared upstream nodes and rejects feedback cycles.
