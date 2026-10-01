@@ -2,7 +2,7 @@
 
 The Sounder rack supplies recipes, explicit routing, bypass and mix, raw stage caches, final output gain and ceiling, stage audition, float WAV export, and cancellable Worker jobs. Browser and CLI rendering share `sounder/rack.js`. These mechanisms can serve other effects inside Hindcasts without copying their DSP into the host.
 
-Effect support is still explicit. The core accepts only `sounder` and `mix`; the browser edits serial Sounder chains. `sounder/rack-worker.js` imports Sounder, and `sounder/rack-browser.js` embeds its editor. Extraction alone does not register another effect.
+Effect support is still explicit. The core accepts only `sounder` and `mix`; the browser edits Sounder and mixer DAGs. `sounder/rack-worker.js` imports Sounder, and `sounder/rack-browser.js` embeds its editor. Extraction alone does not register another effect.
 
 ## Adapter boundary
 
@@ -33,4 +33,4 @@ This inventory comes from reading the extracted entry points. No non-Sounder rac
 
 Compare fixed-input standalone and rack PCM before final output gain or ceiling. Check state migration, zero controls, bypass, dry/wet behavior, mono/stereo policy, input ownership, finite output, and sample count/origin. Verify browser/Worker and CLI parity, cancellation, progress, and stage export. For stochastic processing, fix the seed; for multiple sources, supply a known alignment case. For a head or tail, mix against a known impulse and check its sample index.
 
-Next: Remanence, after adding asynchronous registry dispatch. Length-changing effects follow the sample-origin contract. Branched browser editing can follow without changing the existing DAG recipe's routing meaning.
+Next: Remanence, after adding asynchronous registry dispatch. Length-changing effects follow the sample-origin contract. Branched browser editing uses the existing DAG routing meaning; optional layout records presentation only.

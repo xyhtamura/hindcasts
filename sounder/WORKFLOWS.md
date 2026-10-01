@@ -2,19 +2,27 @@
 
 Sounder's browser editor and command-line rack use `engine.js` for whole-file processing. The rack runs Sounder cells in an explicit graph, with optional parallel mixers. A recipe holds processing state; recordings stay in separate files.
 
-The single-cell editor’s **Save rack** button exports its settings as a one-cell recipe. The [browser rack](rack.html) edits serial Sounder chains. For branched routing, edit the recipe or build one with `HindcastsRack.chain(states)` (`require('./rack.js').chain(states)` in Node).
+The single-cell editor’s **Save rack** button exports its settings as a one-cell recipe. The [browser rack](rack.html) edits Sounder graphs with serial and parallel paths. Recipes can also be edited as JSON; build serial chains with `HindcastsRack.chain(states)` (`require('./rack.js').chain(states)` in Node).
 
 ## Browser rack
 
-Open `sounder/rack.html` through the root server, or follow **Open rack** in the single-cell editor. Load a recording, then add or select Sounder cells in the insert chain. Duplicate, remove, or move cells with their buttons. Each cell has a bypass switch and a separate dry/wet mix. The existing curve editor controls the selected cell; its histogram measures that cell’s actual upstream signal.
+Open `sounder/rack.html` through the root server, or follow **Rack view** in the single-cell editor. The single-effect editor starts with one Sounder. **Rack view** carries its settings and decoded recording into the patch editor. The rack’s **Effect view** button hides the graph without discarding routing or audio. Load a recording, then add or select Sounder cells. Duplicate, remove, or move cells with their buttons. Each cell has a bypass switch and a separate dry/wet mix. The existing curve editor controls the selected cell; its histogram measures that cell’s actual upstream signal.
 
 **Process rack** renders the chain. **Stage** selects the recording, a raw cell output, or the rack output for the audio player and **Export WAV**. Raw stages precede rack makeup and ceiling. The rack output applies both controls. Export writes float32 WAV at the decoded recording’s rate and length. The browser may resample recordings to its AudioContext rate when decoding; the CLI preserves the input WAV rate.
 
-**Save rack** stores every cell and the output settings. **Load rack** accepts serial Sounder recipes; it rejects branched or unsupported recipes without replacing the open chain. Edits disable stage audition and export until processing runs again. The browser and CLI use the same recipe format and DSP.
+**Save rack** stores every cell and the output settings. **Load rack** accepts Sounder and mixer graphs. It rejects cycles and unsupported recipes without replacing the open graph. Edits disable stage audition and export until processing runs again. The browser and CLI use the same recipe format and DSP.
 
 Rendering and upstream histogram preparation run in dedicated Workers. Processing reports the current cell and completed cell count, then the final output stage; this is stage progress, not an estimate of remaining time. **Cancel processing** terminates the render Worker and disables its output. The recording and recipe remain available for another render. Superseded histogram jobs are also terminated; generation checks prevent an old result from replacing the selected cell’s analysis.
 
-Serve the rack over HTTP; there is no main-thread render fallback when a Worker fails. Workers receive copies of the recording and transfer results back, retaining whole-file buffers. Decoding, buffer copying, drawing, and WAV preparation still run on the main thread. Other effects and branched graph editing remain outside this browser editor. [Effect adapters](../RACK-ADAPTERS.md) records the reusable structure and each extracted engine’s integration requirements.
+Serve the rack over HTTP; there is no main-thread render fallback when a Worker fails. Workers receive copies of the recording and transfer results back, retaining whole-file buffers. Decoding, buffer copying, drawing, and WAV preparation still run on the main thread. Other effects remain outside this browser editor. [Effect adapters](../RACK-ADAPTERS.md) records the reusable structure and each extracted engine’s integration requirements.
+
+## Patch graph
+
+Drag a node body to move it; select its title to edit it. Choose an output port and then an input port to connect. A Sounder input replaces its previous connection. A mixer input adds a path; its controls set each input gain and disconnect paths. Choose **Rack output** or connect to the output node to set the exported result. The graph permits shared upstream nodes and rejects feedback cycles.
+
+**Add mixer** combines parallel paths without normalization. Node names and positions are saved in the recipe. Zoom buttons change the graph scale; scroll its surface to reach other nodes. Moving a node changes presentation only. Node removal reconnects its consumers to that Sounder’s upstream input, or to the recording when removing a mixer. Up/down buttons apply only to serial chains. Each Sounder keeps its complete band, crossover, curve, detector, bypass, and mix settings.
+
+The optional recipe `layout.positions` maps node IDs, `source`, and `__output` to `{x, y}` coordinates. The core validates these as finite numbers from 0 to 10000 and ignores them when rendering. Existing recipes without layout remain valid. Older runners that reject unknown fields need updating before loading a recipe with layout.
 
 ## Run a recording
 

@@ -24,11 +24,14 @@ const wet=DSP.create(audio.sampleRate,gain.global).render(audio.channels,gain);
 Rack.render(audio,bypass).channels.forEach((c,k)=>close(c,Float32Array.from(c,(_,i)=>wet[k][i]*0.25+audio.channels[k][i]*0.75)));
 const hot=Rack.chain([gain]);hot.master.ceilingDb=-20;const limited=Rack.render(audio,hot);assert.ok(limited.report.limitedSamples>0);assert.ok(limited.report.output.peak<0.100001);
 const twice=Rack.render(audio,chain);assert.deepEqual(twice.channels,Rack.render(audio,chain).channels);
+chain.layout={positions:{source:{x:30,y:30},sounder1:{x:280,y:80},__output:{x:800,y:30}}};
+assert.deepEqual(Rack.render(audio,chain).channels,twice.channels);
 const bad=f=>{const r=Rack.chain([identity]);f(r);assert.throws(()=>Rack.render(audio,r));};
 bad(r=>r.nodes[0].input='sounder1');bad(r=>r.nodes[0].input='missing');bad(r=>r.nodes[0].state.bands[0].tauMs='40');
 bad(r=>r.nodes[0].state.bands[0].curve[1].x=0);bad(r=>r.nodes[0].type='pythia');bad(r=>r.nodes[0].state.global.crossovers=[30000]);bad(r=>r.extra=1);
 bad(r=>r.nodes[0].mix=NaN);bad(r=>r.master.makeupDb=null);bad(r=>r.master.ceilingDb=Infinity);
 bad(r=>{r.nodes.push({...r.nodes[0],id:'unused',input:'unused'});});
+bad(r=>r.layout={positions:{source:{x:Infinity,y:0}}});bad(r=>r.layout={positions:{source:{x:10001,y:0}}});bad(r=>r.layout={positions:{missing:{x:1,y:1}}});
 assert.throws(()=>WAV.decode(Buffer.from('not a WAV')));
 // Run the real CLI, decode its output, and inspect its report and refusal to overwrite.
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'sounder-rack-'));

@@ -49,10 +49,13 @@ function validateState(state){
   return s;
 }
 function validate(recipe){
-  keys(recipe,['format','version','nodes','output','master'],'rack');
+  keys(recipe,['format','version','nodes','output','master','layout'],'rack');
   if(recipe.format!=='hindcasts-rack'||recipe.version!==1)fail('Expected hindcasts-rack version 1');
   if(!Array.isArray(recipe.nodes)||!recipe.nodes.length||recipe.nodes.length>128)fail('Rack needs 1–128 nodes');
   const r=copy(recipe),ids=new Map();
+  if(r.layout!==undefined){keys(r.layout,['positions'],'rack layout');
+    if(!r.layout.positions||typeof r.layout.positions!=='object'||Array.isArray(r.layout.positions))fail('Layout positions must be an object');
+    for(const [id,p] of Object.entries(r.layout.positions)){if(!['source','__output',...r.nodes.map(n=>n.id)].includes(id))fail(`Unknown layout node: ${id}`);keys(p,['x','y'],'node position');number(p.x,0,10000,'node x');number(p.y,0,10000,'node y');}}
   for(const n of r.nodes){
     keys(n,['id','type','input','inputs','state','bypass','mix','label'],'node');
     if(typeof n.id!=='string'||! /^[a-zA-Z][\w-]*$/.test(n.id)||n.id==='source'||ids.has(n.id))fail('Node IDs must be unique; source is reserved');

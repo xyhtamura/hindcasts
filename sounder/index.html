@@ -282,7 +282,7 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;bor
         <div class="state-io">
           <button id="state-save" type="button">Save state</button>
           <button id="rack-save" type="button">Save rack</button>
-          <a href="rack.html">Open rack</a>
+          <a id="rack-open" href="rack.html">Rack view</a>
           <button id="state-load" type="button">Load state</button>
           <input type="file" id="state-file" accept=".json,application/json" hidden>
         </div>
@@ -385,6 +385,7 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;bor
 
 <script src="engine.js"></script>
 <script src="rack.js"></script>
+<script src="rack-session.js"></script>
 <script>
 (()=>{
 "use strict";
@@ -923,6 +924,7 @@ window.SounderApp = {
 function init(){sizeChart();sizeSpectrum();buildLut();setTau(band.tauMs);buildSafety();renderBands();drawSpectrum();syncControls();draw();updateTime();
   addEventListener('resize',()=>{sizeChart();sizeSpectrum();draw();drawSpectrum();if(inPeaks)cacheWave('in',inPeaks);if(outPeaks)cacheWave('out',outPeaks);drawWaves();});}
 init();
+$('rack-open').addEventListener('click',async e=>{e.preventDefault();try{await SounderSession.put({recipe:HindcastsRack.chain([JSON.parse(JSON.stringify(state))]),audio:srcBuffer?{sampleRate:sr,channels:Array.from({length:srcBuffer.numberOfChannels},(_,c)=>srcBuffer.getChannelData(c))}:null});location.href='rack.html?from=effect';}catch(err){setStatus('Could not open rack: '+err.message,false);}});
 if(new URLSearchParams(location.search).has('rack')){
   const style=document.createElement('style');style.textContent='html,body{min-height:0}header,.drop,.filemeta,.state-io,.waves,.transport,.slider-group.safety,#sound,#export,#status{display:none!important}.container{padding:10px;min-height:0}.console{grid-template-columns:240px 1fr}@media(max-width:600px){.console{grid-template-columns:1fr}}';document.head.append(style);
   document.querySelector('.console .panel h3').textContent='Window and curve';

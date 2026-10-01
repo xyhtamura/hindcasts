@@ -13,10 +13,12 @@
   <button id="cancel" disabled>Cancel processing</button>
   <button id="export" disabled>Export WAV</button>
 </div>
+<div class="toolbar"><button id="view">Effect view</button><button id="add-mixer">Add mixer</button><button id="zoom-out" aria-label="Zoom graph out">−</button><button id="zoom-in" aria-label="Zoom graph in">＋</button><label>Rack output <select id="output-node"></select></label></div>
 <p id="status" role="status">Load a recording or edit the chain.</p><progress id="progress" hidden aria-label="Rack processing progress"></progress>
+<section id="patch"><h2>Patch graph</h2><p>Drag a node body to move it. Select a node title to edit it. Choose an output port, then an input port to connect. Mixer input ports add a path.</p><div class="patch-scroll"><svg id="graph" aria-label="Audio routing graph"></svg></div></section>
 <main>
  <aside>
-  <h2>Insert chain</h2><p>Cells run from top to bottom.</p>
+  <h2>Nodes</h2><p>Connections determine processing order.</p>
   <div id="cells" role="group" aria-label="Sounder cells"></div>
   <button id="add">Add Sounder</button>
   <div class="master">
@@ -25,13 +27,14 @@
    <label>Sample ceiling (dB) <input id="master-ceiling" type="number" min="-60" max="0" step="0.5" value="-1"></label>
   </div>
  </aside>
- <section class="editor"><h2 id="selected">Sounder 1 controls</h2><p id="upstream">Histogram input: recording</p>
+ <section class="editor"><h2 id="selected">Sounder 1 controls</h2><label>Node name <input id="node-label" type="text" maxlength="120"></label><p id="upstream">Histogram input: recording</p>
   <iframe id="editor" src="index.html?rack" title="Selected Sounder cell controls"></iframe>
+  <div id="mixer-controls" hidden></div>
  </section>
 </main>
 <section class="audition">
  <h2>Audition</h2><label>Stage <select id="stage" disabled><option value="source">Recording</option></select></label>
  <audio id="player" controls></audio><p>Cell stages precede rack makeup and ceiling. Export follows the selected stage.</p>
 </section>
-<script src="engine.js"></script><script src="rack.js"></script><script src="rack-jobs.js"></script><script src="rack-browser.js"></script>
+<script src="engine.js"></script><script src="rack.js"></script><script src="rack-jobs.js"></script><script src="rack-session.js"></script><script src="rack-graph.js"></script><script src="rack-browser.js"></script>
 </html>
