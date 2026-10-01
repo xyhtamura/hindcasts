@@ -12,7 +12,9 @@ Open `sounder/rack.html` through the root server, or follow **Open rack** in the
 
 **Save rack** stores every cell and the output settings. **Load rack** accepts serial Sounder recipes; it rejects branched or unsupported recipes without replacing the open chain. Edits disable stage audition and export until processing runs again. The browser and CLI use the same recipe format and DSP.
 
-Rendering and upstream histogram preparation run on the main thread and retain whole-file buffers. Long files can pause the interface. Worker rendering with progress and cancellation is the next step. Other effects and branched graph editing remain outside this browser editor.
+Rendering and upstream histogram preparation run in dedicated Workers. Processing reports the current cell and completed cell count, then the final output stage; this is stage progress, not an estimate of remaining time. **Cancel processing** terminates the render Worker and disables its output. The recording and recipe remain available for another render. Superseded histogram jobs are also terminated; generation checks prevent an old result from replacing the selected cell’s analysis.
+
+Serve the rack over HTTP; there is no main-thread render fallback when a Worker fails. Workers receive copies of the recording and transfer results back, retaining whole-file buffers. Decoding, buffer copying, drawing, and WAV preparation still run on the main thread. Other effects and branched graph editing remain outside this browser editor. [Effect adapters](../RACK-ADAPTERS.md) records the reusable structure and each extracted engine’s integration requirements.
 
 ## Run a recording
 
@@ -76,4 +78,4 @@ node sounder/test-rack-browser.cjs
 
 The stereo check covers channel energy, linked gain, polarity invariance, mono parity, and legacy migration. The rack check covers numerical processing and the real command-line WAV round trip. The browser check requires Playwright (set `PLAYWRIGHT_PATH` to its package path if necessary) and headless Edge (override with `EDGE_PATH`). It loads the actual editor, processes a stereo WAV through the file control and Process button, and compares the page output with the rack's raw cell output.
 
-`test-rack-browser.cjs` checks the actual rack page: cell edits and routing, upstream histograms, output/stage float WAV parity with the core renderer, playback advancement, edit invalidation, recipe round trips and rejection, and narrow-screen width. It saves desktop/mobile screenshots to the system temporary directory, or `SCREENSHOT_DIR` when set.
+`test-rack-browser.cjs` checks the actual rack page: cell edits and routing, upstream histograms, output/stage float WAV parity with the core renderer, playback advancement, edit invalidation, recipe round trips and rejection, and narrow-screen width. It also checks Worker progress/errors, alias-safe stage transfers, input ownership, responsive cancellation, and restart. It serves its own local HTTP fixture unless `RACK_URL` is supplied. It saves desktop/mobile screenshots to the system temporary directory, or `SCREENSHOT_DIR` when set.

@@ -10,9 +10,10 @@
   <label>Recording <input id="recording" type="file" accept="audio/*"></label>
   <button id="load">Load rack</button><input id="recipe-file" type="file" accept=".json" hidden>
   <button id="save">Save rack</button><button id="process" disabled>Process rack</button>
+  <button id="cancel" disabled>Cancel processing</button>
   <button id="export" disabled>Export WAV</button>
 </div>
-<p id="status" role="status">Load a recording or edit the chain.</p>
+<p id="status" role="status">Load a recording or edit the chain.</p><progress id="progress" hidden aria-label="Rack processing progress"></progress>
 <main>
  <aside>
   <h2>Insert chain</h2><p>Cells run from top to bottom.</p>
@@ -32,5 +33,5 @@
  <h2>Audition</h2><label>Stage <select id="stage" disabled><option value="source">Recording</option></select></label>
  <audio id="player" controls></audio><p>Cell stages precede rack makeup and ceiling. Export follows the selected stage.</p>
 </section>
-<script src="engine.js"></script><script src="rack.js"></script><script src="rack-browser.js"></script>
+<script src="engine.js"></script><script src="rack.js"></script><script src="rack-jobs.js"></script><script src="rack-browser.js"></script>
 </html>

@@ -4,10 +4,11 @@
 const $=id=>document.getElementById(id),Rack=HindcastsRack;
 let recipe=Rack.chain([Rack.defaultState()]),selected=recipe.nodes[0].id,audio=null,result=null,editorReady=false,serial=1,objectURL=null;
 let revision=0,editorGeneration=0,busy=false;
+let renderJob=null,analysisJob=null,analysisTimer=null,analysisSequence=0,selectedBand=0;
 const status=t=>{$('status').textContent=t;};
 function sourceAudio(buffer){return {sampleRate:buffer.sampleRate,channels:Array.from({length:buffer.numberOfChannels},(_,i)=>buffer.getChannelData(i))};}
 function wire(){recipe.nodes.forEach((n,i)=>n.input=i?recipe.nodes[i-1].id:'source');recipe.output=recipe.nodes.at(-1)?.id||'source';}
-function invalidate(){revision++;result=null;$('stage').disabled=true;$('export').disabled=true;$('player').pause();$('player').removeAttribute('src');$('player').load();if(objectURL){URL.revokeObjectURL(objectURL);objectURL=null;}status('Rack changed. Process to audition or export.');}
+function invalidate(){revision++;result=null;cancelAnalysis();scheduleAnalysis();$('stage').disabled=true;$('export').disabled=true;$('player').pause();$('player').removeAttribute('src');$('player').load();if(objectURL){URL.revokeObjectURL(objectURL);objectURL=null;}status('Rack changed. Process to audition or export.');}
 function acceptRecipe(value){
   const checked=Rack.validate(value).recipe;
   if(checked.nodes.some((n,i)=>n.type!=='sounder'||n.input!==(i?checked.nodes[i-1].id:'source'))||checked.output!==(checked.nodes.at(-1)?.id||'source'))
@@ -38,31 +39,34 @@ function select(id){if(busy)return;selected=id;drawCells();syncEditor();}
 function syncEditor(){
   if(!editorReady)return;
   const cell=recipe.nodes.find(n=>n.id===selected);if(!cell)return;
-  try{
-    let upstream=null;
-    if(audio){
-      const i=recipe.nodes.indexOf(cell);
-      if(i===0)upstream=audio;
-      else{const prefix={...recipe,nodes:recipe.nodes.slice(0,i),output:cell.input};
-        const rendered=Rack.render(audio,prefix);upstream={sampleRate:audio.sampleRate,channels:rendered.cache.get(cell.input)};}
-    }
-    $('selected').textContent=`${cell.label||cell.id} controls`;
-    $('upstream').textContent=`Histogram input: ${cell.input==='source'?'recording':cell.input}${audio?'':' (load a recording)'}`;
-    editorGeneration++;
-    $('editor').contentWindow.postMessage({type:'sounder-cell',cellId:selected,generation:editorGeneration,state:cell.state,audio:upstream},'*');
-  }catch(e){
-    $('selected').textContent=`${cell.label||cell.id} controls`;
-    $('upstream').textContent=`Histogram unavailable: ${e.message}`;
-    editorGeneration++;
-    $('editor').contentWindow.postMessage({type:'sounder-cell',cellId:selected,generation:editorGeneration,state:cell.state,audio:null},'*');
-    status(e.message);
-  }
+  cancelAnalysis();selectedBand=0;
+  $('selected').textContent=`${cell.label||cell.id} controls`;
+  $('upstream').textContent=audio?'Preparing upstream histogram…':'Histogram input: load a recording';
+  editorGeneration++;
+  $('editor').contentWindow.postMessage({type:'sounder-cell',cellId:selected,generation:editorGeneration,state:cell.state,sampleRate:audio?.sampleRate},'*');
+}
+function cancelAnalysis(){clearTimeout(analysisTimer);analysisSequence++;analysisJob?.cancel();analysisJob=null;}
+function sendAnalysis(analysis,generation=editorGeneration,cellId=selected,bandIndex=selectedBand){$('editor').contentWindow.postMessage({type:'sounder-analysis',generation,cellId,bandIndex,analysis},'*');}
+function scheduleAnalysis(){clearTimeout(analysisTimer);analysisTimer=setTimeout(analyse,80);}
+async function analyse(){
+  cancelAnalysis();sendAnalysis(null);
+  if(!audio||busy||!editorReady)return;
+  const ticket=analysisSequence,rev=revision,generation=editorGeneration,cellId=selected,bandIndex=selectedBand;
+  const job=HindcastsRackJobs.start({kind:'analyse',audio,recipe,cellId,bandIndex});analysisJob=job;
+  $('upstream').textContent='Preparing upstream histogram…';
+  try{const analysis=await job.promise;
+    if(ticket!==analysisSequence||rev!==revision||generation!==editorGeneration)return;
+    sendAnalysis(analysis,generation,cellId,bandIndex);const cell=recipe.nodes.find(n=>n.id===cellId);
+    $('upstream').textContent=`Histogram input: ${cell.input==='source'?'recording':cell.input}`;
+  }catch(e){if(e.name!=='AbortError'&&ticket===analysisSequence)$('upstream').textContent=`Histogram unavailable: ${e.message}`;}
+  finally{if(analysisJob===job)analysisJob=null;}
 }
 addEventListener('message',e=>{
   if(e.source!==$('editor').contentWindow)return;
   if(e.data?.type==='sounder-size'&&Number.isFinite(e.data.height))$('editor').style.height=`${Math.max(600,e.data.height)}px`;
   if(e.data?.type==='sounder-ready'){editorReady=true;syncEditor();}
-  if(e.data?.type==='sounder-cell-ready'){$('editor').dataset.cell=e.data.cellId;}
+  if(e.data?.type==='sounder-cell-ready'&&e.data.generation===editorGeneration){$('editor').dataset.cell=e.data.cellId;selectedBand=e.data.bandIndex;scheduleAnalysis();}
+  if(e.data?.type==='sounder-analyse'&&e.data.generation===editorGeneration&&e.data.cellId===selected){selectedBand=e.data.bandIndex;scheduleAnalysis();}
   if(e.data?.type==='sounder-edit'&&!busy&&e.data.cellId===selected&&e.data.generation===editorGeneration){
     try{const cell=recipe.nodes.find(n=>n.id===selected);cell.state=Rack.validateState(e.data.state);invalidate();}
     catch(err){status(err.message);}
@@ -87,16 +91,22 @@ $('recording').onchange=async e=>{
   try{const buffer=await context.decodeAudioData(await f.arrayBuffer());audio=sourceAudio(buffer);invalidate();$('process').disabled=false;syncEditor();status(`Loaded ${f.name}: ${buffer.numberOfChannels} channels, ${buffer.sampleRate} Hz. Process to audition.`);}
   catch(err){status(`Recording not loaded: ${err.message}`);}
 };
-function setBusy(value){busy=value;$('editor').inert=value;for(const id of ['process','add','load','save','recording','master-gain','master-ceiling'])$(id).disabled=value||(id==='process'&&!audio);drawCells();}
+function setBusy(value){busy=value;$('editor').inert=value;$('cancel').disabled=!value;$('progress').hidden=!value;for(const id of ['process','add','load','save','recording','master-gain','master-ceiling'])$(id).disabled=value||(id==='process'&&!audio);drawCells();}
 $('process').onclick=async()=>{
-  if(!audio||busy)return;setBusy(true);status('Processing rack…');
-  try{await new Promise(r=>setTimeout(r,30));result=Rack.render(audio,recipe);
+  if(!audio||busy)return;cancelAnalysis();setBusy(true);$('stage').disabled=true;$('export').disabled=true;status('Processing rack…');$('progress').removeAttribute('value');
+  const job=HindcastsRackJobs.start({kind:'render',audio,recipe},p=>{
+    if(p.total){$('progress').max=p.total;$('progress').value=p.completed;}
+    status(p.phase==='cell'?`Processing ${p.id} (${p.completed+1}/${p.total})…`:p.phase==='master'?'Applying rack output gain and ceiling…':'Checking recording and recipe…');
+  });renderJob=job;
+  try{result=await job.promise;
     $('stage').replaceChildren();for(const [value,text] of [['source','Recording'],...recipe.nodes.map(n=>[n.id,n.label||n.id]),['__rack_output','Rack output']]){const o=document.createElement('option');o.value=value;o.textContent=text;$('stage').append(o);}
     $('stage').value='__rack_output';$('stage').disabled=false;$('export').disabled=false;audition();
     status(`Processed ${recipe.nodes.length} cells. ${result.report.limitedSamples} samples limited at the rack ceiling.`);
-  }catch(err){result=null;status(`Processing failed: ${err.message}`);}
-  finally{setBusy(false);}
+  }catch(err){result=null;$('player').pause();$('player').removeAttribute('src');$('player').load();status(err.name==='AbortError'?'Processing cancelled. The recording and recipe are unchanged.':`Processing failed: ${err.message}`);}
+  finally{if(renderJob===job)renderJob=null;setBusy(false);scheduleAnalysis();}
 };
+$('cancel').onclick=()=>renderJob?.cancel();
+addEventListener('pagehide',()=>{renderJob?.cancel();cancelAnalysis();});
 function stageChannels(){return $('stage').value==='__rack_output'?result.channels:result.cache.get($('stage').value);}
 // Float32 WAV keeps intermediate samples above full scale available for inspection.
 function wav(channels,rate){const frames=channels[0].length,count=channels.length,data=new ArrayBuffer(44+frames*count*4),v=new DataView(data);const str=(p,s)=>[...s].forEach((c,i)=>v.setUint8(p+i,c.charCodeAt(0)));

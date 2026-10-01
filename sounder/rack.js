@@ -97,9 +97,12 @@ function measure(channels){
   for(const c of channels)for(const x of c){if(!Number.isFinite(x))fail('Render produced non-finite audio');peak=Math.max(peak,Math.abs(x));energy+=x*x;count++;}
   return {peak,rms:Math.sqrt(energy/count)};
 }
-function render(audio,recipe){
+function* renderSteps(audio,recipe){
+  yield {phase:'validate',completed:0,total:0};
   validateAudio(audio);const plan=validate(recipe),cache=new Map([['source',audio.channels]]),stages=[];
+  let completed=0;
   for(const n of plan.order){
+    yield {phase:'cell',id:n.id,completed,total:plan.order.length};
     let output;
     if(n.type==='sounder'){
       const input=cache.get(n.input);
@@ -112,7 +115,9 @@ function render(audio,recipe){
         for(let c=0;c<output.length;c++)for(let i=0;i<output[c].length;i++)output[c][i]+=input[c][i]*g;}
     }
     stages.push({id:n.id,type:n.type,...measure(output)});cache.set(n.id,output);
+    completed++;
   }
+  yield {phase:'master',completed,total:plan.order.length};
   const g=10**(plan.recipe.master.makeupDb/20),ceiling=10**(plan.recipe.master.ceilingDb/20);
   let limitedSamples=0;
   const channels=cache.get(plan.recipe.output).map(c=>Float32Array.from(c,x=>{
@@ -122,9 +127,10 @@ function render(audio,recipe){
     sampleRate:audio.sampleRate,frames:channels[0].length,channels:channels.length,stages,
     limitedSamples,output:measure(channels),master:plan.recipe.master}};
 }
+function render(audio,recipe){const steps=renderSteps(audio,recipe);let step=steps.next();while(!step.done)step=steps.next();return step.value;}
 function chain(states){
   return {format:'hindcasts-rack',version:1,nodes:states.map((state,i)=>({id:`sounder${i+1}`,type:'sounder',input:i?`sounder${i}`:'source',state})),
     output:`sounder${states.length}`,master:{makeupDb:0,ceilingDb:-1}};
 }
-return {defaultState,validateState,validate,render,chain};
+return {defaultState,validateState,validate,validateAudio,renderSteps,render,chain};
 });

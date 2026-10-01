@@ -464,7 +464,7 @@ async function loadFile(file){
 /* ── multiband DSP: linear-phase STFT splitter (perfect reconstruction) ── */
 const dsp=()=>SounderDSP.create(sr,G);
 /* Split channel waveforms first, then measure the selected band's linked level. */
-function analyseSelected(){if(!srcBuffer)return;
+function analyseSelected(){if(window.sounderRackAnalyse){window.sounderRackAnalyse(sel);return;}if(!srcBuffer)return;
   const engine=dsp(),chs=Array.from({length:srcBuffer.numberOfChannels},(_,c)=>srcBuffer.getChannelData(c));
   const xo=engine.crossoverBins();
   const mask=xo.length?engine.buildMasks(xo)[sel]:null;
@@ -931,18 +931,21 @@ if(new URLSearchParams(location.search).has('rack')){
   document.querySelector('label[for="mmix"]').firstChild.textContent='Cell dry/wet';
   new ResizeObserver(()=>parent.postMessage({type:'sounder-size',height:Math.ceil(document.querySelector('.container').getBoundingClientRect().height)+10},'*')).observe(document.querySelector('.container'));
   let loading=false,cellId=null,generation=0;
+  window.sounderRackAnalyse=index=>{if(!loading)parent.postMessage({type:'sounder-analyse',cellId,generation,bandIndex:index},'*');};
   window.sounderRackNotify=value=>{if(!loading)parent.postMessage({type:'sounder-edit',cellId,generation,state:JSON.parse(JSON.stringify(value))},'*');};
   addEventListener('message',e=>{
     if(e.source===parent&&e.data?.type==='sounder-connect'){parent.postMessage({type:'sounder-ready'},'*');return;}
+    if(e.source===parent&&e.data?.type==='sounder-analysis'){
+      const m=e.data;if(m.cellId!==cellId||m.generation!==generation||m.bandIndex!==sel)return;
+      const A=m.analysis;framePrefixE=A?.framePrefixE||null;framePrefixN=A?.framePrefixN||null;levelN=A?.levelN||null;hist=A?.hist||null;nFrames=A?.nFrames||0;draw();return;
+    }
     if(e.source!==parent||e.data?.type!=='sounder-cell')return;
     loading=true;
     try{
       cellId=e.data.cellId;generation=e.data.generation;transStop();srcBuffer=null;hist=null;levelN=null;nFrames=0;
-      if(e.data.audio){const a=e.data.audio;sr=a.sampleRate;duration=a.channels[0].length/sr;
-        srcBuffer=ctx.createBuffer(a.channels.length,a.channels[0].length,sr);
-        a.channels.forEach((c,i)=>srcBuffer.getChannelData(i).set(c));}
+      if(e.data.sampleRate)sr=e.data.sampleRate;
       applyState(e.data.state);
-      parent.postMessage({type:'sounder-cell-ready',cellId},'*');
+      parent.postMessage({type:'sounder-cell-ready',cellId,generation,bandIndex:sel},'*');
     }finally{loading=false;}
   });
   parent.postMessage({type:'sounder-ready'},'*');
