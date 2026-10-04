@@ -2,15 +2,29 @@
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id),Rack=HindcastsRack;
-let recipe=Rack.chain([Rack.defaultState()]),selected=recipe.nodes[0].id,audio=null,result=null,editorReady=false,serial=1,objectURL=null;
+let recipe=Rack.chain([Rack.defaultState()]),selected=recipe.nodes[0].id,audio=null,result=null,editorReady=false,serial=1,objectURL=null,sourceURL=null,loadGeneration=0;
 let revision=0,editorGeneration=0,busy=false;
 let renderJob=null,analysisJob=null,analysisTimer=null,analysisSequence=0,selectedBand=0;
 let graph=null,routing=null,graphView=false,chartFocus=null,focusScroll=0;
 const bandSelections=new Map(),focusInert=new Map();
+[...'SOUNDER'].forEach((ch,i)=>{const span=document.createElement('span');span.textContent=ch;span.style.transform=`translateY(${Math.sin(i*1.7)*3}px) skewX(${Math.sin(i*.9)*1.8}deg)`;$('wordmark').append(span);});
+const waves=new SounderWaveforms({player:$('player'),seek:(which,fraction)=>{
+  if(!audio||busy)return;const stage=which==='in'?'source':$('stage').value==='source'?'__rack_output':$('stage').value;
+  if(stage!==$('stage').value){$('stage').value=stage;audition();}
+  const time=fraction*audio.channels[0].length/audio.sampleRate;
+  if($('player').readyState>=1)$('player').currentTime=time;
+  else $('player').addEventListener('loadedmetadata',()=>{$('player').currentTime=time;},{once:true});
+}});
+function resetAudition(){
+  $('stage').replaceChildren(new Option('Recording','source'));$('stage').disabled=!audio;$('export').disabled=true;
+  $('player').pause();if(objectURL){URL.revokeObjectURL(objectURL);objectURL=null;}
+  if(sourceURL)$('player').src=sourceURL;else{$('player').removeAttribute('src');$('player').load();}
+  waves.set('out',null);
+}
 const status=t=>{$('status').textContent=t;};
 function sourceAudio(buffer){return {sampleRate:buffer.sampleRate,channels:Array.from({length:buffer.numberOfChannels},(_,i)=>buffer.getChannelData(i))};}
 function wire(){recipe.nodes.forEach((n,i)=>n.input=i?recipe.nodes[i-1].id:'source');recipe.output=recipe.nodes.at(-1)?.id||'source';}
-function invalidate(){revision++;result=null;cancelAnalysis();scheduleAnalysis();$('stage').disabled=true;$('export').disabled=true;$('player').pause();$('player').removeAttribute('src');$('player').load();if(objectURL){URL.revokeObjectURL(objectURL);objectURL=null;}status('Rack changed. Process to audition or export.');}
+function invalidate(){revision++;result=null;cancelAnalysis();scheduleAnalysis();resetAudition();status('Rack changed. Process to audition or export.');}
 function acceptRecipe(value){return Rack.validate(value).recipe;}
 function isSerial(){return recipe.nodes.every((n,i)=>n.type==='sounder'&&n.input===(i?recipe.nodes[i-1].id:'source'))&&recipe.output===recipe.nodes.at(-1)?.id;}
 function commit(next){try{recipe=Rack.validate(next).recipe;invalidate();drawCells();syncEditor();return true;}catch(e){status(e.message);return false;}}
@@ -84,6 +98,8 @@ async function analyse(){
 }
 addEventListener('message',e=>{
   if(e.source!==$('editor').contentWindow)return;
+  if(e.data?.type==='sounder-recording-drag')document.body.classList.toggle('file-drag',!!e.data.active&&!busy);
+  if(e.data?.type==='sounder-recording-drop'&&e.data.file instanceof File)loadRecording(e.data.file);
   if(e.data?.type==='sounder-focus')setChartFocus(e.data.chart);
   if(e.data?.type==='sounder-size'&&Number.isFinite(e.data.height)&&!chartFocus)$('editor').style.height=`${Math.max(400,e.data.height)}px`;
   if(e.data?.type==='sounder-ready'){editorReady=true;syncEditor();}
@@ -130,12 +146,22 @@ $('save').onclick=()=>{try{const valid=Rack.validate(recipe).recipe;download(new
 function syncMaster(){$('master-gain').value=recipe.master.makeupDb;$('master-ceiling').value=recipe.master.ceilingDb;}
 for(const [id,key] of [['master-gain','makeupDb'],['master-ceiling','ceilingDb']])$(id).onchange=()=>{const el=$(id);if(!el.checkValidity()||el.value===''){syncMaster();return;}recipe.master[key]=+el.value;invalidate();};
 const context=new (window.AudioContext||window.webkitAudioContext)();
-$('recording').onchange=async e=>{
-  const f=e.target.files[0];if(!f)return;
-  try{const buffer=await context.decodeAudioData(await f.arrayBuffer());audio=sourceAudio(buffer);invalidate();$('process').disabled=false;syncEditor();status(`Loaded ${f.name}: ${buffer.numberOfChannels} channels, ${buffer.sampleRate} Hz. Process to audition.`);}
-  catch(err){status(`Recording not loaded: ${err.message}`);}
-};
-function setBusy(value){busy=value;$('editor').inert=value;$('mixer-controls').inert=value;$('node-label').disabled=value;$('cancel').disabled=!value;$('progress').hidden=!value;for(const id of ['process','add','add-mixer','output-node','load','save','recording','master-gain','master-ceiling','routing-open','source-select','master-select'])$(id).disabled=value||(id==='process'&&!audio);drawCells();}
+async function loadRecording(f){
+  if(!f||busy)return;if(chartFocus)setChartFocus(null);const generation=++loadGeneration;
+  try{const buffer=await context.decodeAudioData(await f.arrayBuffer());if(generation!==loadGeneration||busy)return;
+    audio=sourceAudio(buffer);if(sourceURL)URL.revokeObjectURL(sourceURL);sourceURL=URL.createObjectURL(wav(audio.channels,audio.sampleRate));
+    invalidate();waves.set('in',audio.channels);$('recording-name').textContent=f.name;$('process').disabled=false;syncEditor();
+    status(`Loaded ${f.name}: ${buffer.numberOfChannels} channels, ${buffer.sampleRate} Hz. Process to hear the rack output.`);
+  }catch(err){if(generation===loadGeneration)status(`Recording not loaded: ${err.message}`);}
+}
+$('recording').onchange=e=>{const f=e.target.files[0];e.target.value='';loadRecording(f);};
+for(const id of ['load-recording','wave-load'])$(id).onclick=()=>{if(!busy)$('recording').click();};
+addEventListener('dragover',e=>{if([...e.dataTransfer.types].includes('Files')){e.preventDefault();if(!busy)document.body.classList.add('file-drag');}});
+addEventListener('dragleave',e=>{if(!e.relatedTarget)document.body.classList.remove('file-drag');});
+addEventListener('dragend',()=>document.body.classList.remove('file-drag'));
+addEventListener('drop',e=>{e.preventDefault();document.body.classList.remove('file-drag');loadRecording(e.dataTransfer.files[0]);});
+
+function setBusy(value){busy=value;$('editor').inert=value;$('mixer-controls').inert=value;$('node-label').disabled=value;$('cancel').disabled=!value;$('progress').hidden=!value;for(const id of ['process','add','add-mixer','output-node','load','save','recording','load-recording','wave-load','master-gain','master-ceiling','routing-open','source-select','master-select'])$(id).disabled=value||(id==='process'&&!audio);drawCells();}
 $('process').onclick=async()=>{
   if(!audio||busy)return;cancelAnalysis();setBusy(true);$('stage').disabled=true;$('export').disabled=true;status('Processing rack…');$('progress').removeAttribute('value');
   const job=HindcastsRackJobs.start({kind:'render',audio,recipe},p=>{
@@ -146,17 +172,22 @@ $('process').onclick=async()=>{
     $('stage').replaceChildren();for(const [value,text] of [['source','Recording'],...recipe.nodes.filter(n=>result.cache.has(n.id)).map(n=>[n.id,n.label||n.id]),['__rack_output','Rack output']]){const o=document.createElement('option');o.value=value;o.textContent=text;$('stage').append(o);}
     $('stage').value='__rack_output';$('stage').disabled=false;$('export').disabled=false;audition();
     status(`Processed ${result.report.stages.length} cells. ${result.report.limitedSamples} samples limited at the rack ceiling.`);
-  }catch(err){result=null;$('player').pause();$('player').removeAttribute('src');$('player').load();status(err.name==='AbortError'?'Processing cancelled. The recording and recipe are unchanged.':`Processing failed: ${err.message}`);}
+  }catch(err){result=null;resetAudition();status(err.name==='AbortError'?'Processing cancelled. The recording and recipe are unchanged.':`Processing failed: ${err.message}`);}
   finally{if(renderJob===job)renderJob=null;setBusy(false);scheduleAnalysis();}
 };
 $('cancel').onclick=()=>renderJob?.cancel();
-addEventListener('pagehide',()=>{renderJob?.cancel();cancelAnalysis();});
-function stageChannels(){return $('stage').value==='__rack_output'?result.channels:result.cache.get($('stage').value);}
+addEventListener('pagehide',()=>{renderJob?.cancel();cancelAnalysis();if(sourceURL)URL.revokeObjectURL(sourceURL);if(objectURL)URL.revokeObjectURL(objectURL);});
+function stageChannels(){if($('stage').value==='source')return audio.channels;return $('stage').value==='__rack_output'?result.channels:result.cache.get($('stage').value);}
 // Float32 WAV keeps intermediate samples above full scale available for inspection.
 function wav(channels,rate){const frames=channels[0].length,count=channels.length,data=new ArrayBuffer(44+frames*count*4),v=new DataView(data);const str=(p,s)=>[...s].forEach((c,i)=>v.setUint8(p+i,c.charCodeAt(0)));
   str(0,'RIFF');v.setUint32(4,data.byteLength-8,true);str(8,'WAVE');str(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,3,true);v.setUint16(22,count,true);v.setUint32(24,rate,true);v.setUint32(28,rate*count*4,true);v.setUint16(32,count*4,true);v.setUint16(34,32,true);str(36,'data');v.setUint32(40,data.byteLength-44,true);
   for(let i=0,p=44;i<frames;i++)for(let c=0;c<count;c++,p+=4)v.setFloat32(p,channels[c][i],true);return new Blob([data],{type:'audio/wav'});}
-function audition(){if(!result)return;$('player').pause();if(objectURL)URL.revokeObjectURL(objectURL);objectURL=URL.createObjectURL(wav(stageChannels(),audio.sampleRate));$('player').src=objectURL;}
+function audition(){if(!audio)return;$('player').pause();if(objectURL){URL.revokeObjectURL(objectURL);objectURL=null;}
+  if($('stage').value==='source')$('player').src=sourceURL;
+  else{if(!result)return;objectURL=URL.createObjectURL(wav(stageChannels(),audio.sampleRate));$('player').src=objectURL;}
+  const output=result&&($('stage').value==='source'?result.channels:stageChannels());
+  waves.set('out',output||null,$('stage').value==='source'?'Rack output':$('stage').selectedOptions[0].textContent);
+}
 $('stage').onchange=audition;
 $('export').onclick=()=>{if(result)download(wav(stageChannels(),audio.sampleRate),`sounder-${$('stage').value}.wav`);};
 routing=new SounderRouting({getRecipe:()=>recipe,commit});

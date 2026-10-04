@@ -1,6 +1,6 @@
 # Sounder UI plan
 
-2026-10-04 — Codex. Design record for the layout accepted by the user. The horizontal selector, rack disclosure, compact charts, and app-window focus are implemented; see the dated entry in [sounder-roadmap.md](sounder-roadmap.md). The rack now starts visible inside the selected cell’s panel, sharing its column with the controls. Its toolbar moves with it, and chart focus temporarily hides both. This supersedes the closed initial rack in the original proposal, which follows. Browser fullscreen and the alternative vertical selector were not implemented.
+2026-10-04 — Codex. Design record for the accepted selector and chart-focus layout. The current page restores the original header, places waveforms and transport before the workspace, and puts the selected cell’s controls beside a vertical rack with Load/Save rack. The [layout record](layouts/2026-10-04-workspace.md) preserves earlier versions and open narrow-screen decisions. The original proposal follows; its closed initial graph and stacked rack are superseded. Browser fullscreen and the alternative vertical cell selector were not implemented.
 
 Sounder will have one workspace containing a recording, a rack, and the selected cell's controls. Opening the rack will insert a bounded routing area before the controls. Cell selection and chart focus will be independent of rack visibility.
 

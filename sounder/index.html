@@ -4,16 +4,26 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Sounder</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="rack.css">
-<body><header><h1>Sounder</h1><a href="WORKFLOWS.md">Workflow guide</a></header>
-<div class="toolbar">
-  <label>Recording <input id="recording" type="file" accept="audio/*"></label>
-  <button id="load">Load rack</button><input id="recipe-file" type="file" accept=".json" hidden>
-  <button id="save">Save rack</button><button id="process" disabled>Process rack</button>
-  <button id="cancel" disabled>Cancel processing</button>
-  <button id="export" disabled>Export WAV</button>
-</div>
-<p id="status" role="status">Load a recording or edit the chain.</p><progress id="progress" hidden aria-label="Rack processing progress"></progress>
+<body>
+<header>
+ <div class="title-row"><h1 class="wordmark" id="wordmark" aria-label="Sounder"></h1><span class="build-tag">depth · dynamics · multiband</span><a href="WORKFLOWS.md">Workflow guide</a></div>
+ <p class="tagline">An <em>un-live</em> whole-file dynamics processor. Like a normalizer with transfer curves.</p><div class="waterline"></div>
+</header>
+<section class="recording-panel" aria-labelledby="waves-title">
+ <div class="waves-head"><h2 id="waves-title">Waveforms</h2><button id="load-recording" type="button">Load file</button><input id="recording" type="file" accept="audio/*" hidden><span id="recording-name">No recording loaded</span></div>
+ <div class="wave-row empty" id="row-in"><span class="tag">Recording</span><canvas id="wave-in" aria-label="Recording waveform"></canvas><button id="wave-load" type="button">Load a file or drop it anywhere in the window</button></div>
+ <div class="wave-row empty out" id="row-out"><span class="tag" id="wave-output-label">Rack output</span><canvas id="wave-out" aria-label="Processed waveform"></canvas><span class="wave-empty-msg" id="wave-output-empty">Process the rack to see its output</span></div>
+ <div class="transport">
+  <button id="process" disabled>Process rack</button><button id="cancel" disabled>Cancel processing</button>
+  <label>Stage <select id="stage" disabled><option value="source">Recording</option></select></label>
+  <audio id="player" controls></audio><button id="export" disabled>Export WAV</button>
+ </div>
+ <p id="status" role="status">Load a recording or edit the chain.</p><progress id="progress" hidden aria-label="Rack processing progress"></progress>
+</section>
 <main>
  <nav class="cell-nav" aria-label="Rack cells">
   <div id="cells" role="group" aria-label="Effect cells"></div>
@@ -27,17 +37,15 @@
   </div>
  </div>
  <section class="editor">
-  <div class="toolbar rack-toolbar"><button id="view" aria-expanded="true" aria-controls="patch">Hide rack</button><span class="rack-tools"><button id="zoom-out" aria-label="Zoom graph out">−</button><button id="zoom-in" aria-label="Zoom graph in">＋</button><label>Rack output <select id="output-node"></select></label></span></div>
-  <section id="patch"><h2>Patch graph</h2><p>Drag a node body to move it. Select a node title to edit it. Choose an output port, then an input port to connect. Mixer input ports add a path.</p><div class="patch-scroll"><svg id="graph" aria-label="Audio routing graph"></svg></div></section>
   <div class="editor-heading"><h2 id="selected">Sounder 1 controls</h2><div><button id="routing-open" type="button">Routing</button><button id="focus-return" type="button" hidden>Return to overview</button></div></div><label id="node-name">Node name <input id="node-label" type="text" maxlength="120"></label><div id="cell-actions" role="group" aria-label="Selected cell actions"></div><p id="upstream">Histogram input: recording</p>
   <iframe id="editor" src="effect.html?rack" title="Selected Sounder cell controls"></iframe>
   <div id="mixer-controls" hidden></div><div id="endpoint-controls" hidden></div>
  </section>
+ <aside class="rack-panel" aria-labelledby="rack-title"><h2 id="rack-title">Rack</h2>
+  <div class="toolbar rack-toolbar"><button id="load">Load rack</button><input id="recipe-file" type="file" accept=".json" hidden><button id="save">Save rack</button><button id="view" aria-expanded="true" aria-controls="patch">Hide rack</button><span class="rack-tools"><button id="zoom-out" aria-label="Zoom graph out">−</button><button id="zoom-in" aria-label="Zoom graph in">＋</button><label>Rack output <select id="output-node"></select></label></span></div>
+  <section id="patch"><h2>Patch graph</h2><p>Drag a node body to move it. Select a node title to edit it. Choose an output port, then an input port to connect. Mixer input ports add a path.</p><div class="patch-scroll"><svg id="graph" aria-label="Audio routing graph"></svg></div></section>
+ </aside>
 </main>
-<section class="audition">
- <h2>Audition</h2><label>Stage <select id="stage" disabled><option value="source">Recording</option></select></label>
- <audio id="player" controls></audio><p>Cell stages precede rack makeup and ceiling. Export follows the selected stage.</p>
-</section>
 <dialog id="routing-dialog" aria-labelledby="routing-title">
  <form id="routing-form">
   <h2 id="routing-title">Routing</h2>
@@ -47,5 +55,5 @@
   <div class="routing-actions"><button type="submit">Apply routing</button><button id="routing-close" type="button">Cancel</button></div>
  </form>
 </dialog>
-<script src="engine.js"></script><script src="rack.js"></script><script src="rack-jobs.js"></script><script src="rack-graph.js"></script><script src="rack-routing.js"></script><script src="rack-browser.js"></script>
+<script src="engine.js"></script><script src="rack.js"></script><script src="rack-jobs.js"></script><script src="rack-graph.js"></script><script src="rack-routing.js"></script><script src="rack-waveforms.js"></script><script src="rack-browser.js"></script>
 </body></html>
