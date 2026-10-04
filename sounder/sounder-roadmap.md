@@ -311,3 +311,15 @@ Apply validates the complete routing change through the existing core and retain
 Checks: `test-rack-browser.cjs` exercises card and focused-view buttons, Sounder input/output changes, cycle rejection, Cancel/Escape, mixer input addition/removal/gain, rejection of disconnecting a mixer’s final input, and preservation of existing mixer gain. Saved values remain intact, and audio exported after form routing matches `Rack.render` sample for sample. Existing graph routing/layout, recipe persistence, Worker cancellation/restart, playback, and mobile-width checks pass. Routing dialog screenshots were inspected at desktop and mobile widths. No listening assessment was made.
 
 Next: check per-cell routing forms on larger Sounder patches. Changes to graphical connection editing are deferred by user request. Undo/redo, other-effect adapters, feedback DSP, and bounded-memory rendering remain undone. Work stayed in the existing checkout; the unrelated Pythia edit remains untouched.
+
+## 2026-10-04 — Codex — UI layout proposal
+
+[UI-PLAN.md](UI-PLAN.md) records a proposed workspace layout, pending design feedback. A persistent cell selector will switch between Sounder and mixer controls with the rack open or closed. Rack disclosure will insert a bounded routing area before the editor. Compact depth and crossover charts will each have an app-level Focus action and Return to overview/Escape exits. Plot clicks will continue to edit the plot; they will not toggle focus.
+
+The preferred selector is a horizontal strip, with a vertical selector as the comparison layout. Implementation will first establish selection/disclosure, then compact chart sizing, then one shared focus mechanism. Graphical manipulation changes remain deferred at the user's request. Presentation state will stay separate from the rack recipe.
+
+Inspection: `index.html` already places the graph before the editor, but `rack.css` adds a 260 px sidebar in rack view; the graph surface also takes at least 370 px. `effect.html` fixes its depth chart overlay inside the iframe, so the overlay cannot fill the parent app window. These are implementation constraints for the planned layout, not new application changes.
+
+A separate interactive layout study compares horizontal and sidebar selection, rack disclosure, and focus. Headless Edge checks confirm mockup selection, mixer visibility, rack state restoration on leaving focus, and no page overflow at 390 px; desktop/mobile screenshots were inspected. This checks the mockup only. No application code or DSP changed, and no audio assessment was made.
+
+Next: settle the layout with the interactive study before implementing persistent selection, rack disclosure, and chart focus. Minimum chart heights and the host/editor focus bridge remain to be tested in the real app. The unrelated Pythia edit remains untouched.
