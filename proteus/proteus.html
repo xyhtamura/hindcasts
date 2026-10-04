@@ -1,117 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PROTEUS — the morph that has read both scores</title>
-<style>
-  :root{
-    --sea:#0a1420; --sea2:#0f1e2e; --abyss:#06101a;
-    --foam:#e9f2ef; --foam-dim:#9db3ad;
-    --line:#1d3242; --line2:#284256;
-    --a:#5fd0c4; --b:#e0a24a; --iris:#b98cff; --warn:#e0665a;
-  }
-  *{box-sizing:border-box}
-  html,body{margin:0;background:
-    radial-gradient(1200px 600px at 70% -10%, #14283a 0%, var(--sea) 55%, var(--abyss) 100%);
-    color:var(--foam);font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif}
-  .wrap{max-width:1040px;margin:0 auto;padding:26px 22px 60px}
-  header h1{font:italic 600 40px/1 Georgia,"Times New Roman",serif;letter-spacing:.02em;margin:0}
-  header .sub{color:var(--foam-dim);font-style:italic;margin-top:6px;font-family:Georgia,serif}
-  header .tag{color:var(--iris);font-size:11px;letter-spacing:.18em;text-transform:uppercase;margin-top:10px}
+<title>Proteus · Hindcasts</title>
+<link rel="stylesheet" href="skin.css">
 
-  .files{display:flex;gap:12px;margin:22px 0 14px;flex-wrap:wrap}
-  .drop{flex:1 1 240px;min-height:64px;border:1px dashed var(--line2);border-radius:10px;
-    padding:12px 14px;cursor:pointer;transition:.15s;background:rgba(255,255,255,.012);position:relative}
-  .drop:hover{border-color:var(--foam-dim)}
-  .drop.over{border-color:var(--iris);background:rgba(185,140,255,.06)}
-  .drop.loaded.A{border-color:var(--a)} .drop.loaded.B{border-color:var(--b)}
-  .drop .role{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--foam-dim)}
-  .drop .role.A{color:var(--a)} .drop .role.B{color:var(--b)}
-  .drop .name{margin-top:4px;font-size:13px;color:var(--foam);word-break:break-all}
-  .drop .meta{font-size:11px;color:var(--foam-dim);margin-top:2px}
-  input[type=file]{display:none}
 
-  .panel{background:rgba(6,16,26,.55);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:12px 0}
-  .panel .lbl{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--foam-dim);margin-bottom:6px;display:flex;justify-content:space-between}
-  canvas{display:block;width:100%;border-radius:8px;background:var(--abyss);touch-action:none}
-  #tl{height:190px;cursor:text} #curve{height:130px}
-  .hint{font-size:11px;color:var(--foam-dim);margin-top:6px}
-
-  .controls{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end;margin:16px 0 8px}
-  .ctl{display:flex;flex-direction:column;gap:5px}
-  .ctl label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--foam-dim)}
-  .ctl .val{color:var(--iris);font-variant-numeric:tabular-nums}
-  input[type=range]{width:200px;accent-color:var(--iris)}
-  select{background:var(--sea2);color:var(--foam);border:1px solid var(--line2);border-radius:7px;padding:6px 8px;font:inherit}
-  .tf{display:flex;justify-content:space-between;width:200px;font-size:10px;color:var(--foam-dim)}
-  .tf b{color:var(--foam)}
-
-  .buttons{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:8px}
-  button{background:var(--sea2);color:var(--foam);border:1px solid var(--line2);border-radius:8px;
-    padding:9px 16px;font:600 13px/1 inherit;cursor:pointer;transition:.12s}
-  button:hover:not(:disabled){border-color:var(--iris);color:#fff}
-  button:disabled{opacity:.4;cursor:not-allowed}
-  button.primary{background:linear-gradient(180deg,#153444,#0e2434);border-color:var(--a)}
-  button.primary:hover:not(:disabled){border-color:var(--a);box-shadow:0 0 0 1px var(--a) inset}
-  .time{font-variant-numeric:tabular-nums;color:var(--foam-dim);font-size:13px;padding:0 6px;min-width:118px}
-  .spacer{flex:1}
-  #status{margin-top:14px;font-size:12px;color:var(--foam-dim);min-height:18px}
-  #status.err{color:var(--warn)} #status.ok{color:var(--a)}
-  .foot{margin-top:34px;font-size:11px;color:var(--foam-dim);font-style:italic;font-family:Georgia,serif;
-    border-top:1px solid var(--line);padding-top:14px}
-</style>
-
-<div class="wrap">
+</head>
+<body>
+<main class="wrap">
   <header>
-    <h1>Proteus</h1>
-    <div class="sub">the morph that has read both scores</div>
-    <div class="tag">Hindcasts · manual-align MVP</div>
+    <div class="identity">
+      <a class="suite" href="../index.html">Hindcasts <span> / audio</span></a>
+      <h1><span>Pro</span><span>teus</span></h1>
+      <p class="sub">Morph two recordings along a drawn curve.</p>
+    </div>
+    <div class="seal" aria-hidden="true"><i></i><i></i><i></i></div>
   </header>
 
   <div class="files">
-    <label class="drop A" id="dropA">
-      <div class="role A">A — source / body</div>
-      <div class="name" id="nameA">drop or click to load audio</div>
+    <label class="drop A" id="dropA" tabindex="0" role="button" aria-label="Load source A">
+      <div class="role A"><b>A</b> Source</div>
+      <div class="name" id="nameA">Choose or drop audio</div>
       <div class="meta" id="metaA"></div>
       <input type="file" id="fileA" accept="audio/*">
     </label>
-    <label class="drop B" id="dropB">
-      <div class="role B">B — donor</div>
-      <div class="name" id="nameB">drop or click to load audio</div>
+    <label class="drop B" id="dropB" tabindex="0" role="button" aria-label="Load donor B">
+      <div class="role B"><b>B</b> Donor</div>
+      <div class="name" id="nameB">Choose or drop audio</div>
       <div class="meta" id="metaB"></div>
       <input type="file" id="fileB" accept="audio/*">
     </label>
   </div>
 
   <div class="panel">
-    <div class="lbl"><span>timeline — drag the B lane to position it · click/drag elsewhere to seek</span><span id="offLbl">B offset 0.00 s</span></div>
-    <canvas id="tl"></canvas>
-    <div class="hint">Output rides A's clock. Where B doesn't cover A, the morph rests on A. The amber lane is B — drag it to slide.</div>
+    <div class="lbl"><span>Alignment</span><span id="offLbl">B offset 0.00 s</span></div>
+    <canvas id="tl" aria-label="Source A and draggable donor B timeline"></canvas>
+    <div class="hint">Drag lane B to align the recordings. Click elsewhere to seek the rendered output. Outside B’s coverage, the output uses A.</div>
   </div>
 
   <div class="panel">
-    <div class="lbl"><span>morph curve — drag points · click empty to add · double-click to remove</span><span>0 = A · 1 = B</span></div>
-    <canvas id="curve"></canvas>
+    <div class="lbl"><span>Morph curve</span><span>0 = A · 1 = B</span></div>
+    <canvas id="curve" aria-label="Morph amount over the source timeline"></canvas>
+    <div class="hint">Click to add a point. Drag to adjust it. Double-click an interior point to remove it.</div>
   </div>
 
   <div class="controls">
     <div class="ctl">
-      <label>Transport ↔ Fade <span class="val" id="tfVal">0.70</span></label>
+      <label for="tf">Transport amount <span class="val" id="tfVal">0.70</span></label>
       <input type="range" id="tf" min="0" max="1" step="0.01" value="0.7">
-      <div class="tf"><b>Fade</b><span>mass moves ⇄ mass fades</span><b>Transport</b></div>
+      <div class="tf"><b>Fade</b><span>0 → 1</span><b>Transport</b></div>
     </div>
     <div class="ctl">
-      <label>Edge Fade <span class="val" id="fadeVal">0.25s</span></label>
+      <label for="edgeFade">Edge fade <span class="val" id="fadeVal">0.25s</span></label>
       <input type="range" id="edgeFade" min="0" max="2" step="0.05" value="0.25">
-      <div class="tf"><b>0s</b><span>clip boundaries fade</span><b>2s</b></div>
+      <div class="tf"><b>0s</b><span>at clip boundaries</span><b>2s</b></div>
     </div>
     <div class="ctl">
-      <label>Stereo</label>
+      <label for="stereo">Channels</label>
       <select id="stereo">
         <option value="mono">morph in mono</option>
         <option value="perch">morph per channel</option>
       </select>
     </div>
     <div class="ctl">
-      <label>FFT size</label>
+      <label for="fftsize">FFT size</label>
       <select id="fftsize">
         <option>1024</option><option selected>2048</option><option>4096</option>
       </select>
@@ -126,16 +80,16 @@
     <span class="spacer"></span>
     <button id="export" disabled>Export WAV</button>
   </div>
-  <div id="status">Load an A and a B to begin.</div>
+  <div id="status" role="status" aria-live="polite">Load source A and donor B to begin.</div>
 
-  <div class="foot">hold the shapeshifter through every form, and he must tell you the future.</div>
-</div>
+  <footer class="foot"><span>Proteus · offline audio morph</span><span>Output follows A’s duration · WAV export</span></footer>
+</main>
 
 <script src="engine.js"></script>
 <script>
 "use strict";
 const { TAU, fft, princ, hann, stft, otMag, peakRegions, peakTransport, morphChannel, toMono, bucketPeaks } = globalThis.ProteusDSP;
-const COL={a:'#5fd0c4',b:'#e0a24a',iris:'#b98cff',grid:'#12222f',dim:'#4a6072',foam:'#e9f2ef'};
+const COL={a:'#f3a3bd',b:'#d0de81',iris:'#a2c5fa',grid:'#3a304f',dim:'#ab9fb8',foam:'#f3e6ef'};
 
 //====================== app state ========================================
 const S={ ctx:null, A:null, B:null, peaksA:null, peaksB:null, bOffset:0,
@@ -191,12 +145,12 @@ function drawTL(){
   tlx.strokeStyle=COL.grid; tlx.fillStyle=COL.dim; tlx.font='10px sans-serif';
   for(let s=Math.ceil(t0/stepS)*stepS; s<=t1; s+=stepS){ const x=X(s); tlx.beginPath();tlx.moveTo(x,0);tlx.lineTo(x,h);tlx.stroke(); tlx.fillText(s+'s',x+3,h-4); }
   const laneH=(h-30)/2;
-  tlx.fillStyle='rgba(95,208,196,.05)'; tlx.fillRect(X(0),6,S.A?S.A.duration*pxs:0,laneH);
+  tlx.fillStyle='rgba(243,163,189,.08)'; tlx.fillRect(X(0),6,S.A?S.A.duration*pxs:0,laneH);
   if(S.A) drawPeaks(tlx,S.peaksA,X(0),8,S.A.duration*pxs,laneH-4,COL.a);
   tlx.fillStyle=COL.a; tlx.font='11px sans-serif'; tlx.fillText('A',X(0)+4,20);
   const by=6+laneH+6;
   if(S.B){
-    tlx.fillStyle='rgba(224,162,74,.05)'; tlx.fillRect(X(S.bOffset),by,S.B.duration*pxs,laneH);
+    tlx.fillStyle='rgba(208,222,129,.08)'; tlx.fillRect(X(S.bOffset),by,S.B.duration*pxs,laneH);
     drawPeaks(tlx,S.peaksB,X(S.bOffset),by+2,S.B.duration*pxs,laneH-4,COL.b);
     tlx.fillStyle=COL.b; tlx.fillText('B',X(S.bOffset)+4,by+14);
   }
@@ -243,17 +197,17 @@ function curveAt(x01){
 function drawCurve(){
   const r=fitCanvas(cv), w=r.width, h=r.height, pad=8;
   cx.clearRect(0,0,w,h);
-  cx.fillStyle='#0b1a26'; cx.fillRect(0,0,w,h);
+  cx.fillStyle='#231b36'; cx.fillRect(0,0,w,h);
   cx.strokeStyle=COL.grid;
   for(let i=0;i<=4;i++){ const y=pad+(h-2*pad)*i/4; cx.beginPath();cx.moveTo(0,y);cx.lineTo(w,y);cx.stroke(); }
   const X=t=>pad+t*(w-2*pad), Y=m=>h-pad-m*(h-2*pad);
-  const g=cx.createLinearGradient(0,h,0,0); g.addColorStop(0,'rgba(95,208,196,.10)'); g.addColorStop(1,'rgba(224,162,74,.14)');
+  const g=cx.createLinearGradient(0,h,0,0); g.addColorStop(0,'rgba(243,163,189,.12)'); g.addColorStop(1,'rgba(208,222,129,.16)');
   cx.beginPath(); cx.moveTo(X(0),h);
   for(let px=0;px<=w;px+=3){ const t=Math.min(1,Math.max(0,(px-pad)/(w-2*pad))); cx.lineTo(px,Y(Math.min(1,Math.max(0,curveAt(t))))); }
   cx.lineTo(X(1),h); cx.closePath(); cx.fillStyle=g; cx.fill();
   cx.strokeStyle=COL.iris; cx.lineWidth=2; cx.beginPath();
   S.curve.forEach((p,i)=>{ const x=X(p.t),y=Y(p.m); i?cx.lineTo(x,y):cx.moveTo(x,y); }); cx.stroke(); cx.lineWidth=1;
-  cx.fillStyle='#fff';
+  cx.fillStyle=COL.foam;
   S.curve.forEach(p=>{ cx.beginPath(); cx.arc(X(p.t),Y(p.m),4,0,TAU); cx.fill(); });
   cx.fillStyle=COL.a; cx.font='10px sans-serif'; cx.fillText('A (0)',6,h-6);
   cx.fillStyle=COL.b; cx.fillText('B (1)',6,14);
@@ -399,7 +353,7 @@ $('export').addEventListener('click',()=>{
 //====================== wiring ==========================================
 function wireDrop(which){
   const d=$('drop'+which), inp=$('file'+which);
-  d.addEventListener('click',()=>inp.click());
+  d.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); inp.click(); } });
   inp.addEventListener('change',e=>{ if(e.target.files[0]) loadFile(e.target.files[0],which).catch(er=>status('Load failed: '+er.message,'err')); });
   ['dragover','dragenter'].forEach(ev=>d.addEventListener(ev,e=>{e.preventDefault();d.classList.add('over');}));
   ['dragleave','drop'].forEach(ev=>d.addEventListener(ev,e=>{e.preventDefault();d.classList.remove('over');}));
@@ -434,3 +388,6 @@ window.__proteus={ fft, otMag, peakRegions, morphChannel, stft, hann, bucketPeak
     let peak=0; for(let i=0;i<b.length;i++){ const v=Math.abs(b[i]-128); if(v>peak)peak=v; } return {peak, state:getCtx().state, playing:S.playing, t:+playheadTime().toFixed(2)}; }
 };
 </script>
+
+</body>
+</html>
