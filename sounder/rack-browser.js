@@ -63,7 +63,6 @@ function syncEditor(){
   if(!editorReady)return;
   const cell=recipe.nodes.find(n=>n.id===selected);
   $('master-home').append(document.querySelector('.master'));
-  $('routing-open').hidden=!cell;
   $('node-name').hidden=!cell;$('endpoint-controls').hidden=!!cell;
   if(!cell){cancelAnalysis();editorGeneration++;$('editor').hidden=true;$('mixer-controls').hidden=true;
     $('selected').textContent=selected==='source'?'Recording':'Rack output';
@@ -161,7 +160,7 @@ addEventListener('dragleave',e=>{if(!e.relatedTarget)document.body.classList.rem
 addEventListener('dragend',()=>document.body.classList.remove('file-drag'));
 addEventListener('drop',e=>{e.preventDefault();document.body.classList.remove('file-drag');loadRecording(e.dataTransfer.files[0]);});
 
-function setBusy(value){busy=value;$('editor').inert=value;$('mixer-controls').inert=value;$('node-label').disabled=value;$('cancel').disabled=!value;$('progress').hidden=!value;for(const id of ['process','add','add-mixer','output-node','load','save','recording','load-recording','wave-load','master-gain','master-ceiling','routing-open','source-select','master-select'])$(id).disabled=value||(id==='process'&&!audio);drawCells();}
+function setBusy(value){busy=value;$('editor').inert=value;$('mixer-controls').inert=value;$('node-label').disabled=value;$('cancel').disabled=!value;$('progress').hidden=!value;for(const id of ['process','add','add-mixer','output-node','load','save','recording','load-recording','wave-load','master-gain','master-ceiling','source-select','master-select'])$(id).disabled=value||(id==='process'&&!audio);drawCells();}
 $('process').onclick=async()=>{
   if(!audio||busy)return;cancelAnalysis();setBusy(true);$('stage').disabled=true;$('export').disabled=true;status('Processing rack…');$('progress').removeAttribute('value');
   const job=HindcastsRackJobs.start({kind:'render',audio,recipe},p=>{
@@ -191,7 +190,6 @@ function audition(){if(!audio)return;$('player').pause();if(objectURL){URL.revok
 $('stage').onchange=audition;
 $('export').onclick=()=>{if(result)download(wav(stageChannels(),audio.sampleRate),`sounder-${$('stage').value}.wav`);};
 routing=new SounderRouting({getRecipe:()=>recipe,commit});
-$('routing-open').onclick=()=>{if(!busy)routing.open(selected);};
 graph=new SounderGraph($('graph'),{getRecipe:()=>recipe,select,change:connect,status,move:(id,p)=>{recipe.layout??={positions:{}};recipe.layout.positions[id]=p;}});
 $('zoom-in').onclick=()=>{graph.zoom=Math.min(2,graph.zoom+.25);graph.draw();};$('zoom-out').onclick=()=>{graph.zoom=Math.max(.25,graph.zoom-.25);graph.draw();};
 drawCells();syncMaster();setView(new URLSearchParams(location.search).get('view')!=='effect');

@@ -359,3 +359,11 @@ Checks: `test-rack-browser.cjs` passes against the shared server, exercising the
 [layouts/2026-10-04-workspace.md](layouts/2026-10-04-workspace.md) records diagrams, earlier layout commits, header provenance, and undecided phone behavior. The shared-panel layout was replaced by the user’s side-by-side arrangement. Waves after the workspace were considered and dropped when the user chose recording first. Swipe was left unimplemented while its behavior remains undecided.
 
 Next: assess the compact layout and focused controls on a longer multiband rack with real recordings. Narrow-screen rack interaction, undo/redo, other-effect adapters, and bounded-memory rendering remain undone. Work stayed in the existing checkout; the unrelated Pythia edit remains untouched.
+
+## 2026-10-04 — Codex — Rack-local cell navigation
+
+The cell navigation moved into the rack panel, with Add Sounder, Add mixer, Recording, and Rack output. Cell cards form a compact vertical list with Routing beside each name; the list scrolls beyond 240 px. These controls stay available when the graph is hidden. The duplicate Routing button in the selected effect’s header and its host handlers were removed. The controls/rack row now follows the recording area without a separate navigation row.
+
+Checks: `test-rack-browser.cjs` passes against the shared server. It checks that navigation and add/endpoint controls belong to the rack panel, no Routing button remains in the editor, and cell routing still works with the graph closed. Existing cell/mixer switching, routing validation/cancel, graph edits, saved recipes, PCM parity, waveform loading/drop/seek, playback, chart focus, Worker cancellation/restart, and mobile-width checks pass. Desktop and mobile screenshots were inspected. DSP is unchanged; no listening assessment was made.
+
+The workflow guide and layout record describe the current arrangement, including the earlier separate navigation row. Next: assess the compact layout and focused controls on a longer multiband rack with real recordings. Narrow-screen pull-out/swipe behavior remains undecided. Work stayed in the existing checkout; the unrelated Pythia edit remains untouched.

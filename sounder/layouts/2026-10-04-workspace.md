@@ -8,23 +8,26 @@
 Header: original Sounder wordmark, subtitle, and divider
 Recording: source waveform / processed-stage waveform
 Transport: process / stage / playback / export
-Cell selector
 ┌──────────────────────────────┬──────────────────────┐
 │ Selected cell                │ Rack                 │
 │ Spectrum panel               │ Load / Save rack     │
-│ Console                      │ Recording            │
-│ Band and cell parameters     │     ↓                │
-│                              │ sounder1             │
+│ Console                      │ Cell list / Routing  │
+│ Band and cell parameters     │ Add / endpoint picks │
+│                              │ Recording            │
 │                              │     ↓                │
-│                              │ Rack output          │
+│                              │ sounder1 → output    │
 └──────────────────────────────┴──────────────────────┘
 ```
 
 The user chose waveforms and transport below the header, before controls and rack. The empty source waveform opens the recording picker. **Load file** stays available after loading, and file drops reach the recording loader from the host page or embedded controls. The console contains processing controls.
 
-Load/Save rack belong to the rack panel. Default nodes run vertically, with input ports at the top and output ports at the bottom. Saved coordinates remain intact; older wide layouts can scroll horizontally within the rack. The routing format and DSP are unchanged.
+Load/Save rack, the cell list and its Routing buttons, Add Sounder/Add mixer, and Recording/Rack output selection belong to the rack panel. The effect controls have no duplicate Routing button. Default nodes run vertically, with input ports at the top and output ports at the bottom. Saved coordinates remain intact; older wide layouts can scroll horizontally within the rack. The routing format and DSP are unchanged.
 
 At widths up to 1000 px, the controls and rack stack. This is a temporary responsive layout. A pull-out rack, expanded panel, and optional swipe remain undecided. Swipe is not implemented because curve and crossover drags already use pointer movement. Chart focus still occupies the app window and restores the prior rack disclosure.
+
+## Earlier side-by-side layout
+
+Commit `a36be04` introduced the restored header, recording-first area, and vertical rack beside the controls. Its cell selector and add/endpoint buttons occupied a separate row before both panels, and the selected cell’s editor retained a duplicate Routing button. These controls moved into the rack panel in the current layout.
 
 ## Earlier layout: rack inside the controls panel
 
