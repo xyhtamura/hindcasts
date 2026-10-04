@@ -6,9 +6,9 @@ The [Sounder page](index.html) owns a rack with serial and parallel paths. **Sav
 
 ## Browser rack
 
-Open `sounder/index.html` through the root server. The default network is recording → Sounder → rack output, with routing hidden. **Rack view** reveals that same network; **Effect view** hides its routing controls. Switching views keeps the selected node, all effect values, and the decoded recording in memory. There is no page navigation or transfer between separate racks. The old `rack.html` address redirects to `index.html?view=rack`.
+Open `sounder/index.html` through the root server. The default network is recording → Sounder → rack output, with routing hidden. **Show rack** reveals that same network in a bounded area and pushes the editor down. **Hide rack** closes the routing area. The horizontal cell selector stays available in both states, and the editor keeps its width. Disclosure retains the selected node, effect values, and decoded recording. There is no page navigation or transfer between separate racks. The old `rack.html` address redirects to `index.html?view=rack`.
 
-Select a node to show its settings on the page. Each Sounder has its own curve, bands, detector, makeup, and mix; its histogram measures the actual upstream signal. Recording selection shows channel, rate, and frame information. Output selection exposes the final makeup and ceiling. Mixer selection exposes input gains and disconnection. Add, duplicate, remove, or reorder Sounder cells with their buttons. Each cell also has a bypass switch and a separate dry/wet mix.
+Select a cell in the persistent strip or a node in the graph to show its settings on the page. **Recording** and **Rack output** select their controls even when the graph is hidden. Each Sounder has its own curve, bands, detector, makeup, and mix; its histogram measures the actual upstream signal. Recording selection shows channel, rate, and frame information. Output selection exposes the final makeup and ceiling. Mixer selection exposes input gains and disconnection. **Add Sounder** and **Add mixer** stay available in the cell selector. Duplication, removal, serial reordering, bypass, and cell mix belong to the selected cell’s controls.
 
 **Process rack** renders the chain. **Stage** selects the recording, a raw cell output, or the rack output for the audio player and **Export WAV**. Raw stages precede rack makeup and ceiling. The rack output applies both controls. Export writes float32 WAV at the decoded recording’s rate and length. The browser may resample recordings to its AudioContext rate when decoding; the CLI preserves the input WAV rate.
 
@@ -18,9 +18,15 @@ Rendering and upstream histogram preparation run in dedicated Workers. Processin
 
 Serve the rack over HTTP; there is no main-thread render fallback when a Worker fails. Workers receive copies of the recording and transfer results back, retaining whole-file buffers. Decoding, buffer copying, drawing, and WAV preparation still run on the main thread. Other effects remain outside this browser editor. [Effect adapters](../RACK-ADAPTERS.md) records the reusable structure and each extracted engine’s integration requirements.
 
+## Chart focus
+
+The compact overview keeps the crossover field and depth chart together. **Focus** in either chart header enlarges that chart across the app window. Crossover focus retains band selection, split, merge, and crossover handles. Depth focus retains band selection, the window control, curve presets, and band parameters.
+
+**Return to overview** or Escape restores the previous rack disclosure, selected cell and band, scroll position, and focus button. View changes keep processed audio available and do not rewrite the recipe. Clicking or dragging a plot still edits it. The app-window focus view does not enter browser fullscreen. Short windows can scroll within the focused editor to reach the retained controls; the normal overview uses the main page scrollbar.
+
 ## Cell routing
 
-Each cell’s **Routing** button opens its incoming and outgoing connections. The selected cell’s controls also have a **Routing** button, available in Effect view. **In** selects the upstream recording or cell. Mixers have multiple input rows, each with a gain control, plus **Add input** and **Remove input**.
+Each cell’s **Routing** button opens its incoming and outgoing connections. The selected cell’s controls also have a **Routing** button, available with the rack open or closed. **In** selects the upstream recording or cell. Mixers have multiple input rows, each with a gain control, plus **Add input** and **Remove input**.
 
 **Out** lists destination cells and rack output. Checking a Sounder replaces that destination’s input; unchecking it restores the recording. Checking a mixer adds this cell at 0 dB and preserves any existing input gain. Unchecking it removes this cell’s paths; a mixer must retain at least one input. Checking rack output makes this cell the final result; unchecking it restores the recording as output. A cell can feed several destinations.
 

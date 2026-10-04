@@ -13,21 +13,22 @@
   <button id="cancel" disabled>Cancel processing</button>
   <button id="export" disabled>Export WAV</button>
 </div>
-<div class="toolbar"><button id="view" aria-expanded="false" aria-controls="patch">Rack view</button><span class="rack-tools"><button id="add-mixer">Add mixer</button><button id="zoom-out" aria-label="Zoom graph out">−</button><button id="zoom-in" aria-label="Zoom graph in">＋</button><label>Rack output <select id="output-node"></select></label></span></div>
+<div class="toolbar"><button id="view" aria-expanded="false" aria-controls="patch">Show rack</button><span class="rack-tools"><button id="zoom-out" aria-label="Zoom graph out">−</button><button id="zoom-in" aria-label="Zoom graph in">＋</button><label>Rack output <select id="output-node"></select></label></span></div>
 <p id="status" role="status">Load a recording or edit the chain.</p><progress id="progress" hidden aria-label="Rack processing progress"></progress>
 <section id="patch" hidden><h2>Patch graph</h2><p>Drag a node body to move it. Select a node title to edit it. Choose an output port, then an input port to connect. Mixer input ports add a path.</p><div class="patch-scroll"><svg id="graph" aria-label="Audio routing graph"></svg></div></section>
 <main>
- <aside>
-  <h2>Nodes</h2><p>Connections determine processing order.</p>
-  <div id="cells" role="group" aria-label="Sounder cells"></div>
-  <button id="add">Add Sounder</button>
+ <nav class="cell-nav" aria-label="Rack cells">
+  <div id="cells" role="group" aria-label="Effect cells"></div>
+  <div class="cell-nav-actions"><button id="add">Add Sounder</button><button id="add-mixer">Add mixer</button><button id="source-select">Recording</button><button id="master-select">Rack output</button></div>
+ </nav>
+ <div id="master-home" hidden>
   <div class="master">
    <h2>Rack output</h2>
    <label>Makeup (dB) <input id="master-gain" type="number" min="-60" max="36" step="0.5" value="0"></label>
    <label>Sample ceiling (dB) <input id="master-ceiling" type="number" min="-60" max="0" step="0.5" value="-1"></label>
   </div>
- </aside>
- <section class="editor"><div class="editor-heading"><h2 id="selected">Sounder 1 controls</h2><button id="routing-open" type="button">Routing</button></div><label id="node-name">Node name <input id="node-label" type="text" maxlength="120"></label><p id="upstream">Histogram input: recording</p>
+ </div>
+ <section class="editor"><div class="editor-heading"><h2 id="selected">Sounder 1 controls</h2><div><button id="routing-open" type="button">Routing</button><button id="focus-return" type="button" hidden>Return to overview</button></div></div><label id="node-name">Node name <input id="node-label" type="text" maxlength="120"></label><div id="cell-actions" role="group" aria-label="Selected cell actions"></div><p id="upstream">Histogram input: recording</p>
   <iframe id="editor" src="effect.html?rack" title="Selected Sounder cell controls"></iframe>
   <div id="mixer-controls" hidden></div><div id="endpoint-controls" hidden></div>
  </section>

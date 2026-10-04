@@ -124,13 +124,6 @@ h1.wordmark span{display:inline-block;text-shadow:0 0 24px rgba(84,240,198,.2)}
 .chart-foot{margin-top:20px;font-size:11px;color:var(--faint);line-height:1.4;flex:none;}
 .chart-foot b{color:var(--mute);font-weight:600}
 
-/* Fullscreen Chart Overlay */
-.chart-panel.fs-active {
-  position:fixed;inset:16px;z-index:9999;
-  background:var(--abyss2);border:1px solid var(--lumen-dim);
-  box-shadow:0 12px 60px rgba(0,0,0,0.9);
-}
-
 /* params */
 .params{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-top:14px;flex:none;}
 .slider-group label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;
@@ -220,6 +213,21 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;bor
 .params .grp-label .sw{width:9px;height:9px;border-radius:2px;flex:none;}
 #band-indicator{font-family:var(--mono);font-size:10px;color:var(--mute);display:inline-flex;align-items:center;gap:6px;}
 #band-indicator .sw{width:9px;height:9px;border-radius:2px;}
+
+/* Embedded overview and app-level chart focus. */
+html:has(body[data-chart-focus]:not([data-chart-focus=""])),body[data-chart-focus]:not([data-chart-focus=""]){height:100%;min-height:0}
+body[data-chart-focus]:not([data-chart-focus=""]) .container{overflow:auto!important;height:100dvh;min-height:0;max-width:none;padding:8px;gap:8px}
+body[data-chart-focus]:not([data-chart-focus=""]) header,body[data-chart-focus]:not([data-chart-focus=""]) .waves,body[data-chart-focus]:not([data-chart-focus=""]) .transport{display:none}
+body[data-chart-focus="crossover"] .console,body[data-chart-focus="crossover"] .params{display:none}
+body[data-chart-focus="crossover"] .spectrum-panel{flex:1;display:flex;flex-direction:column;margin:0}
+body[data-chart-focus="crossover"] .sp-stage{height:auto;flex:1;min-height:240px}
+body[data-chart-focus="depth"] .spectrum-panel{display:none}
+body[data-chart-focus="depth"] .console{flex:1;min-height:260px}
+body[data-chart-focus="depth"] .chart-panel{display:flex;flex-direction:column;min-height:260px}
+body[data-chart-focus="depth"] .chart-stage{min-height:180px}
+body[data-chart-focus="depth"] .params{margin-top:4px}
+#depth-bands .band-list{margin-top:0}
+@media(max-width:600px){body[data-chart-focus="depth"] .console{grid-template-columns:1fr}body[data-chart-focus="depth"] .console>div:first-child .panel{padding:8px}body[data-chart-focus="depth"] .knob-wrap{margin-top:4px}body[data-chart-focus="depth"] .presets{margin-top:4px}body[data-chart-focus="depth"] .console>div:first-child h3,body[data-chart-focus="depth"] .console>div:first-child .note{display:none}}
 </style>
 </head>
 <body>
@@ -239,6 +247,7 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;bor
     <div class="sp-head">
       <h3>Crossover field</h3>
       <div class="sp-actions">
+        <button id="spectrum-focus" type="button">Focus</button>
         <button id="band-split" type="button" title="Split the selected band in two">＋ split band</button>
         <button id="band-merge" type="button" title="Merge selected band into its neighbour">－ merge</button>
       </div>
@@ -293,7 +302,7 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;bor
       <div class="chart-head">
         <div class="left">
           <h3>Depth chart</h3><span id="band-indicator"></span>
-          <button class="fs-btn" id="btn-fs">Full Screen</button>
+          <button class="fs-btn" id="btn-fs" type="button">Focus</button>
           <span class="hint">drag · click add · dbl-click (or del) remove</span>
         </div>
         <div class="legend">
@@ -303,8 +312,8 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;bor
       </div>
       <div class="chart-stage">
         <canvas id="chart"></canvas>
-        <div class="axis-x">input level (dB) — seabed&nbsp;◂&nbsp;&nbsp;&nbsp;&nbsp;▸&nbsp;surface (0)</div>
-        <div class="axis-y">output level (dB) →</div>
+        <div class="axis-x">Input level (dB)</div>
+        <div class="axis-y">Output level (dB)</div>
       </div>
       <p class="chart-foot">Filled terrain is <b>time-occupancy</b>. Magenta ghost is where your curve moves it.</p>
     </div>
@@ -511,14 +520,14 @@ function regime(ms){return ms<SHAPE_MS?'waveshape · mangle':ms<12?'grain · har
 
 /* ── DEPTH CHART ── */
 let CW=0,CH=0,DPR=1;
-function sizeChart(){DPR=Math.min(2,window.devicePixelRatio||1);const r=chart.getBoundingClientRect();
+function sizeChart(){DPR=Math.min(2,window.devicePixelRatio||1);const r=chart.getBoundingClientRect();if(!r.width||!r.height)return;
   CW=r.width;CH=r.height;chart.width=CW*DPR;chart.height=CH*DPR;cctx.setTransform(DPR,0,0,DPR,0,0);}
 function draw(){
   if(!CW)sizeChart();
   cctx.clearRect(0,0,CW,CH);
   const pad=10,w=CW-pad*2,h=CH-pad*2,X=nx=>pad+nx*w,Y=ny=>pad+(1-ny)*h;
   const marks=[0,-6,-12,-24,-48].filter(d=>d>band.floorDb).concat([band.floorDb]);
-  cctx.font='10px '+cssVar('--mono');cctx.textBaseline='alphabetic';
+  cctx.font='11px '+cssVar('--mono');cctx.textBaseline='alphabetic';
   // dB grid on BOTH axes — same dB→norm mapping drives input (vertical) and output (horizontal)
   marks.forEach(d=>{const n=dbToN(d),gx=X(n),gy=Y(n),seabed=d===band.floorDb;
     cctx.strokeStyle='rgba(28,74,64,.55)';cctx.lineWidth=1;
@@ -526,8 +535,8 @@ function draw(){
     cctx.strokeStyle='rgba(28,74,64,.38)';
     cctx.beginPath();cctx.moveTo(pad,gy);cctx.lineTo(pad+w,gy);cctx.stroke();           // output level (horizontal)
     cctx.fillStyle='rgba(79,122,110,.85)';cctx.textAlign='left';
-    cctx.fillText(seabed?'seabed':d+'',gx+3,pad+h-4);                                    // input label (bottom)
-    if(!seabed)cctx.fillText(d+'',pad+3,gy-3);});                                        // output label (left)
+    const label=seabed?'floor':d+'',labelWidth=cctx.measureText(label).width;cctx.fillText(label,Math.min(gx+3,CW-labelWidth-2),pad+h-4);                                    // input label (bottom)
+    if(!seabed)cctx.fillText(d+'',pad+3,Math.max(12,gy-3));});                                        // output label (left)
   if(hist){
     const grad=cctx.createLinearGradient(pad,0,pad+w,0);
     grad.addColorStop(0,'rgba(142,116,255,.55)');grad.addColorStop(.5,'rgba(43,191,155,.5)');grad.addColorStop(1,'rgba(84,240,198,.6)');
@@ -833,7 +842,7 @@ function setStatus(t,work){statusEl.textContent=t;statusEl.classList.toggle('wor
 const RATIO=Math.pow(2,0.4);                 // min crossover spacing (≈0.4 octave) -> guarantees PR
 const spec=$('spectrum'),sctx=spec.getContext('2d');
 let SW=0,SH=0,SDPR=1;
-function sizeSpectrum(){SDPR=Math.min(2,window.devicePixelRatio||1);const r=spec.getBoundingClientRect();
+function sizeSpectrum(){SDPR=Math.min(2,window.devicePixelRatio||1);const r=spec.getBoundingClientRect();if(!r.width||!r.height)return;
   SW=r.width;SH=r.height;spec.width=SW*SDPR;spec.height=SH*SDPR;sctx.setTransform(SDPR,0,0,SDPR,0,0);}
 const FMIN=20;
 const xOfF=f=>{const fmax=sr/2;return Math.log(clamp(f,FMIN,fmax)/FMIN)/Math.log(fmax/FMIN);};
@@ -918,14 +927,15 @@ window.SounderApp = {
   getCurve: () => band.curve,
   setCurve: (c) => { band.curve = c; },
   getChartRef: () => chart,
-  buildLut, draw, curveChanged, sizeChart
+  buildLut, draw, curveChanged, sizeChart,
+  refreshView:()=>{sizeChart();sizeSpectrum();draw();drawSpectrum();}
 };
 
 function init(){sizeChart();sizeSpectrum();buildLut();setTau(band.tauMs);buildSafety();renderBands();drawSpectrum();syncControls();draw();updateTime();
   addEventListener('resize',()=>{sizeChart();sizeSpectrum();draw();drawSpectrum();if(inPeaks)cacheWave('in',inPeaks);if(outPeaks)cacheWave('out',outPeaks);drawWaves();});}
 init();
 if(new URLSearchParams(location.search).has('rack')){
-  const style=document.createElement('style');style.textContent='html,body{min-height:0}header,.drop,.filemeta,.state-io,.waves,.transport,.slider-group.safety,#sound,#export,#status{display:none!important}.container{padding:10px;min-height:0}.console{grid-template-columns:240px 1fr}@media(max-width:600px){.console{grid-template-columns:1fr}}';document.head.append(style);
+  const style=document.createElement('style');style.textContent='html,body{min-height:0}header,.drop,.filemeta,.state-io,.waves,.transport,.slider-group.safety,#sound,#export,#status{display:none!important}.container{padding:10px;min-height:0}.console{grid-template-columns:220px minmax(0,1fr)}.chart-panel{display:flex;flex-direction:column;min-height:240px;padding-bottom:32px}.chart-stage{min-height:180px}.sp-stage{height:100px}.chart-head .hint,.chart-foot{display:none}.container{overflow:visible}.chart-head h3,.sp-head h3,.fs-btn,.sp-actions button{font-size:11px}.axis-x{font-size:11px}.chart-stage{margin-left:22px;width:calc(100% - 22px)}.axis-y{left:-20px;top:50%;font-size:11px;writing-mode:vertical-rl;transform:translateY(-50%) rotate(180deg);transform-origin:center}@media(max-width:600px){.console{grid-template-columns:1fr}}';document.head.append(style);
   document.querySelector('.console .panel h3').textContent='Window and curve';
   document.querySelector('.console .panel .note').textContent='Histogram follows the selected cell’s input.';
   document.querySelector('label[for="mmakeup"]').firstChild.textContent='Cell makeup';
@@ -946,6 +956,7 @@ if(new URLSearchParams(location.search).has('rack')){
       cellId=e.data.cellId;generation=e.data.generation;transStop();srcBuffer=null;hist=null;levelN=null;nFrames=0;
       if(e.data.sampleRate)sr=e.data.sampleRate;
       applyState(e.data.state);
+      selectBand(Number.isInteger(e.data.bandIndex)?e.data.bandIndex:0);
       parent.postMessage({type:'sounder-cell-ready',cellId,generation,bandIndex:sel},'*');
     }finally{loading=false;}
   });
@@ -959,23 +970,27 @@ if(new URLSearchParams(location.search).has('rack')){
   "use strict";
   const api = window.SounderApp;
   
-  // ── FULLSCREEN TOGGLE ──
-  const fsBtn = document.getElementById('btn-fs');
-  const chartPanel = document.getElementById('chart-panel');
-  
-  fsBtn.addEventListener('click', () => {
-    chartPanel.classList.toggle('fs-active');
-    api.sizeChart();
-    api.draw();
-    fsBtn.textContent = chartPanel.classList.contains('fs-active') ? 'Exit Screen' : 'Full Screen';
-  });
-
-  // Escape key to exit fullscreen
-  window.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && chartPanel.classList.contains('fs-active')) {
-      fsBtn.click();
-    }
-  });
+  // One focus path for both charts; the rack host expands the editor frame.
+  const depthButton=document.getElementById('btn-fs'),crossButton=document.getElementById('spectrum-focus');
+  const container=document.querySelector('.container'),bandList=document.getElementById('band-list'),spectrumPanel=document.getElementById('spectrum-panel');
+  const bandHome=document.createComment('band list home');bandList.before(bandHome);
+  const depthBands=document.createElement('div');depthBands.id='depth-bands';depthBands.hidden=true;container.insertBefore(depthBands,document.querySelector('.console'));
+  const embedded=new URLSearchParams(location.search).has('rack');let focused=null,returnFocus=null,scrollBefore=0;
+  function focusChart(chart){
+    const next=['depth','crossover'].includes(chart)?chart:null;if(next===focused)return;
+    if(next&&!focused){returnFocus=document.activeElement;scrollBefore=scrollY;}
+    focused=next;document.body.dataset.chartFocus=next||'';
+    depthButton.textContent=next==='depth'?'Return to overview':'Focus';crossButton.textContent=next==='crossover'?'Return to overview':'Focus';
+    depthBands.hidden=next!=='depth';if(next==='depth')depthBands.append(bandList);else bandHome.after(bandList);
+    if(embedded)parent.postMessage({type:'sounder-focus',chart:next},'*');
+    requestAnimationFrame(()=>{api.refreshView();if(!next){scrollTo(0,scrollBefore);returnFocus?.focus({preventScroll:true});}
+      if(embedded&&!next)parent.postMessage({type:'sounder-size',height:Math.ceil(container.getBoundingClientRect().height)+10},'*');
+    });
+  }
+  depthButton.onclick=()=>focusChart(focused==='depth'?null:'depth');crossButton.onclick=()=>focusChart(focused==='crossover'?null:'crossover');
+  addEventListener('keydown',e=>{if(e.key==='Escape'&&focused){e.preventDefault();focusChart(null);}});
+  addEventListener('message',e=>{if(embedded&&e.source===parent&&e.data?.type==='sounder-focus-exit')focusChart(null);});
+  let resizeFrame;new ResizeObserver(()=>{cancelAnimationFrame(resizeFrame);resizeFrame=requestAnimationFrame(()=>api.refreshView());}).observe(container);
 
   // ── UNDO / REDO STATE ──
   let history = [];
