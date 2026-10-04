@@ -337,3 +337,11 @@ Checks: `test-rack-browser.cjs` uses the shared server on port 8000, checks disc
 The sidebar alternative was dropped when the user accepted the horizontal study. Browser fullscreen was deferred: app-window focus fulfills the requested enlargement without depending on browser fullscreen. The accepted layout is recorded in [UI-PLAN.md](UI-PLAN.md), and operating details are in [WORKFLOWS.md](WORKFLOWS.md).
 
 Next: assess the compact layout and focused controls on a longer multiband rack with real recordings. Browser fullscreen, undo/redo, other-effect adapters, and bounded-memory rendering remain undone. Work stayed in the existing checkout; the unrelated Pythia edit remains untouched.
+
+## 2026-10-04 — Codex — Rack in the controls column
+
+The rack and its disclosure/zoom toolbar moved inside the selected cell’s panel in `index.html`. The workspace is capped at 1180 px so the rack and effect controls share one column. A fresh page shows recording → `sounder1` → rack output. Hide rack collapses the graph and moves the controls up; `?view=effect` starts closed. Chart focus hides the nested rack and toolbar, then restores their prior disclosure on return. Graph manipulation, recipes, and DSP are unchanged.
+
+Checks: `test-rack-browser.cjs` passes against the shared server. It checks the initial three nodes, equal rack/editor width and horizontal position, disclosure moving the controls without narrowing them, and chart focus hiding/restoring an open rack. Existing cell switching, routing forms, saved layout/recipe round trips, rendered PCM parity, playback, Worker cancellation/restart, short-window, and mobile-width checks pass. Desktop initial-rack and mobile screenshots were inspected. No listening assessment was made.
+
+Next: assess the compact layout and focused controls on a longer multiband rack with real recordings. Graphical editing changes remain deferred. Work stayed in the existing checkout; the unrelated Pythia edit remains untouched.

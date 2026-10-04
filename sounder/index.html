@@ -5,7 +5,7 @@
 <title>Sounder</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="rack.css">
-<body class="effect-view"><header><h1>Sounder</h1><a href="WORKFLOWS.md">Workflow guide</a></header>
+<body><header><h1>Sounder</h1><a href="WORKFLOWS.md">Workflow guide</a></header>
 <div class="toolbar">
   <label>Recording <input id="recording" type="file" accept="audio/*"></label>
   <button id="load">Load rack</button><input id="recipe-file" type="file" accept=".json" hidden>
@@ -13,9 +13,7 @@
   <button id="cancel" disabled>Cancel processing</button>
   <button id="export" disabled>Export WAV</button>
 </div>
-<div class="toolbar"><button id="view" aria-expanded="false" aria-controls="patch">Show rack</button><span class="rack-tools"><button id="zoom-out" aria-label="Zoom graph out">−</button><button id="zoom-in" aria-label="Zoom graph in">＋</button><label>Rack output <select id="output-node"></select></label></span></div>
 <p id="status" role="status">Load a recording or edit the chain.</p><progress id="progress" hidden aria-label="Rack processing progress"></progress>
-<section id="patch" hidden><h2>Patch graph</h2><p>Drag a node body to move it. Select a node title to edit it. Choose an output port, then an input port to connect. Mixer input ports add a path.</p><div class="patch-scroll"><svg id="graph" aria-label="Audio routing graph"></svg></div></section>
 <main>
  <nav class="cell-nav" aria-label="Rack cells">
   <div id="cells" role="group" aria-label="Effect cells"></div>
@@ -28,7 +26,10 @@
    <label>Sample ceiling (dB) <input id="master-ceiling" type="number" min="-60" max="0" step="0.5" value="-1"></label>
   </div>
  </div>
- <section class="editor"><div class="editor-heading"><h2 id="selected">Sounder 1 controls</h2><div><button id="routing-open" type="button">Routing</button><button id="focus-return" type="button" hidden>Return to overview</button></div></div><label id="node-name">Node name <input id="node-label" type="text" maxlength="120"></label><div id="cell-actions" role="group" aria-label="Selected cell actions"></div><p id="upstream">Histogram input: recording</p>
+ <section class="editor">
+  <div class="toolbar rack-toolbar"><button id="view" aria-expanded="true" aria-controls="patch">Hide rack</button><span class="rack-tools"><button id="zoom-out" aria-label="Zoom graph out">−</button><button id="zoom-in" aria-label="Zoom graph in">＋</button><label>Rack output <select id="output-node"></select></label></span></div>
+  <section id="patch"><h2>Patch graph</h2><p>Drag a node body to move it. Select a node title to edit it. Choose an output port, then an input port to connect. Mixer input ports add a path.</p><div class="patch-scroll"><svg id="graph" aria-label="Audio routing graph"></svg></div></section>
+  <div class="editor-heading"><h2 id="selected">Sounder 1 controls</h2><div><button id="routing-open" type="button">Routing</button><button id="focus-return" type="button" hidden>Return to overview</button></div></div><label id="node-name">Node name <input id="node-label" type="text" maxlength="120"></label><div id="cell-actions" role="group" aria-label="Selected cell actions"></div><p id="upstream">Histogram input: recording</p>
   <iframe id="editor" src="effect.html?rack" title="Selected Sounder cell controls"></iframe>
   <div id="mixer-controls" hidden></div><div id="endpoint-controls" hidden></div>
  </section>

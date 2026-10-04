@@ -163,7 +163,7 @@ routing=new SounderRouting({getRecipe:()=>recipe,commit});
 $('routing-open').onclick=()=>{if(!busy)routing.open(selected);};
 graph=new SounderGraph($('graph'),{getRecipe:()=>recipe,select,change:connect,status,move:(id,p)=>{recipe.layout??={positions:{}};recipe.layout.positions[id]=p;}});
 $('zoom-in').onclick=()=>{graph.zoom=Math.min(2,graph.zoom+.25);graph.draw();};$('zoom-out').onclick=()=>{graph.zoom=Math.max(.25,graph.zoom-.25);graph.draw();};
-drawCells();syncMaster();setView(new URLSearchParams(location.search).get('view')==='rack');
+drawCells();syncMaster();setView(new URLSearchParams(location.search).get('view')!=='effect');
 const handshake=()=>$('editor').contentWindow.postMessage({type:'sounder-connect'},'*');
 $('editor').addEventListener('load',handshake);handshake();
 })();
